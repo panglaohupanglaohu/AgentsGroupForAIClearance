@@ -23,7 +23,7 @@ describe('Engine Live Cockpit (T801/T802/T832/T861)', () => {
     expect(html).toContain('创建并启动 Engine');
     expect(html).toContain('engine-state.js');
     expect(html).toContain('engine-reducer.js');
-    expect(html).toContain('不构成投资建议');
+    expect(html).toContain('仅供内部治理参考');
   });
 
   it('keeps the assembly wide and stacks controls/results on the right rail', () => {

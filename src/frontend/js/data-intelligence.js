@@ -1,4 +1,4 @@
-/** StockAgents research workbench: sources, trace, reports and schedules. */
+/** ModelClearance data intelligence workbench: sources, trace, reports and schedules. */
 (function () {
   'use strict';
   var state = { sources: [], schedules: [], latest: {}, directory: { url: '', candidates: [] } };
@@ -528,7 +528,7 @@
       '<h2 class="brief-title">' + esc(brief.headline || '—') + '</h2>' +
       '<div class="brief-meta">' + esc(brief.source_count || 0) + ' 条证据 · ' + esc(brief.source_diversity || (brief.focus_items && brief.focus_items[0] && brief.focus_items[0].source_domains || []).length || 0) +
       ' 个来源域 · 综合分 ' + esc(score) + ' · 截止 ' + esc(brief.as_of || '—') +
-      ' · ' + esc(brief.disclaimer || '研究/模拟，非投资建议') + '</div></div>' +
+      ' · ' + esc(brief.disclaimer || '研究/分析用途，仅供内部治理参考') + '</div></div>' +
       '<span class="brief-badge">' + esc(status) + '</span></div>' +
       '<div class="brief-focus" aria-label="本轮重点信号">' +
       ((brief.focus_items || []).length
@@ -541,7 +541,7 @@
       '<article class="brief-card"><h3>核心结论 · 要点</h3>' + listClaims(brief.bullets, '暂无可确认结论') + '<small>结论来自本轮来源，不代表预测。</small></article>' +
       '<article class="brief-card"><h3>热门分析 · 趋势与影响</h3>' + insightListHtml(brief.hot_analysis, '暂无趋势分析') + '<small>按主题/信号支持度整理。</small></article>' +
       '<article class="brief-card insight"><h3>独到见解</h3>' + insightListHtml(insights, '暂无可确认推断') + '<small>推断需结合反证与来源。</small></article>' +
-      '<article class="brief-card"><h3>趋势新闻 · 反证</h3>' + insightListHtml((brief.trending_news || []).slice(0, 2).concat(counters), '暂无') + '<small>研究/模拟用途，非投资建议。</small></article>' +
+      '<article class="brief-card"><h3>趋势新闻 · 反证</h3>' + insightListHtml((brief.trending_news || []).slice(0, 2).concat(counters), '暂无') + '<small>研究/分析用途，仅供内部治理参考。</small></article>' +
       '</div>';
   }
 
@@ -578,12 +578,12 @@
       distinctive_insights: (x.insight || []).map(function (b) { return { kind: 'analysis', title: '见解', body: b, source_domains: [] }; }).concat(
         (x.counter || []).map(function (b) { return { kind: 'counter', title: '反证', body: b, source_domains: [] }; })
       ),
-      evidence_limits: ['研究/模拟用途，不构成投资建议'],
+      evidence_limits: ['研究/分析用途，仅供内部治理参考'],
       as_of: x.cutoff,
       source_count: x.sourceCount,
       source_diversity: x.domains,
       evidence_score: x.score,
-      disclaimer: '研究/模拟用途，非投资建议'
+      disclaimer: '研究/分析用途，仅供内部治理参考'
     }, channel);
   }
 

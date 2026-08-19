@@ -26,14 +26,14 @@ const PRESERVED = [
 ];
 
 const ANCHORS = [
-  'engine-overview',
-  'engine-config',
-  'engine-context',
-  'engine-dashboard',
-  'engine-assembly',
-  'engine-portfolio',
-  'engine-timeline',
-  'engine-health',
+  'clearance-overview',
+  'clearance-application',
+  'clearance-evidence',
+  'clearance-posture',
+  'clearance-board',
+  'clearance-registry',
+  'clearance-timeline',
+  'clearance-health',
 ];
 
 function loadSidebarScript() {
@@ -77,7 +77,7 @@ describe('Engine research sidebar (P10)', () => {
     for (const id of ANCHORS) {
       expect(html).toContain(`id="${id}"`);
     }
-    expect(html).toContain('aria-label="投资引擎研究导航"');
+    expect(html).toContain('aria-label="准入控制台导航"');
     expect(html).toContain('engine-sidebar.js');
     expect(html).toContain('id="engine-sidebar"');
     expect(html).toContain('id="btn-engine-start"');
@@ -88,8 +88,8 @@ describe('Engine research sidebar (P10)', () => {
     const { api } = loadSidebarScript();
     expect(api.STORAGE_KEY).toBe('sa_engine_sidebar_v1');
     expect(api.ITEMS.length).toBeGreaterThanOrEqual(6);
-    expect(api.ITEMS.some((x) => x.id === 'analysis')).toBe(true);
-    expect(api.ITEMS.some((x) => x.id === 'portfolio')).toBe(true);
+    expect(api.ITEMS.some((x) => x.id === 'application')).toBe(true);
+    expect(api.ITEMS.some((x) => x.id === 'registry')).toBe(true);
     expect(api.badgeText(null)).toBe('—');
     expect(api.badgeText(3)).toBe('3');
   });
@@ -98,12 +98,12 @@ describe('Engine research sidebar (P10)', () => {
     const { api, store } = loadSidebarScript();
     const state = api.defaultState();
     state.collapsed = true;
-    state.active = 'analysis';
+    state.active = 'application';
     state.expandedMore = true;
     api.saveState(state);
     const raw = JSON.parse(store[api.STORAGE_KEY]);
     expect(raw.collapsed).toBe(true);
-    expect(raw.active).toBe('analysis');
+    expect(raw.active).toBe('application');
     expect(raw.expandedMore).toBe(true);
     expect(raw).not.toHaveProperty('apiKey');
     expect(raw).not.toHaveProperty('reportHtml');
@@ -112,9 +112,9 @@ describe('Engine research sidebar (P10)', () => {
   it('maps sidebar targets to stable engine anchors', () => {
     const { api } = loadSidebarScript();
     const targets = api.ITEMS.map((x) => x.target);
-    expect(targets).toContain('engine-config');
-    expect(targets).toContain('engine-dashboard');
-    expect(targets).toContain('engine-portfolio');
-    expect(targets).toContain('engine-assembly');
+    expect(targets).toContain('clearance-application');
+    expect(targets).toContain('clearance-posture');
+    expect(targets).toContain('clearance-registry');
+    expect(targets).toContain('clearance-board');
   });
 });

@@ -121,7 +121,7 @@
       order_lifecycle: s.order_lifecycle || [],
       portfolio: s.portfolio || null,
       summary: safeText(event.content || ''),
-      disclaimer: s.disclaimer || '研究/模拟用途，不构成投资建议。',
+      disclaimer: s.disclaimer || '仅供内部治理参考，不构成法律或采购建议。',
       label: 'simulation',
       ts: event.ts,
     };

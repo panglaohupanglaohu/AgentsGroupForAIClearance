@@ -73,6 +73,7 @@
     .grid { display:grid; grid-template-columns:minmax(0,1fr) 310px; grid-template-areas:"main config" "main rail"; gap:16px; align-items:start; min-width:0; max-width:100%; }
     .grid > section { grid-area:main; min-width:0; }
     #engine-config { grid-area:config; }
+    #clearance-application { grid-area:config; }
     .grid > aside:not(#engine-config) { grid-area:rail; min-width:0; }
     .grid > * { min-width:0; max-width:100%; }
     @media (max-width: 960px) {
@@ -226,26 +227,26 @@
 
   <div class="engine-shell" id="engine-shell">
     <div class="engine-sidebar-overlay" id="engine-sidebar-overlay" hidden aria-hidden="true"></div>
-    <nav class="engine-sidebar" id="engine-sidebar" aria-label="投资引擎研究导航" aria-expanded="true">
+    <nav class="engine-sidebar" id="engine-sidebar" aria-label="准入控制台导航" aria-expanded="true">
       <div class="engine-sidebar-brand">
-        <strong>研究导航</strong>
-        <span>ENGINE</span>
+        <strong>准入控制</strong>
+        <span>CLEARANCE</span>
       </div>
       <ul class="engine-sidebar-list" id="engine-sidebar-list"></ul>
       <div class="engine-sidebar-foot">
         <button type="button" id="engine-sidebar-more" aria-expanded="false">显示更多</button>
-        <button type="button" id="engine-sidebar-toggle" aria-expanded="true" aria-label="折叠研究导航">«</button>
+        <button type="button" id="engine-sidebar-toggle" aria-expanded="true" aria-label="折叠准入导航">«</button>
         <button type="button" id="engine-sidebar-close" class="secondary" style="display:none">关闭</button>
       </div>
     </nav>
-    <button type="button" class="engine-sidebar-open" id="engine-sidebar-open" aria-expanded="false" aria-controls="engine-sidebar">☰ 研究导航</button>
+    <button type="button" class="engine-sidebar-open" id="engine-sidebar-open" aria-expanded="false" aria-controls="engine-sidebar">☰ 准入导航</button>
 
     <div class="engine-main">
-      <div class="wrap" id="engine-overview" tabindex="-1">
+      <div class="wrap" id="clearance-overview" tabindex="-1">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:8px">
           <div>
-            <h1 style="margin:0 0 6px">投资引擎</h1>
-            <p class="sub" style="margin:0">TradingAgents 驱动的研究模拟 · Engine Live Journey · Paper Portfolio。不修改 Plaza。</p>
+            <h1 style="margin:0 0 6px">AI模型基础设施准入控制台</h1>
+            <p class="sub" style="margin:0">ModelClearance 驱动的开放权重模型准入控制与会签裁决 · Evidence-Gated Admission</p>
           </div>
           <div style="text-align:right;min-width:220px">
             <button class="btn" id="btn-engine-start" type="button" style="font-size:14px;padding:12px 18px;margin:0">创建并启动 Engine</button>
@@ -253,85 +254,86 @@
           </div>
         </div>
         <div class="disclaimer">
-          本页面仅用于研究与模拟，不构成投资建议，绝不连接真实券商。历史运行不会读取未来信息文档。“营收/价值推演”仅指模拟组合价值路径。
+          仅供内部治理参考，不构成法律或采购建议。严格遵循 SAIF / NIST AI RMF 准入标准与 T1-T5 原则。
         </div>
 
         <div class="grid">
-          <aside class="card anchor-target" id="engine-config" tabindex="-1">
-            <h2>模拟配置</h2>
-            <label>行业板块</label>
-            <select id="sector"><option value="ai_compute" selected>AI / 算力与半导体</option><option value="cloud_software">云计算 / 软件</option><option value="新能源">新能源 / 电池</option><option value="智能制造">智能制造 / 工业</option><option value="医药健康">医药 / 健康</option><option value="消费科技">消费科技</option><option value="宽基指数">宽基指数 / ETF</option><option value="">自定义 / 未指定</option></select>
-            <label>股票 / 标的 Ticker</label>
-            <input id="ticker" value="NVDA" maxlength="12" list="ticker-presets" />
-            <datalist id="ticker-presets"><option value="NVDA">NVIDIA</option><option value="AMD">AMD</option><option value="TSM">台积电</option><option value="MSFT">Microsoft</option><option value="GOOGL">Alphabet</option><option value="AAPL">Apple</option><option value="QQQ">Nasdaq 100 ETF</option></datalist>
-            <div class="ticker-presets" aria-label="常用标的"><button type="button" data-ticker="NVDA">NVDA</button><button type="button" data-ticker="AMD">AMD</button><button type="button" data-ticker="TSM">TSM</button><button type="button" data-ticker="QQQ">QQQ</button></div>
-            <label>交易日期 (as_of / cutoff)</label>
+          <aside class="card anchor-target" id="clearance-application" tabindex="-1">
+            <h2>准入申请配置</h2>
+            <label>应用领域 / 赛道</label>
+            <select id="sector"><option value="ai_compute" selected>基础大模型 / 通用推理</option><option value="code_generation">代码生成 / 研发助手</option><option value="domain_finance">领域专用 / 金融合规</option><option value="multimodal">多模态 / 视觉语言</option><option value="edge_mobile">端侧轻量 / 移动部署</option><option value="embodied_ai">具身智能 / 机器人</option><option value="">自定义 / 未指定</option></select>
+            <label>模型 ID / 标识 (model_id)</label>
+            <input id="ticker" value="meta-llama/Llama-3.1-8B-Instruct" maxlength="64" list="ticker-presets" />
+            <datalist id="ticker-presets"><option value="meta-llama/Llama-3.1-8B-Instruct">Llama 3.1 8B</option><option value="Qwen/Qwen2.5-7B-Instruct">Qwen 2.5 7B</option><option value="deepseek-ai/DeepSeek-V3">DeepSeek V3</option><option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B</option><option value="google/gemma-2-9b-it">Gemma 2 9B</option><option value="microsoft/Phi-3.5-mini-instruct">Phi 3.5 mini</option></datalist>
+            <div class="ticker-presets" aria-label="常用模型"><button type="button" data-ticker="meta-llama/Llama-3.1-8B-Instruct">Llama3.1</button><button type="button" data-ticker="Qwen/Qwen2.5-7B-Instruct">Qwen2.5</button><button type="button" data-ticker="deepseek-ai/DeepSeek-V3">DeepSeek</button><button type="button" data-ticker="mistralai/Mistral-7B-Instruct-v0.3">Mistral</button></div>
+            <label>准入基准日期 (as_of / cutoff)</label>
             <input id="trade_date" type="date" />
-            <label>初始资金</label>
+            <label>预估并发量 (req/min)</label>
             <input id="cash" type="number" value="100000" min="1000" />
-            <label>辩论轮数</label>
+            <label>合规辩论轮数</label>
             <input id="debate" type="number" value="1" min="0" max="5" />
-            <label>风险轮数</label>
+            <label>风险审核轮数</label>
             <input id="risk" type="number" value="1" min="0" max="5" />
-            <label>模式</label>
+            <label>评审模式</label>
             <select id="mode">
               <option value="fixture" selected>离线 fixture（推荐）</option>
-              <option value="live">在线 TradingAgents（需安装 extra）</option>
+              <option value="live">在线准入扫描（全门禁 G0-G6）</option>
             </select>
             <div class="row">
-              <button class="btn" id="btn-create" type="button">创建模拟</button>
+              <button class="btn" id="btn-create" type="button">创建申请</button>
               <button class="btn" id="btn-start" type="button" disabled>启动</button>
               <button class="btn danger" id="btn-cancel" type="button" disabled>取消</button>
             </div>
             <p class="stat">当前 run: <code id="run-id">—</code></p>
             <p class="stat">状态: <span class="status" id="run-status">—</span></p>
 
-            <p class="stat" style="margin-top:18px">装配提示：把中间主干道周边的来源团队拖入主干道，即可纳入本次模拟。右侧组合状态会随运行更新。</p>
+            <p class="stat" style="margin-top:18px">装配提示：把中间主干道周边的证据源和评审团队拖入主干道，即可纳入本次准入评审。右侧准入清单会随审核更新。</p>
           </aside>
 
           <section class="card">
-            <div class="assembly anchor-target" id="engine-assembly" tabindex="-1">
-              <div class="assembly-head"><div><h2>投资引擎装配台</h2><p>横向主干道是执行顺序；上方零件是信息源团队与证据入口，拖入后会成为本次模拟的上下文。</p></div><div class="assembly-tools" aria-label="装配台缩放"><button type="button" id="assembly-zoom-out" aria-label="缩小装配台">−</button><button type="button" id="assembly-zoom-reset">100%</button><button type="button" id="assembly-zoom-in" aria-label="放大装配台">＋</button><button type="button" id="assembly-zoom-fit">适配</button><span class="assembly-count" id="assembly-count">0 个信息模块</span></div></div>
+            <div class="assembly anchor-target" id="clearance-board" tabindex="-1">
+              <div class="assembly-head"><div><h2>准入控制台</h2><p>横向主干道是门禁执行顺序；上方零件是证据采集器与评审专家入口，拖入后会成为本次评审的上下文。</p></div><div class="assembly-tools" aria-label="装配台缩放"><button type="button" id="assembly-zoom-out" aria-label="缩小装配台">−</button><button type="button" id="assembly-zoom-reset">100%</button><button type="button" id="assembly-zoom-in" aria-label="放大装配台">＋</button><button type="button" id="assembly-zoom-fit">适配</button><span class="assembly-count" id="assembly-count">0 个信息模块</span></div></div>
               <div class="parts-bank" id="module-library" aria-label="可拖拽信息源团队">
                 <span class="part-title">可用零件</span>
                 <div class="part-card" draggable="true" data-id="team:ai_news_60s" data-name="60 秒 AI 信息团队" data-kind="team"><span class="part-type">AGENT TEAM</span><strong>60 秒 AI 信息团队</strong><small>AI 快讯、核验、产业映射</small></div>
                 <div class="part-card" draggable="true" data-id="team:dufu_world_intel" data-name="独夫之心世界趋势团队" data-kind="team"><span class="part-type">AGENT TEAM</span><strong>独夫之心世界趋势</strong><small>世界趋势、数据分析、情景树</small></div>
               </div>
-              <div class="engine-road" id="engine-context" tabindex="-1">
-                <div class="road-label"><span>信息到达 → Agent 推理 → 风险门禁 → 纸面成交</span><span class="scroll-hint" id="road-scroll-hint">左右滑动查看已装配模块</span></div>
-                <div class="assembly-viewport"><div class="road-shell drop-zone" id="source-drop" aria-label="投资引擎横向主干道">
-                  <div class="road-core" data-road-core="ingress"><b>信息入口</b><small>Sources / Agents<br>as_of cutoff</small></div>
+              <div class="engine-road" id="clearance-evidence" tabindex="-1">
+                <div class="road-label"><span>登记 G0 → 来源 G1 → 供应链 G2 → 许可证 G3 → 资源 G4 → 安全行为 G5 → 会签 G6</span><span class="scroll-hint" id="road-scroll-hint">左右滑动查看已装配模块</span></div>
+                <div class="assembly-viewport"><div class="road-shell drop-zone" id="source-drop" aria-label="准入控制台横向主干道">
+                  <div class="road-core" data-road-core="ingress"><b>证据入口</b><small>Sources / Scanners<br>as_of cutoff</small></div>
                   <span class="road-arrow" aria-hidden="true">→</span>
                   <div class="road-track" id="road-modules-scroll" tabindex="0" aria-label="已装配模块，可横向滚动">
                     <div id="source-selected" style="display:contents"></div>
                     <div class="road-empty" id="source-empty">把周边零件拖到这里组装 Engine</div>
                   </div>
                   <span class="road-arrow" aria-hidden="true">→</span>
-                  <div class="road-core" data-road-core="research"><b>Research Graph</b><small>多空辩论<br>风险校验</small></div>
+                  <div class="road-core" data-road-core="research"><b>Clearance Board</b><small>门禁求值<br>专家会签</small></div>
                   <span class="road-arrow" aria-hidden="true">→</span>
-                  <div class="road-core" data-road-core="portfolio"><b>Paper Portfolio</b><small>模拟订单<br>不连接券商</small></div>
+                  <div class="road-core" data-road-core="portfolio"><b>准入清单</b><small>Attestation<br>准入许可</small></div>
                 </div></div>
               </div>
               <p class="scroll-hint" id="parts-scroll-hint">零件过多时可在栏内横向滚动</p>
               <div class="parts-bank parts-bank-bottom" id="module-library-bottom" aria-label="可拖拽数据源零件，可横向滚动"><span class="part-title">数据与上下文零件</span><div class="part-card" draggable="true" data-id="document:latest" data-name="最新动态 HTML 文档" data-kind="document"><span class="part-type">DOCUMENT</span><strong>最新动态 HTML</strong><small>把已发布研究报告接入上下文</small></div><div class="part-card" draggable="true" data-id="market:event-clock" data-name="事件时钟" data-kind="market"><span class="part-type">ENGINE</span><strong>事件时钟</strong><small>按 as_of 截止时间排列信息</small></div><div id="source-library" style="display:contents"></div></div>
-              <div class="lower-modules"><div class="lower-module"><b>Context Cutoff</b>历史信息冻结</div><div class="lower-module"><b>Analyst Debate</b>多 Agent 观点</div><div class="lower-module"><b>Risk Gate</b>风险与反证</div><div class="lower-module"><b>Order Lifecycle</b>纸面成交模型</div></div>
+              <div class="lower-modules"><div class="lower-module"><b>Context Cutoff</b>证据基线冻结</div><div class="lower-module"><b>Reviewer Board</b>多 Agent 评审</div><div class="lower-module"><b>Gate Enforcement</b>策略即代码</div><div class="lower-module"><b>Attestation</b>防篡改存证</div></div>
             </div>
 
             <section class="dynamic-dashboard anchor-target" id="dynamic-dashboard" tabindex="-1" aria-live="polite">
+              <div id="clearance-posture" class="anchor-target" tabindex="-1"></div>
               <div id="engine-dashboard" style="display:contents"></div>
-              <div class="dashboard-head"><div><h2>Engine Live Journey</h2><p>引擎启动后由事件流驱动判断、规划、价值推演与纸面组合</p></div><div class="hud" id="engine-hud"><span class="pulse"></span><span id="engine-phase">待启动</span><span id="engine-progress">0%</span><span id="engine-conn" style="opacity:.75">未连接</span></div></div>
+              <div class="dashboard-head"><div><h2>Clearance Live Journey</h2><p>准入流程启动后由事件流驱动门禁、规划、资源需求与准入裁决</p></div><div class="hud" id="engine-hud"><span class="pulse"></span><span id="engine-phase">待启动</span><span id="engine-progress">0%</span><span id="engine-conn" style="opacity:.75">未连接</span></div></div>
               <div class="dashboard-progress"><span id="engine-progress-bar"></span></div>
-              <div class="route-strip" id="engine-route"><span class="route-stop active" data-route="context">信息上下文</span><span class="route-line">→</span><span class="route-stop" data-route="judgment">判断形成</span><span class="route-line">→</span><span class="route-stop" data-route="plan">规划路线</span><span class="route-line">→</span><span class="route-stop" data-route="risk">风险门禁</span><span class="route-line">→</span><span class="route-stop" data-route="portfolio">纸面成交</span></div>
+              <div class="route-strip" id="engine-route"><span class="route-stop active" data-route="context">登记 G0</span><span class="route-line">→</span><span class="route-stop" data-route="judgment">来源 G1</span><span class="route-line">→</span><span class="route-stop" data-route="plan">供应链 G2</span><span class="route-line">→</span><span class="route-stop" data-route="risk">许可证 G3</span><span class="route-line">→</span><span class="route-stop" data-route="portfolio">会签 G6</span></div>
               <div class="insight-grid">
-                <article class="insight-card" id="judgment-card"><h3>当前判断 · 分析</h3><p>等待市场分析师启动。</p><small>事实/分析/推断标签由事件 structured 提供 · 研究/模拟，非投资建议</small></article>
-                <article class="insight-card" id="plan-card"><h3>行驶规划 · 模拟</h3><p>等待研究图谱规划路线。</p><small>base / bull / bear 条件路径</small></article>
-                <article class="insight-card" id="revenue-card"><h3>价值推演 · 模拟</h3><p>尚未形成纸面收益路径。</p><small>非上市公司真实营收；仅为组合权益路径</small></article>
-                <article class="insight-card" id="risk-card"><h3>风险门禁</h3><p>等待激进 / 中性 / 保守风险节点。</p><small>approved / reduced / rejected</small></article>
-                <article class="insight-card" id="portfolio-card"><h3>纸面组合</h3><p>空仓，等待 Portfolio Manager 裁决。</p><small>订单生命周期由模拟器记录</small></article>
+                <article class="insight-card" id="judgment-card"><h3>门禁结论 · 分析</h3><p>等待模型准入审查启动。</p><small>事实/分析/推断标签由事件 structured 提供 · 仅供治理参考</small></article>
+                <article class="insight-card" id="plan-card"><h3>合规路径 · 规划</h3><p>等待合规图谱规划准入路径。</p><small>standard / restricted / isolated 条件路径</small></article>
+                <article class="insight-card" id="revenue-card"><h3>资源需求 · 推演</h3><p>尚未形成显存与并发需求推演。</p><small>基于参数规模与 KV-Cache 经验估算</small></article>
+                <article class="insight-card" id="risk-card"><h3>风险门禁</h3><p>等待策略引擎与红队审查节点。</p><small>approved / needs_info / rejected</small></article>
+                <article class="insight-card" id="portfolio-card"><h3>准入裁决</h3><p>待审，等待 Clearance Board 裁决。</p><small>准入声明由平台签名归档</small></article>
                 <article class="insight-card" id="context-card"><h3>证据上下文</h3><p>等待信息源团队和历史文档装载。</p><small>严格遵守 as_of 截止时间</small></article>
               </div>
-              <section class="judgment-panel" id="judgment-dimensions-panel" aria-label="多维股票判断">
-                <p class="research-note">研究/模拟评级矩阵 · 不构成投资建议 · 仅使用 as_of 之前证据</p>
+              <section class="judgment-panel" id="judgment-dimensions-panel" aria-label="多维准入判断">
+                <p class="research-note">模型准入评级矩阵 · 仅供内部治理参考 · 仅使用 as_of 之前证据</p>
                 <div class="judgment-summary">
                   <div class="judgment-scorecard" id="overall-judgment-card">
                     <h3>评级摘要 · overall_judgment</h3>
@@ -339,8 +341,8 @@
                     <div class="meta" id="overall-meta">等待分析事件…</div>
                   </div>
                   <div class="judgment-signals">
-                    <div><h3 style="margin:0 0 6px;color:#8de4d2;font-size:11px">最强正向</h3><ul id="judgment-bull-signals"><li class="muted">—</li></ul></div>
-                    <div><h3 style="margin:0 0 6px;color:#8de4d2;font-size:11px">最强反向</h3><ul id="judgment-bear-signals"><li class="muted">—</li></ul></div>
+                    <div><h3 style="margin:0 0 6px;color:#8de4d2;font-size:11px">合规项</h3><ul id="judgment-bull-signals"><li class="muted">—</li></ul></div>
+                    <div><h3 style="margin:0 0 6px;color:#8de4d2;font-size:11px">风险项</h3><ul id="judgment-bear-signals"><li class="muted">—</li></ul></div>
                   </div>
                 </div>
                 <div class="judgment-tabs" role="tablist" aria-label="判断维度分组" id="judgment-tabs"></div>
@@ -353,18 +355,18 @@
               </section>
             </section>
 
-            <h2 id="engine-timeline" class="anchor-target" tabindex="-1">运行时间线与报告</h2>
-            <div class="timeline" id="timeline"><div class="empty">创建并启动模拟后显示节点进度</div></div>
+            <h2 id="clearance-timeline" class="anchor-target" tabindex="-1">审批时间线与报告</h2>
+            <div class="timeline" id="timeline"><div class="empty">创建并启动申请后显示节点进度</div></div>
             <h2 style="margin-top:16px">报告索引</h2>
-            <section id="reports" class="report-index" aria-live="polite"><div class="report-empty">启动模拟后，这里会把技术索引整理成易读的研究小结。</div></section>
+            <section id="reports" class="report-index" aria-live="polite"><div class="report-empty">启动模拟后，这里会把技术索引整理成易读的准入小结。</div></section>
           </section>
 
           <aside class="card">
-            <div id="engine-portfolio" class="anchor-target" tabindex="-1">
-              <h2>模拟账户</h2>
-              <div id="portfolio"><div class="empty">空状态：尚无组合</div></div>
+            <div id="clearance-registry" class="anchor-target" tabindex="-1">
+              <h2>准入清单</h2>
+              <div id="portfolio"><div class="empty">空状态：尚无准入条目</div></div>
             </div>
-            <h2 style="margin-top:16px" id="engine-health" class="anchor-target" tabindex="-1">运行时健康</h2>
+            <h2 style="margin-top:16px" id="clearance-health" class="anchor-target" tabindex="-1">运行时健康</h2>
             <pre id="runtime-health">…</pre>
           </aside>
         </div>

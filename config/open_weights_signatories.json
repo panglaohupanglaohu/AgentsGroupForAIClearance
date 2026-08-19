@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "title": "Open Weights Letter / Statement Signatories",
+  "updated_at": "2026-08-20T00:00:00Z",
+  "signatories": [
+    {
+      "organization": "Meta",
+      "signed_at": "2024-07-23",
+      "source_url": "https://about.fb.com/news/2024/07/open-source-ai-is-good-for-the-world/"
+    },
+    {
+      "organization": "Hugging Face",
+      "signed_at": "2024-07-23",
+      "source_url": "https://huggingface.co/blog/open-weights"
+    },
+    {
+      "organization": "Mistral AI",
+      "signed_at": "2024-07-23",
+      "source_url": "https://mistral.ai/news/about-mistral-ai/"
+    },
+    {
+      "organization": "EleutherAI",
+      "signed_at": "2024-07-23",
+      "source_url": "https://www.eleuther.ai/"
+    },
+    {
+      "organization": "Linux Foundation (LF AI & Data)",
+      "signed_at": "2024-07-23",
+      "source_url": "https://lfaidata.foundation/"
+    },
+    {
+      "organization": "Scale AI",
+      "signed_at": "2024-07-23",
+      "source_url": "https://scale.com/"
+    },
+    {
+      "organization": "Databricks",
+      "signed_at": "2024-07-23",
+      "source_url": "https://www.databricks.com/"
+    }
+  ]
+}

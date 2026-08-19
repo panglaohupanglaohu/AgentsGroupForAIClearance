@@ -61,7 +61,7 @@ describe('Engine multi-dim judgment (P12)', () => {
     expect(html).toContain('engine-judgment.js');
     expect(html).toContain('id="judgment-dimensions-panel"');
     expect(html).toContain('id="judgment-matrix-body"');
-    expect(html).toContain('研究/模拟，非投资建议');
+    expect(html).toContain('仅供内部治理参考');
     expect(html).toContain('id="judgment-card"');
   });
 });

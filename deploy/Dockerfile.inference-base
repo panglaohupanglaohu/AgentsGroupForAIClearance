@@ -1,0 +1,40 @@
+# syntax=docker/dockerfile:1.4
+# Multi-stage secure inference container for open-weight model serving (T605)
+
+# Stage 1: Build & dependencies
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml requirements.txt* /build/
+RUN pip install --no-cache-dir --user torch transformers safetensors fastapi uvicorn
+
+# Stage 2: Distroless/non-root runtime
+FROM python:3.11-slim AS runner
+
+# Security hardening: Non-root user (UID 10001)
+RUN groupadd -g 10001 inference && useradd -u 10001 -g inference -m -s /bin/false inference
+
+# Offline defense-in-depth: Disable remote hub calls
+ENV HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    DISABLE_PROMPT_LOGGING=true \
+    PYTHONUNBUFFERED=1 \
+    PATH=/home/inference/.local/bin:$PATH
+
+WORKDIR /app
+COPY --from=builder /root/.local /home/inference/.local
+COPY src/ /app/src/
+
+RUN chown -R inference:inference /app /home/inference \
+    && chmod -R 550 /app
+
+USER 10001:10001
+
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" || exit 1
+
+ENTRYPOINT ["uvicorn", "src.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

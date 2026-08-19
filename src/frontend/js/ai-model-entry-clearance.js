@@ -98,7 +98,7 @@
     debateNodes.forEach(function (d) { riskNodes.forEach(function (r) { edges += edge(d.x + 82, d.y, r.x - 76, r.y, 'risk-edge'); }); });
     riskNodes.forEach(function (r) { edges += edge(r.x + 78, r.y, finalNode.x - 92, finalNode.y, r.label === 'Trader' ? 'approved-edge' : 'counter-edge'); });
     var headings = [['阶段 1','数据获取'], ['阶段 2','专业分析'], ['阶段 3','辩论与综合'], ['阶段 4','风险控制'], ['阶段 5','最终执行']];
-    return '<section class="report-flow" aria-label="投资引擎判断流程"><div class="report-flow-head"><div><strong>AI Trading Agent Pipeline</strong><span>信息版本 → 专业分析 → 多空辩论 → 风险控制 → 最终裁决</span></div><b>动态研究图</b></div><svg viewBox="0 0 1060 520" role="img" aria-label="从信息源到最终交易模拟裁决的流程图"><defs><marker id="flow-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker></defs>' + headings.map(function (h, i) { return '<text class="flow-stage" x="' + cols[i] + '" y="26" text-anchor="middle">' + h[0] + '</text><text class="flow-stage-sub" x="' + cols[i] + '" y="45" text-anchor="middle">' + h[1] + '</text>'; }).join('') + edges + allNodes.map(function (n) { return node(n.x, n.y, n.label, n.tone); }).join('') + '</svg></section>';
+    return '<section class="report-flow" aria-label="模型准入评审流程"><div class="report-flow-head"><div><strong>Model Clearance Pipeline</strong><span>信息版本 → 专业分析 → 规则策略 → 风险门禁 → 会签裁决</span></div><b>动态评审图</b></div><svg viewBox="0 0 1060 520" role="img" aria-label="从证据采集到最终准入裁决的流程图"><defs><marker id="flow-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker></defs>' + headings.map(function (h, i) { return '<text class="flow-stage" x="' + cols[i] + '" y="26" text-anchor="middle">' + h[0] + '</text><text class="flow-stage-sub" x="' + cols[i] + '" y="45" text-anchor="middle">' + h[1] + '</text>'; }).join('') + edges + allNodes.map(function (n) { return node(n.x, n.y, n.label, n.tone); }).join('') + '</svg></section>';
   }
 
   function syncPrimaryButton() {
@@ -201,14 +201,14 @@
 
     var phaseLabels = {
       assembly: '装配中',
-      context: '装载上下文',
+      context: '装载证据',
       analysis: '形成判断',
       planning: '规划路线',
-      debate: '规划路线',
-      trading: '价值推演',
+      debate: '合规辩论',
+      trading: '资源推演',
       risk: '风险门禁',
-      portfolio: '纸面成交',
-      reflection: '运行反思',
+      portfolio: '准入签发',
+      reflection: '准入审计',
       budget: '预算门禁',
     };
 
@@ -283,16 +283,16 @@
       'revenue-card',
       v
         ? (v.summary || '') +
-            (v.action ? ' · 模拟动作 ' + v.action : '') +
-            '（模拟权益路径，非公司真实营收）'
-        : '尚未形成纸面收益路径。',
+            (v.action ? ' · 推荐动作 ' + v.action : '') +
+            '（资源推演路径，非法律保证）'
+        : '尚未形成资源与成本路径。',
       null,
       route === 'risk' && !!v
     );
     var r = s.insights.risk;
     setInsight(
       'risk-card',
-      r ? (r.gate + '：' + r.reason) : '等待激进 / 中性 / 保守风险节点。',
+      r ? (r.gate + '：' + r.reason) : '等待策略引擎与红队审查节点。',
       r && r.gate === 'rejected' ? 'warning' : r ? 'warning' : null,
       route === 'risk'
     );
@@ -301,7 +301,7 @@
       'portfolio-card',
       pf
         ? pf.summary + (pf.disclaimer ? ' · ' + pf.disclaimer : '')
-        : '空仓，等待 Portfolio Manager 裁决。',
+        : '待审，等待 Clearance Board 裁决。',
       'positive',
       route === 'portfolio'
     );
@@ -793,7 +793,25 @@
     var el = $('portfolio');
     if (!el) return;
     if (!pf || pf.empty || !pf.portfolio) {
-      el.innerHTML = '<div class="empty">空状态：尚无持仓</div>';
+      // Also try to query model clearance registry if available
+      api().request('/api/v1/model-clearance/registry').then(function(res) {
+        var list = (res && res.registry) || [];
+        if (!list.length) {
+          el.innerHTML = '<div class="empty">空状态：尚无准入条目</div>';
+          return;
+        }
+        var rows = list.map(function(item) {
+          var badgeCls = item.status === 'active' ? 'status-ok' : 'status-bad';
+          return '<div class="stat" style="border-bottom:1px solid #1e3554;padding:6px 0">' +
+            '<strong>' + esc(item.model_id) + '</strong> (' + esc(item.runtime_profile || 'standard') + ')' +
+            '<br><small class="muted">Digest: ' + esc((item.locked_digest || '').slice(0, 16)) + '… · 状态: <span class="' + badgeCls + '">' + esc(item.status) + '</span></small>' +
+            (item.conditions && item.conditions.length ? '<br><small style="color:#fbbf24">约束: ' + esc(item.conditions.join('; ')) + '</small>' : '') +
+            '</div>';
+        }).join('');
+        el.innerHTML = '<div style="font-size:12px">' + rows + '</div>';
+      }).catch(function() {
+        el.innerHTML = '<div class="empty">空状态：尚无准入条目</div>';
+      });
       return;
     }
     var p = pf.portfolio;
@@ -802,21 +820,18 @@
       return;
     }
     el.innerHTML =
-      '<div class="stat">现金: ' +
-      Number(p.cash).toFixed(2) +
+      '<div class="stat">准入编号: ' +
+      esc(p.entry_id || 'REG-PENDING') +
       '</div>' +
-      '<div class="stat">已实现盈亏: ' +
-      Number(p.realized_pnl || 0).toFixed(2) +
+      '<div class="stat">运行时环境 Profile: ' +
+      esc(p.runtime_profile || 'standard') +
       '</div>' +
-      '<div class="stat">持仓: ' +
-      esc(JSON.stringify(p.positions || {})) +
+      '<div class="stat">适用范围 Scope: ' +
+      esc(JSON.stringify(p.scope || ['internal'])) +
       '</div>' +
       '<div class="stat muted">' +
-      esc(p.disclaimer || '研究/模拟用途，不构成投资建议。') +
-      '</div>' +
-      '<pre>' +
-      esc(JSON.stringify(p.fills || [], null, 2)) +
-      '</pre>';
+      esc(p.disclaimer || '仅供内部治理参考，不构成法律或采购建议。') +
+      '</div>';
   }
 
   async function restore() {

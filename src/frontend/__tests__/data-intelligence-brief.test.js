@@ -17,7 +17,7 @@ describe('Data Intelligence conclusion brief (P13)', () => {
     expect(html).not.toContain('id="brief-strip"');
     expect(html).toContain('IN FOCUS · EVIDENCE FIRST');
     expect(html).toContain('aria-live="polite"');
-    expect(html).toMatch(/研究\/模拟|非投资建议/);
+    expect(html).toMatch(/研究\/分析|治理参考|内部治理/);
   });
 
   it('loads latest-summary API and paints the executive panel', () => {

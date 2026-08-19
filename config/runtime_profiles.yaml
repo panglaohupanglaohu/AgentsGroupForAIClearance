@@ -1,0 +1,92 @@
+version: 1
+updated_at: "2026-08-20T00:00:00Z"
+
+profiles:
+  isolated:
+    description: "Strict isolation for unverified or experimental models with no egress."
+    network:
+      ingress: false
+      egress_allowlist: []
+      deny_all: true
+    pod_security:
+      runAsNonRoot: true
+      runAsUser: 10001
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      privileged: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      automountServiceAccountToken: false
+    env:
+      DISABLE_PROMPT_LOGGING: "true"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    resources:
+      limits:
+        cpu: "8"
+        memory: "32Gi"
+        gpu: "1"
+
+  restricted:
+    description: "Controlled environment with internal service access and locked weight digests."
+    network:
+      ingress: true
+      egress_allowlist:
+        - "k8s-dns"
+        - "internal-embedding-service"
+      deny_all: true
+    pod_security:
+      runAsNonRoot: true
+      runAsUser: 10001
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      privileged: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      automountServiceAccountToken: false
+    env:
+      DISABLE_PROMPT_LOGGING: "true"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    resources:
+      limits:
+        cpu: "16"
+        memory: "64Gi"
+        gpu: "2"
+
+  standard:
+    description: "Standard compliant runtime profile with full internal inference mesh access."
+    network:
+      ingress: true
+      egress_allowlist:
+        - "k8s-dns"
+        - "internal-mesh"
+        - "metrics-exporter"
+      deny_all: true
+    pod_security:
+      runAsNonRoot: true
+      runAsUser: 10001
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      privileged: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      automountServiceAccountToken: false
+    env:
+      DISABLE_PROMPT_LOGGING: "true"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    resources:
+      limits:
+        cpu: "32"
+        memory: "128Gi"
+        gpu: "4"

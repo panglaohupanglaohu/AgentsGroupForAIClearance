@@ -475,3 +475,15 @@
 - main.py 挂载 domain.api_routes (36 条路由)；nav.js / global-nav.js 新增 data-intelligence、model-clearance 两个导航项
 - 验证：vitest 19/19 通过；test_workflow_pipeline_mode.py 通过；/api/v1/information-sources 返回 401（路由已挂，需登录态）
 - 遗留：domain 内 investment/投资 术语共 68 处待按 TODOS T002-T006 改名
+
+## 2026-08-20 ModelClearance 全量任务落地与验收通过
+- 完成 P0 术语净化与 guard 测试（vitest 6/6 suites，20/20 tests passed）
+- 完成 P1 数据底座（config/model_license_registry.json 22 款主流模型 + scripts/validate_model_registry.py 校验通过 + domain/model_clearance 数据模型与只追加存储）
+- 完成 P2 证据层 Scanner（Manifest/Sigstore/PlatformEndorsement/Format/ML-BOM/CVE/License/Resource/RedTeam）
+- 完成 P3 策略引擎（clearance_policy.yaml + AST safe_eval + policy_evaluator + fail-closed 门禁编排器 + adjudicate）
+- 完成 P4 Agent 评审团队（5 Agent 评审、单向收紧守卫、证据摘录幻觉守卫、法律会签触发器）
+- 完成 P5 准入清单与 in-toto DSSE attestation 签发及验证 + 完整 REST 接口（/api/v1/model-clearance/*）
+- 完成 P6 运行时基线（3档 profile yaml + K8s NetworkPolicy/Pod/Quota 模板 + 11项不变量与权重哈希校验器 + 多阶段 Dockerfile）
+- 完成 P7 持续验证 L5（30分钟基线巡检 + 每日 CVE/许可证重评 + 到期降档调度 + 月度报告）
+- 完成 P8 控制台前端与知识库自动联想对接
+- 运行 10 组后端测试套件 + Phase 1 出口条件验证：全部 100% 通过（Permissive/Conditional/Restricted 真实路径验证）。

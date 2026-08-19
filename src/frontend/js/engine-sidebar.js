@@ -1,5 +1,5 @@
 /**
- * Investment Engine research sidebar (P10).
+ * AI Model Admission Clearance research sidebar (P10 / T004).
  * UI-only: localStorage sa_engine_sidebar_v1; does not alter simulation state machine.
  */
 (function (global) {
@@ -8,15 +8,15 @@
   var STORAGE_KEY = 'sa_engine_sidebar_v1';
 
   var ITEMS = [
-    { id: 'overview', label: '首页', target: 'engine-overview', group: 'primary', icon: '⌂' },
-    { id: 'analysis', label: '分析', target: 'engine-config', group: 'primary', icon: '◫' },
-    { id: 'news', label: '信息流', target: 'engine-context', group: 'primary', icon: '☰', badge: 'docs_ai' },
-    { id: 'performance', label: '市场表现', target: 'engine-dashboard', group: 'primary', icon: '↗' },
-    { id: 'authors', label: '我的 Agent', target: 'engine-assembly', group: 'primary', icon: '◎', badge: 'modules_team' },
-    { id: 'research', label: '研究组', target: 'engine-assembly', group: 'research', icon: '▤', badge: 'sources_selected' },
-    { id: 'timeline', label: '运行时间线', target: 'engine-timeline', group: 'secondary', icon: '≡' },
-    { id: 'health', label: '运行时健康', target: 'engine-health', group: 'secondary', icon: '♥' },
-    { id: 'portfolio', label: '纸面组合', target: 'engine-portfolio', group: 'primary', icon: '◈' },
+    { id: 'overview', label: '准入总览', target: 'clearance-overview', group: 'primary', icon: '⌂' },
+    { id: 'application', label: '申请配置', target: 'clearance-application', group: 'primary', icon: '◫' },
+    { id: 'evidence', label: '证据流', target: 'clearance-evidence', group: 'primary', icon: '☰', badge: 'docs_ai' },
+    { id: 'posture', label: '合规态势', target: 'clearance-posture', group: 'primary', icon: '↗' },
+    { id: 'reviewers', label: '评审 Agent', target: 'clearance-board', group: 'primary', icon: '◎', badge: 'modules_team' },
+    { id: 'board', label: '评审组', target: 'clearance-board', group: 'research', icon: '▤', badge: 'sources_selected' },
+    { id: 'timeline', label: '审批时间线', target: 'clearance-timeline', group: 'secondary', icon: '≡' },
+    { id: 'health', label: '运行时健康', target: 'clearance-health', group: 'secondary', icon: '♥' },
+    { id: 'registry', label: '准入清单', target: 'clearance-registry', group: 'primary', icon: '◈' },
   ];
 
   function defaultState() {
@@ -162,7 +162,7 @@
       toggle.setAttribute('aria-expanded', state.collapsed ? 'false' : 'true');
       toggle.setAttribute(
         'aria-label',
-        state.collapsed ? '展开研究导航' : '折叠研究导航'
+        state.collapsed ? '展开准入导航' : '折叠准入导航'
       );
       toggle.textContent = state.collapsed ? '»' : '«';
     }

@@ -738,3 +738,163 @@ async def sim_portfolio(run_id: str):
     if not pf:
         return {"run_id": run_id, "portfolio": None, "empty": True}
     return {"run_id": run_id, "portfolio": pf.to_dict(), "empty": False}
+
+
+# ── Model Admission Clearance APIs (T503 / T807) ──────────────────────────
+
+class ClearanceAppCreate(BaseModel):
+    model_id: str
+    applicant: str = "security-admin"
+    revision: str = "main"
+    weights_uri: str = ""
+    local_path: str = ""
+    expected_signer_identity: Optional[str] = None
+    auto_submit: bool = False
+
+
+@router.get("/api/v1/model-clearance/licenses")
+async def list_model_licenses():
+    """T807: Knowledge base model license registry for frontend auto-complete."""
+    from pathlib import Path
+    lic_path = Path(__file__).resolve().parents[3] / "config" / "model_license_registry.json"
+    if not lic_path.exists():
+        return {"models": []}
+    try:
+        return json.loads(lic_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        _err(500, f"Failed to load license registry: {exc}")
+
+
+@router.get("/api/v1/model-clearance/applications")
+async def list_clearance_applications(limit: int = Query(50, ge=1, le=200)):
+    from domain.model_clearance.store import get_clearance_store
+    apps = get_clearance_store().list(limit=limit)
+    return {"applications": [a.to_dict() for a in apps]}
+
+
+@router.post("/api/v1/model-clearance/applications")
+async def create_clearance_application(body: ClearanceAppCreate):
+    import uuid
+    from domain.model_clearance.gate_orchestrator import GateOrchestrator
+    from domain.model_clearance.models import AppStatus, ModelApplication, ModelIdentity
+    from domain.model_clearance.registry import get_registry_store
+    from domain.model_clearance.store import get_clearance_store
+
+    app_id = f"app-{uuid.uuid4().hex[:10]}"
+    app = ModelApplication(
+        application_id=app_id,
+        applicant=body.applicant,
+        identity=ModelIdentity(
+            model_id=body.model_id.strip(),
+            revision=body.revision.strip(),
+            weights_uri=body.weights_uri.strip(),
+            local_path=body.local_path.strip(),
+            expected_signer_identity=body.expected_signer_identity,
+        ),
+    )
+    store = get_clearance_store()
+    store.save(app)
+
+    if body.auto_submit:
+        orch = GateOrchestrator(store=store)
+        app = orch.run_clearance(app)
+        if app.status in (AppStatus.APPROVED, AppStatus.APPROVED_COND):
+            from domain.model_clearance.adjudicate import adjudicate
+            dec = adjudicate(app)
+            get_registry_store().register(
+                app=app,
+                runtime_profile=dec.runtime_profile,
+                scope=dec.scope,
+                conditions=dec.conditions,
+                expires_at=dec.expires_at,
+            )
+
+    return app.to_dict()
+
+
+@router.get("/api/v1/model-clearance/applications/{app_id}")
+async def get_clearance_application(app_id: str):
+    from domain.model_clearance.store import get_clearance_store
+    app = get_clearance_store().get(app_id)
+    if not app:
+        _err(404, f"Application {app_id} not found", code="not_found")
+    return app.to_dict()
+
+
+@router.post("/api/v1/model-clearance/applications/{app_id}/submit")
+async def submit_clearance_application(app_id: str):
+    from domain.model_clearance.gate_orchestrator import GateOrchestrator
+    from domain.model_clearance.models import AppStatus
+    from domain.model_clearance.registry import get_registry_store
+    from domain.model_clearance.store import get_clearance_store
+
+    store = get_clearance_store()
+    app = store.get(app_id)
+    if not app:
+        _err(404, f"Application {app_id} not found", code="not_found")
+
+    orch = GateOrchestrator(store=store)
+    app = orch.run_clearance(app)
+
+    # If approved, register into registry with attestation
+    if app.status in (AppStatus.APPROVED, AppStatus.APPROVED_COND):
+        from domain.model_clearance.adjudicate import adjudicate
+        dec = adjudicate(app)
+        get_registry_store().register(
+            app=app,
+            runtime_profile=dec.runtime_profile,
+            scope=dec.scope,
+            conditions=dec.conditions,
+            expires_at=dec.expires_at,
+        )
+
+    return app.to_dict()
+
+
+@router.get("/api/v1/model-clearance/registry")
+async def list_model_registry():
+    from domain.model_clearance.registry import get_registry_store
+    entries = get_registry_store().list_all()
+    return {"registry": [e.to_dict() for e in entries]}
+
+
+@router.get("/api/v1/model-clearance/registry/{entry_id}")
+async def get_model_registry_entry(entry_id: str):
+    from domain.model_clearance.registry import get_registry_store
+    entry = get_registry_store().get(entry_id)
+    if not entry:
+        _err(404, f"Registry entry {entry_id} not found", code="not_found")
+    return entry.to_dict()
+
+
+@router.get("/api/v1/model-clearance/registry/{entry_id}/attestations")
+async def get_model_registry_attestations(entry_id: str):
+    from domain.model_clearance.registry import get_registry_store
+    entry = get_registry_store().get(entry_id)
+    if not entry:
+        _err(404, f"Registry entry {entry_id} not found", code="not_found")
+    return {"entry_id": entry_id, "attestations": entry.attestations}
+
+
+@router.get("/api/v1/model-clearance/registry/{entry_id}/verify")
+async def verify_model_registry_entry(entry_id: str):
+    from domain.model_clearance.registry import get_registry_store
+    res = get_registry_store().verify_entry(entry_id)
+    if not res.get("found"):
+        _err(404, f"Registry entry {entry_id} not found", code="not_found")
+    return res
+
+
+@router.post("/api/v1/model-clearance/registry/{entry_id}/revoke")
+async def revoke_model_registry_entry(entry_id: str, request: Request):
+    from domain.model_clearance.registry import get_registry_store
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    reason = str(body.get("reason", "Revoked by administrator"))
+    entry = get_registry_store().revoke(entry_id, reason=reason)
+    if not entry:
+        _err(404, f"Registry entry {entry_id} not found", code="not_found")
+    return entry.to_dict()
+
