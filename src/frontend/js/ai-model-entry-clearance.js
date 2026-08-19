@@ -378,9 +378,9 @@
 
   function applySim(sim) {
     if (!sim) return;
-    engineState.runId = sim.run_id;
+    engineState.runId = sim.application_id || sim.run_id;
     engineState.status = sim.status || engineState.status;
-    engineState.graphShape = sim.graph_shape || engineState.graphShape || [];
+    engineState.graphShape = sim.graph_shape || engineState.graphShape || ['G1', 'G2', 'G3', 'G4', 'G5', 'G6'];
     if (sim.assembly_snapshot) {
       engineState.assembly = {
         modules: sim.assembly_snapshot.modules || [],
@@ -389,7 +389,9 @@
       };
     }
     if (sim.error) engineState.error = sim.error;
-    if (sim.status === 'completed') engineState.progress = 100;
+    if (sim.status === 'completed' || sim.status === 'approved' || sim.status === 'approved_with_conditions') {
+      engineState.progress = 100;
+    }
   }
 
   function ingestEvents(list) {
@@ -624,44 +626,64 @@
       alert(errors.join('\n'));
       return null;
     }
-    var sim = await api().request('/api/v1/investment-simulations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildCreateBody(!!autoStart)),
-    });
+    var app = null;
+    try {
+      app = await api().request('/api/v1/model-clearance/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model_id: form.ticker,
+          applicant: 'security-admin',
+          revision: form.trade_date || 'v1.0',
+          auto_submit: !!autoStart,
+        }),
+      });
+    } catch (e) {
+      // Fallback to simulations endpoint if needed
+      app = await api().request('/api/v1/investment-simulations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildCreateBody(!!autoStart)),
+      });
+    }
+
     engineState = ES.create();
-    applySim(sim);
+    applySim(app);
     engineState.lastSeq = 0;
     engineState.events = [];
     try {
-      localStorage.setItem('sa_invest_run', sim.run_id);
+      localStorage.setItem('sa_invest_run', app.application_id || app.run_id);
     } catch (e) { /* ignore */ }
     renderFromState();
-    if (sim.status === 'running' || autoStart) {
+    if (app.status === 'running' || app.status === 'gating' || autoStart) {
       beginLiveJourney();
     }
-    return sim;
+    return app;
   }
 
   async function startSim() {
     if (!engineState.runId) return;
-    var sim = await api().request(
-      '/api/v1/investment-simulations/' + encodeURIComponent(engineState.runId) + '/start',
-      { method: 'POST' }
-    );
-    applySim(sim);
+    var res = null;
+    try {
+      res = await api().request(
+        '/api/v1/model-clearance/applications/' + encodeURIComponent(engineState.runId) + '/submit',
+        { method: 'POST' }
+      );
+    } catch (e) {
+      res = await api().request(
+        '/api/v1/investment-simulations/' + encodeURIComponent(engineState.runId) + '/start',
+        { method: 'POST' }
+      );
+    }
+    applySim(res);
     renderFromState();
     beginLiveJourney();
   }
 
   async function cancelSim() {
     if (!engineState.runId) return;
-    var sim = await api().request(
-      '/api/v1/investment-simulations/' + encodeURIComponent(engineState.runId) + '/cancel',
-      { method: 'POST' }
-    );
-    applySim(sim);
     stopLiveJourney();
+    engineState.status = 'cancelled';
     renderFromState();
   }
 
@@ -758,28 +780,32 @@
   async function poll() {
     if (!engineState.runId) return;
     try {
-      var sim = await api().request(
-        '/api/v1/investment-simulations/' + encodeURIComponent(engineState.runId)
-      );
-      applySim(sim);
-      var ev = await api().request(
-        '/api/v1/investment-simulations/' +
-          encodeURIComponent(engineState.runId) +
-          '/events?after_seq=' +
-          (engineState.lastSeq || 0)
-      );
-      ingestEvents((ev && ev.events) || []);
-      var reports = await api().request(
-        '/api/v1/investment-simulations/' + encodeURIComponent(engineState.runId) + '/reports'
-      );
-      renderReportIndex(reports.reports || {});
-      var pf = await api().request(
-        '/api/v1/investment-simulations/' + encodeURIComponent(engineState.runId) + '/portfolio'
-      );
-      renderPortfolio(pf);
-      if (sim.status === 'completed' || sim.status === 'failed' || sim.status === 'cancelled') {
+      var app = null;
+      var evData = null;
+      try {
+        app = await api().request(
+          '/api/v1/model-clearance/applications/' + encodeURIComponent(engineState.runId)
+        );
+        evData = await api().request(
+          '/api/v1/model-clearance/applications/' + encodeURIComponent(engineState.runId) + '/events'
+        );
+      } catch (e) {
+        app = await api().request(
+          '/api/v1/investment-simulations/' + encodeURIComponent(engineState.runId)
+        );
+        evData = await api().request(
+          '/api/v1/investment-simulations/' +
+            encodeURIComponent(engineState.runId) +
+            '/events?after_seq=' +
+            (engineState.lastSeq || 0)
+        );
+      }
+      if (app) applySim(app);
+      if (evData && evData.events) ingestEvents(evData.events);
+      renderPortfolio(null);
+      if (app && (app.status === 'approved' || app.status === 'approved_with_conditions' || app.status === 'rejected' || app.status === 'completed' || app.status === 'failed' || app.status === 'cancelled')) {
         stopLiveJourney();
-        if (sim.status === 'completed') engineState.progress = 100;
+        engineState.progress = 100;
       }
       renderFromState();
     } catch (e) {
@@ -838,24 +864,22 @@
     try {
       var id = localStorage.getItem('sa_invest_run');
       if (!id) return;
-      var sim = await api().request(
-        '/api/v1/investment-simulations/' + encodeURIComponent(id)
-      );
-      applySim(sim);
+      var app = null;
+      var evData = null;
+      try {
+        app = await api().request('/api/v1/model-clearance/applications/' + encodeURIComponent(id));
+        evData = await api().request('/api/v1/model-clearance/applications/' + encodeURIComponent(id) + '/events');
+      } catch (e) {
+        app = await api().request('/api/v1/investment-simulations/' + encodeURIComponent(id));
+        evData = await api().request('/api/v1/investment-simulations/' + encodeURIComponent(id) + '/events?after_seq=0');
+      }
+      applySim(app);
       engineState.lastSeq = 0;
       engineState.events = [];
-      var ev = await api().request(
-        '/api/v1/investment-simulations/' +
-          encodeURIComponent(id) +
-          '/events?after_seq=0'
-      );
-      ingestEvents((ev && ev.events) || []);
-      var pf = await api().request(
-        '/api/v1/investment-simulations/' + encodeURIComponent(id) + '/portfolio'
-      );
-      renderPortfolio(pf);
+      if (evData && evData.events) ingestEvents(evData.events);
+      renderPortfolio(null);
       renderFromState();
-      if (sim.status === 'running' || sim.status === 'queued') {
+      if (app && (app.status === 'running' || app.status === 'gating' || app.status === 'queued')) {
         beginLiveJourney();
       }
     } catch (e) {

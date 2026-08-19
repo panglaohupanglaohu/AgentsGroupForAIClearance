@@ -821,6 +821,17 @@ async def get_clearance_application(app_id: str):
     return app.to_dict()
 
 
+@router.get("/api/v1/model-clearance/applications/{app_id}/events")
+async def get_clearance_application_events(app_id: str):
+    from domain.model_clearance.gate_orchestrator import generate_application_events
+    from domain.model_clearance.store import get_clearance_store
+    app = get_clearance_store().get(app_id)
+    if not app:
+        _err(404, f"Application {app_id} not found", code="not_found")
+    events = generate_application_events(app)
+    return {"application_id": app_id, "events": events}
+
+
 @router.post("/api/v1/model-clearance/applications/{app_id}/submit")
 async def submit_clearance_application(app_id: str):
     from domain.model_clearance.gate_orchestrator import GateOrchestrator

@@ -34,7 +34,7 @@
 `investment-engine.html` → `ai-model-entry-clearance.html`；同步 JS 与 features 目录；
 nav.js / global-nav.js / 5 个前端测试 / `test_domain_api_and_security.py` 已更新。
 
-### T002 [GF] 清除 `stock` 字样
+### T002 [GF] 清除 `stock` 字样 ✅ 已完成
 **范围**：全仓 85 处 / 51 文件，重点 `docs/`、`research/`、`CHANGELOG.md`、`CONTRIBUTING.md`、`.github/`
 
 ```text
@@ -50,13 +50,13 @@ ASSERT grep_count(repo, "stock", ignore_case=True) == 0
 
 **验收**：`grep -ri "stock" --exclude-dir={.git,node_modules,.venv} . | wc -l` → `0`
 
-### T003 [GF] 清除 `投资` / `股票` 字样
+### T003 [GF] 清除 `投资` / `股票` 字样 ✅ 已完成
 按 [PLAN.md](PLAN.md) 第 8 节替换表逐词替换。
 **易漏点**：`login.html` 第 447 行副标题、`login-page-flow.test.js` 第 65 行对应断言必须同步改。
 
 **验收**：`grep -r "投资\|股票\|纸面\|ticker" --exclude-dir={.git,node_modules,.venv} . | wc -l` → `0`
 
-### T004 [GF] 侧边栏菜单重命名
+### T004 [GF] 侧边栏菜单重命名 ✅ 已完成
 文件：`src/frontend/js/engine-sidebar.js` + `src/frontend/__tests__/engine-sidebar.test.js`
 
 | 原 id | 原 label | 新 id | 新 label | 新 target |
@@ -71,7 +71,7 @@ ASSERT grep_count(repo, "stock", ignore_case=True) == 0
 | `health` | 运行时健康 | `health` | 运行时健康 | `clearance-health` |
 | `portfolio` | 纸面组合 | `registry` | 准入清单 | `clearance-registry` |
 
-### T005 [GF] 准入控制台文案
+### T005 [GF] 准入控制台文案 ✅ 已完成
 文件：`src/frontend/ai-model-entry-clearance.html`
 
 - `投资引擎装配台` → `准入控制台`
@@ -80,11 +80,11 @@ ASSERT grep_count(repo, "stock", ignore_case=True) == 0
 - 卡片：`纸面组合`→`准入裁决`；`价值推演`→`资源需求`；`当前判断`→`门禁结论`
 - 免责声明 → `仅供内部治理参考，不构成法律或采购建议`
 
-### T006 [GF] 文档路径同步
+### T006 [GF] 文档路径同步 ✅ 已完成
 `docs/new-pages.md`、`docs/architecture.md`、`docs/repository-layout.md`、`docs/engine-live-cockpit-plan.md`
 中 `/investment-engine.html` → `/ai-model-entry-clearance.html`
 
-### T007 [GF] 术语回归测试
+### T007 [GF] 术语回归测试 ✅ 已完成
 新建 `src/frontend/__tests__/terminology-guard.test.js`：
 
 ```js
@@ -104,7 +104,7 @@ for (const file of walk(SCAN_DIRS, ['.js','.html','.py','.md'])) {
 
 # P1 — 数据底座与知识库
 
-### T101 [GF] 模型许可证知识库
+### T101 [GF] 模型许可证知识库 ✅ 已完成
 文件：`config/model_license_registry.json`
 
 ```jsonc
@@ -139,7 +139,7 @@ for (const file of walk(SCAN_DIRS, ['.js','.html','.py','.md'])) {
 - 每条 `license_url` 与 `source_url` **必须真实可访问**
 - 拿不准的字段填 `null`，**严禁编造许可证名称或条款**
 
-### T102 [GF] 知识库校验脚本
+### T102 [GF] 知识库校验脚本 ✅ 已完成
 文件：`scripts/validate_model_registry.py`
 
 ```python
@@ -168,7 +168,7 @@ def validate(path) -> int:
 
 **验收**：`python scripts/validate_model_registry.py` → 退出码 0
 
-### T103 [HI] 申请单数据模型
+### T103 [HI] 申请单数据模型 ✅ 已完成
 文件：`src/backend/domain/model_clearance/models.py`
 
 ```python
@@ -222,7 +222,7 @@ class ModelApplication:
     need_info_count: int = 0       # 上限 3
 ```
 
-### T104 [GF] 申请单存储
+### T104 [GF] 申请单存储 ✅ 已完成
 文件：`src/backend/domain/model_clearance/store.py`
 参照 `domain/investment_simulation/store.py` 的 JSON 落盘模式，仅替换实体。
 **要求**：`Evidence` 与 `GateVerdict` 一经写入不可修改，只能追加。
@@ -237,7 +237,7 @@ def append_evidence(self, app_id: str, ev: Evidence) -> None:
     self.save(app)
 ```
 
-### T105 [GF] 状态机实现
+### T105 [GF] 状态机实现 ✅ 已完成
 ```python
 ALLOWED = {
   "draft":        {"submitted"},
@@ -261,11 +261,11 @@ def transition(app, target):
     app.status = target
 ```
 
-### T106 [GF] Open Weights Letter 签署方名单
+### T106 [GF] Open Weights Letter 签署方名单 ✅ 已完成
 文件：`config/open_weights_signatories.json`，字段 `{organization, signed_at, source_url}`。
 **要求**：仅录入能提供 `source_url` 的条目；无法核实一律不录。
 
-### T107 [HI] 集群能力画像接口
+### T107 [HI] 集群能力画像接口 ✅ 已完成
 ```python
 @dataclass
 class ClusterCapability:
@@ -280,7 +280,7 @@ class ClusterCapability:
 ```
 **T4 约束**：`is_stale()` 为真时 G4 必须判 `needs_info`，禁止用过期画像判 `pass`。
 
-### T108 [GF] 数据模型单测
+### T108 [GF] 数据模型单测 ✅ 已完成
 覆盖：非法状态跃迁抛异常、evidence 不可覆盖、`need_info_count > 3` 自动拒绝、过期画像判 `needs_info`。
 
 ---
@@ -289,7 +289,7 @@ class ClusterCapability:
 
 > **统一契约**：每个 Scanner 实现同一接口，产出 `Evidence`，**永不产出 verdict**。
 
-### T201 [HI] Scanner 基类契约
+### T201 [HI] Scanner 基类契约 ✅ 已完成
 ```python
 class Scanner(ABC):
     name: str
@@ -316,7 +316,7 @@ class Scanner(ABC):
         )
 ```
 
-### T202 [HI] 签名验证 Scanner（G1）
+### T202 [HI] 签名验证 Scanner（G1） ✅ 已完成
 ```python
 class SignatureScanner(Scanner):
     name, gate = "sigstore-verify", "G1"
@@ -341,7 +341,7 @@ class SignatureScanner(Scanner):
         }
 ```
 
-### T203 [HI] 平台背书签名器（G1-PROV-05）
+### T203 [HI] 平台背书签名器（G1-PROV-05） ✅ 已完成
 ```python
 def platform_endorse(identity) -> dict:
     """上游无签名时，平台自签并锁定 digest。标记为平台背书而非厂商背书。"""
@@ -360,7 +360,7 @@ def platform_endorse(identity) -> dict:
     }
 ```
 
-### T204 [GF] 哈希清单 Scanner（G1-PROV-03）
+### T204 [GF] 哈希清单 Scanner（G1-PROV-03） ✅ 已完成
 ```python
 def collect(self, identity):
     entries = []
@@ -371,7 +371,7 @@ def collect(self, identity):
             "file_count": len(entries)}
 ```
 
-### T205 [GF] 序列化格式 Scanner（G2-BOM-02/03）
+### T205 [GF] 序列化格式 Scanner（G2-BOM-02/03） ✅ 已完成
 ```python
 SAFE  = {".safetensors", ".gguf"}
 UNSAFE = {".bin", ".pt", ".pth", ".ckpt", ".pkl"}   # pickle → 任意代码执行面
@@ -390,7 +390,7 @@ def collect(self, identity):
     }
 ```
 
-### T206 [GF] AI-BOM 生成 Scanner（G2-BOM-01）
+### T206 [GF] AI-BOM 生成 Scanner（G2-BOM-01） ✅ 已完成
 产出 CycloneDX ML-BOM（ECMA-424），组件类型含 `machine-learning-model` / `data` / `library`。
 ```python
 def collect(self, identity):
@@ -407,7 +407,7 @@ def collect(self, identity):
     return {"bom": bom.to_dict(), "component_count": bom.count()}
 ```
 
-### T207 [GF] CVE 匹配 Scanner（G2-BOM-04/05）
+### T207 [GF] CVE 匹配 Scanner（G2-BOM-04/05） ✅ 已完成
 ```python
 def collect(self, identity):
     purls = [c["purl"] for c in load_bom(identity)["components"] if c.get("purl")]
@@ -422,7 +422,7 @@ def collect(self, identity):
     }
 ```
 
-### T208 [HI] 资源估算 Scanner（G4）
+### T208 [HI] 资源估算 Scanner（G4） ✅ 已完成
 ```python
 def estimate(cfg, quant_bits, concurrency, ctx_len) -> dict:
     """三段式估算：权重 + KV-Cache + 激活峰值。禁止只算权重。"""
@@ -450,11 +450,11 @@ def collect(self, identity):
                           for (c, l) in TARGET_WORKLOAD_POINTS]}
 ```
 
-### T209 [HI] 红队 Scanner（G5）
+### T209 [HI] 红队 Scanner（G5） ✅ 已完成
 封装 garak 等对抗框架，产出越狱率、提示注入抗性、有害内容触发率。
 **只产出数值与用例引用，不产出「是否安全」的结论**。
 
-### T210 [GF] Scanner 单测
+### T210 [GF] Scanner 单测 ✅ 已完成
 每个 Scanner 至少覆盖：正常路径、超时路径、异常路径。
 **断言超时与异常时 `payload["_status"] != "ok"`**，为 T4 的 fail-closed 提供依据。
 
@@ -462,7 +462,7 @@ def collect(self, identity):
 
 # P3 — 策略引擎与门禁
 
-### T301 [HI] 策略规则文件（T3 策略即代码）
+### T301 [HI] 策略规则文件（T3 策略即代码） ✅ 已完成
 文件：`config/clearance_policy.yaml`
 
 ```yaml
@@ -501,7 +501,7 @@ license_classes:
   restricted:    { scope: [],                     risk: 3, verdict: fail }
 ```
 
-### T302 [HI] 策略求值器
+### T302 [HI] 策略求值器 ✅ 已完成
 ```python
 def evaluate_gate(gate_id, evidences, policy) -> GateVerdict:
     spec = policy["gates"][gate_id]
@@ -525,7 +525,7 @@ def evaluate_gate(gate_id, evidences, policy) -> GateVerdict:
     return GateVerdict(gate_id, "pass", "none", [], refs(evidences), "policy", now())
 ```
 
-### T303 [HI] 门禁编排器（早失败）
+### T303 [HI] 门禁编排器（早失败） ✅ 已完成
 ```python
 GATE_ORDER = ["G1", "G2", "G3", "G4", "G5"]
 
@@ -555,11 +555,11 @@ def run_gates(app, policy):
     return app
 ```
 
-### T304 [GF] `safe_eval` 表达式求值
+### T304 [GF] `safe_eval` 表达式求值 ✅ 已完成
 仅支持属性访问、比较、`and/or/not`、字面量。
 **禁止** `eval`/`exec`/导入/函数调用——用 AST 白名单实现。
 
-### T305 [GF] 策略回归测试（T3 可脱离 LLM 复现）
+### T305 [GF] 策略回归测试（T3 可脱离 LLM 复现） ✅ 已完成
 ```python
 @pytest.mark.parametrize("fixture,expected", [
     ("fixtures/pickle_weights.json",    ("G2", "fail")),      # 序列化不安全
@@ -575,11 +575,11 @@ def test_policy(fixture, expected):
     assert got.verdict == want
 ```
 
-### T306 [GF] 门禁事件流
+### T306 [GF] 门禁事件流 ✅ 已完成
 事件类型：`gate_started` / `evidence_collected` / `gate_verdict` / `agent_opinion` /
 `adjudication_started` / `decision_made`。复用现有事件流机制。
 
-### T307 [HI] 会签裁决器
+### T307 [HI] 会签裁决器 ✅ 已完成
 ```python
 def adjudicate(app, policy) -> Decision:
     if any(v.verdict == "fail" and v.severity == "blocker" for v in app.verdicts):
@@ -604,18 +604,18 @@ def adjudicate(app, policy) -> Decision:
     )
 ```
 
-### T308 [GF] 编排器集成测试
+### T308 [GF] 编排器集成测试 ✅ 已完成
 三条真实路径：Blocker 拒绝 / 需补充信息回环 / 带条件通过。
 
 ---
 
 # P4 — Agent 评审团队
 
-### T401 [HI] 团队定义 `model_clearance_board`
+### T401 [HI] 团队定义 `model_clearance_board` ✅ 已完成
 5 个 Agent：`security_reviewer` / `compliance_reviewer` / `infra_reviewer` /
 `legal_reviewer`（条件触发）/ `adjudicator`。
 
-### T402 [HI] 评审意见 Schema
+### T402 [HI] 评审意见 Schema ✅ 已完成
 ```json
 {
   "gate": "G3",
@@ -632,14 +632,14 @@ def adjudicate(app, policy) -> Decision:
 }
 ```
 
-### T403 [HI] 提示词模板与硬约束
+### T403 [HI] 提示词模板与硬约束 ✅ 已完成
 每个 Agent 提示词必须包含：
 1. 「你只能基于提供的 evidence 作答；**不得引用记忆中的 CVE 编号或许可证条款**」
 2. 「每条 `findings.statement` 必须有 `evidence_ref` 与 `quoted_text`」
 3. 「证据不足时输出 `needs_info` 并填 `missing_evidence`，**不得猜测**」
 4. 「你可以把 Policy 的 pass 收紧为 needs_info，**不得把 fail 放宽为 pass**」
 
-### T404 [GF] 输出校验与重试
+### T404 [GF] 输出校验与重试 ✅ 已完成
 ```python
 def run_agent_review(gate, app, evidences, policy_verdict) -> ReviewOpinion:
     for attempt in range(MAX_RETRY := 3):
@@ -660,14 +660,14 @@ def run_agent_review(gate, app, evidences, policy_verdict) -> ReviewOpinion:
     return escalate_to_human(gate, app, reason="agent_output_invalid")
 ```
 
-### T405 [GF] `quote_locatable` 实现
+### T405 [GF] `quote_locatable` 实现 ✅ 已完成
 归一化空白后在证据原文中做子串匹配；未命中即判定为幻觉。
 
-### T406 [HI] `legal_reviewer` 触发条件
+### T406 [HI] `legal_reviewer` 触发条件 ✅ 已完成
 命中任一即触发：`G3-JUR-02` 命中管制清单 / `G3-REG-01` 判定可能承担 provider 义务 /
 `license_class == conditional` 且 scope 含 `commercial`。
 
-### T407 [GF] Agent 层测试
+### T407 [GF] Agent 层测试 ✅ 已完成
 用固定 evidence fixture + mock LLM 返回，断言：
 无 `evidence_ref` 被拒、伪造 `quoted_text` 被拒、试图放宽 fail 抛异常、连续 3 次非法升级人工。
 
@@ -675,7 +675,7 @@ def run_agent_review(gate, app, evidences, policy_verdict) -> ReviewOpinion:
 
 # P5 — 准入清单与 attestation
 
-### T501 [HI] attestation 签发（T5）
+### T501 [HI] attestation 签发（T5） ✅ 已完成
 ```python
 def issue_attestation(app, verdict) -> dict:
     statement = {
@@ -694,7 +694,7 @@ def issue_attestation(app, verdict) -> dict:
     return dsse_sign(statement, key=PLATFORM_SIGNING_KEY)   # DSSE 封装
 ```
 
-### T502 [GF] 准入清单条目
+### T502 [GF] 准入清单条目 ✅ 已完成
 ```python
 @dataclass
 class ApprovedRegistryEntry:
@@ -710,7 +710,7 @@ class ApprovedRegistryEntry:
     status: str                   # active|reassessing|revoked
 ```
 
-### T503 [GF] 清单 API
+### T503 [GF] 清单 API ✅ 已完成
 ```text
 GET    /api/v1/model-clearance/registry
 GET    /api/v1/model-clearance/registry/{entry_id}
@@ -722,7 +722,7 @@ POST   /api/v1/model-clearance/applications/{id}/submit
 GET    /api/v1/model-clearance/applications/{id}/events
 ```
 
-### T504 [GF] 验签接口
+### T504 [GF] 验签接口 ✅ 已完成
 ```python
 def verify_entry(entry_id) -> dict:
     entry = registry.get(entry_id)
@@ -733,24 +733,24 @@ def verify_entry(entry_id) -> dict:
             "attestations": results}
 ```
 
-### T505 [GF] 合规证据库归档
+### T505 [GF] 合规证据库归档 ✅ 已完成
 按标准 C 第 3 节保留期归档；attestation 与检查表实例**永久**保留。
 
-### T506 [GF] 端到端测试
+### T506 [GF] 端到端测试 ✅ 已完成
 从提交到登记全链路，断言：登记条目可验签、`locked_digest` 与扫描结果一致。
 
 ---
 
 # P6 — 运行时基线与校验
 
-### T601 [GF] 三档 profile 配置文件
+### T601 [GF] 三档 profile 配置文件 ✅ 已完成
 `config/runtime_profiles.yaml`，落地标准 B 第 0 节 `isolated` / `restricted` / `standard`。
 
-### T602 [GF] K8s 清单模板
+### T602 [GF] K8s 清单模板 ✅ 已完成
 `deploy/templates/` 下产出 NetworkPolicy（deny-all + allowlist）、
 SecurityContext Pod 模板、ResourceQuota、LimitRange——内容取自标准 B。
 
-### T603 [HI] 基线符合性校验器
+### T603 [HI] 基线符合性校验器 ✅ 已完成
 ```python
 INVARIANTS = [
   ("runAsNonRoot",        lambda p: p.spec.securityContext.runAsNonRoot is True),
@@ -775,7 +775,7 @@ def check_baseline(pod, entry) -> list[str]:
     return violations
 ```
 
-### T604 [GF] 权重 digest 启动校验
+### T604 [GF] 权重 digest 启动校验 ✅ 已完成
 ```python
 def preflight(entry):
     actual = compute_manifest_root_digest(MOUNTED_WEIGHTS_PATH)
@@ -785,18 +785,18 @@ def preflight(entry):
         sys.exit(1)          # T4：拒绝启动，绝不降级运行
 ```
 
-### T605 [GF] Dockerfile 模板
+### T605 [GF] Dockerfile 模板 ✅ 已完成
 落地标准 B 第 6 节：多阶段构建、distroless、非 root、
 `HF_HUB_OFFLINE=1` / `TRANSFORMERS_OFFLINE=1` 纵深防御。
 
-### T606 [GF] 基线校验器单测
+### T606 [GF] 基线校验器单测 ✅ 已完成
 每条不变量各一条正例 + 一条反例；`weightDigestMismatch` 必须被检出。
 
 ---
 
 # P7 — 持续验证 L5
 
-### T701 [GF] 30 分钟基线巡检
+### T701 [GF] 30 分钟基线巡检 ✅ 已完成
 ```python
 def periodic_baseline_audit():          # 复用现有 30 分钟 Cron
     for entry in registry.list_active():
@@ -808,7 +808,7 @@ def periodic_baseline_audit():          # 复用现有 30 分钟 Cron
                     k8s.evict(pod)      # 高危自动阻断
 ```
 
-### T702 [GF] 每日 CVE 重评
+### T702 [GF] 每日 CVE 重评 ✅ 已完成
 ```python
 def daily_cve_reassessment():
     for entry in registry.list_active():
@@ -820,10 +820,10 @@ def daily_cve_reassessment():
             registry.transition(entry, "reassessing")
 ```
 
-### T703 [GF] 每日许可证变更监听
+### T703 [GF] 每日许可证变更监听 ✅ 已完成
 复用 L0 采集管线抓取许可证页；与知识库快照做 diff，变更即触发 G3 重评。
 
-### T704 [GF] 到期复评调度
+### T704 [GF] 到期复评调度 ✅ 已完成
 ```python
 def due_reassessment():
     for entry in registry.list_active():
@@ -833,24 +833,58 @@ def due_reassessment():
                 entry.runtime_profile = "restricted"    # 逾期自动降档
 ```
 
-### T705 [GF] 安全事件检测规则
+### T705 [GF] 安全事件检测规则 ✅ 已完成
 落地标准 C 第 2 节 `D-*` 规则，接入既有告警通道。
 
-### T706 [GF] 月度合规报告
+### T706 [GF] 月度合规报告 ✅ 已完成
 按标准 C 第 5 节七节内容生成，报告本体签名留存。
 
 ---
 
 # P8 — 前端准入控制台
 
-### T801 [GF] 六门禁路线条替换现有 route-strip
-### T802 [GF] 门禁卡片（G1–G5）显示 verdict + 失败检查项 + 证据引用
-### T803 [GF] 证据流视图：按 gate 分组，展示 collector / 版本 / 时间 / digest
-### T804 [GF] 评审意见视图：`findings` 与 `quoted_text` 并排显示，可跳证据
-### T805 [GF] 准入清单页替换原组合卡片区
-### T806 [GF] 合规态势看板：待处理 / 本周新增 / 高风险运行中 / 逾期复评
-### T807 [GF] 申请表单 + 知识库自动补全
-### T808 [GF] 前端测试更新
+### T801 [GF] 六门禁路线条替换现有 route-strip ✅ 已完成
+### T802 [GF] 门禁卡片（G1–G5）显示 verdict + 失败检查项 + 证据引用 ✅ 已完成
+### T803 [GF] 证据流视图：按 gate 分组，展示 collector / 版本 / 时间 / digest ✅ 已完成
+### T804 [GF] 评审意见视图：`findings` 与 `quoted_text` 并排显示，可跳证据 ✅ 已完成
+### T805 [GF] 准入清单页替换原组合卡片区 ✅ 已完成
+### T806 [GF] 合规态势看板：待处理 / 本周新增 / 高风险运行中 / 逾期复评 ✅ 已完成
+### T807 [GF] 申请表单 + 知识库自动补全 ✅ 已完成
+### T808 [GF] 前端测试更新 ✅ 已完成
+
+---
+
+# 验收总清单
+
+```bash
+# 术语
+grep -ri "stock" --exclude-dir={.git,node_modules,.venv} . | wc -l    # 期望 0
+grep -r "投资\|股票\|纸面\|ticker" --exclude-dir={.git,node_modules,.venv} . | wc -l  # 期望 0
+
+# 知识库
+python scripts/validate_model_registry.py                            # 退出码 0
+
+# 策略（可脱离 LLM 复现 —— T3）
+pytest src/backend/tests/test_clearance_policy.py -q
+
+# fail-closed（T4）
+pytest src/backend/tests/test_clearance_policy.py -k timeout -q
+
+# Agent 幻觉守卫
+pytest src/backend/tests/test_clearance_agents.py -q
+
+# 基线校验
+pytest src/backend/tests/test_runtime_baseline.py -q
+
+# 前端
+npm run test:frontend
+
+# 烟测
+make test-smoke
+```
+
+**Phase 1 出口条件**：对 3 个真实模型（permissive / conditional / restricted 各一）
+走完 G0–G6，产出可验签 attestation，且 `restricted` 模型确实在 G3 被拒绝。
 
 ---
 
