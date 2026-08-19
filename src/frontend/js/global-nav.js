@@ -16,7 +16,9 @@
     { id: 'memory',        label: 'Agent记忆',  href: '/agent-memory.html' },
     { id: 'digital-twin',  label: '数字孪生',   href: '/Agent-digital-twin.html?office3d=1' },
     { id: 'cost',          label: 'Token节省',  href: '/cost-dashboard.html' },
-    { id: 'pet',           label: '生态配置',   href: '/pet-config.html' }
+    { id: 'pet',           label: '生态配置',   href: '/pet-config.html' },
+    { id: 'data-intelligence', label: '数据采集/分析', href: '/data-intelligence.html' },
+    { id: 'model-clearance',   label: 'AI 模型准入',   href: '/ai-model-entry-clearance.html' }
   ];
 
   var script = document.querySelector('script[src*="global-nav.js"][data-page], script[data-page]');

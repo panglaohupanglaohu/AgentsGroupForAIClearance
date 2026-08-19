@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="taste-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Model Entry Clearance — AI 模型准入</title>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/taste-light.css">
+  <style>
+    html, body { max-width:100%; overflow-x:clip; }
+    body { margin:0; font-family: system-ui, -apple-system, "PingFang SC", "Noto Sans SC", sans-serif; background:#f5f7fa; color:#0f172a; }
+    .global-nav { display:flex; flex-wrap:wrap; gap:12px; padding:12px 20px; background:#fff; border-bottom:1px solid #e2e8f0; font-size:13px; max-width:100%; box-sizing:border-box; }
+    .global-nav a { color:#0f766e; text-decoration:none; }
+    .global-nav .cur { font-weight:700; color:#0f172a; }
+
+    /* P10 shell + research sidebar */
+    .engine-shell { display:flex; min-height:calc(100vh - 48px); align-items:stretch; max-width:100%; min-width:0; }
+    .engine-sidebar {
+      flex:0 0 220px; width:220px; background:#f8fafc; color:#334155;
+      border-right:1px solid #dbe5ee; display:flex; flex-direction:column;
+      position:sticky; top:104px; align-self:flex-start; margin-top:104px; max-height:calc(100vh - 104px); z-index:30;
+      transition: width .2s ease, transform .2s ease;
+    }
+    .engine-sidebar.is-collapsed { width:64px; flex-basis:64px; }
+    .engine-sidebar.is-collapsed .engine-sidebar-label,
+    .engine-sidebar.is-collapsed .engine-sidebar-badge,
+    .engine-sidebar.is-collapsed .engine-sidebar-brand span,
+    .engine-sidebar.is-collapsed #engine-sidebar-more { display:none; }
+    .engine-sidebar-brand {
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      padding:14px 12px; border-bottom:1px solid #dbe5ee; font-size:12px; font-weight:800; letter-spacing:.04em;
+    }
+    .engine-sidebar-brand span { color:#64748b; font-weight:600; font-size:10px; }
+    .engine-sidebar-list { list-style:none; margin:0; padding:8px 0; flex:1; overflow:auto; }
+    .engine-sidebar-item {
+      width:100%; display:flex; align-items:center; gap:10px; text-align:left;
+      border:0; background:transparent; color:#475569; padding:10px 12px; cursor:pointer; font-size:13px;
+      border-left:3px solid transparent; position:relative;
+    }
+    .engine-sidebar-item:hover { background:#eaf2f8; color:#0f172a; }
+    .engine-sidebar-item.is-active { background:#e2edf5; color:#0f172a; border-left-color:#f97316; }
+    .engine-sidebar-item:focus-visible { outline:2px solid #f97316; outline-offset:-2px; }
+    .engine-sidebar-icon { width:1.25rem; text-align:center; opacity:.9; flex:0 0 auto; }
+    .engine-sidebar-label { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .engine-sidebar-badge {
+      margin-left:auto; min-width:1.4rem; padding:1px 6px; border-radius:999px;
+      background:#e2e8f0; color:#b45309; font:700 10px/1.4 ui-monospace,monospace;
+    }
+    .engine-sidebar-sep { height:1px; margin:8px 12px; background:#dbe5ee; list-style:none; }
+    .engine-sidebar-foot { padding:8px 10px 12px; border-top:1px solid #dbe5ee; display:flex; flex-direction:column; gap:6px; }
+    .engine-sidebar-foot button {
+      border:1px solid #cbd5e1; background:#fff; color:#334155; border-radius:6px;
+      padding:7px 8px; cursor:pointer; font-size:12px;
+    }
+    .engine-sidebar-foot button:focus-visible { outline:2px solid #f97316; outline-offset:1px; }
+    .engine-sidebar-open {
+      display:none; position:fixed; left:12px; bottom:16px; z-index:40;
+      border:0; border-radius:999px; padding:10px 14px; background:#0b1220; color:#fff;
+      box-shadow:0 8px 24px rgba(15,23,42,.28); cursor:pointer; font-size:13px;
+    }
+    .engine-sidebar-overlay {
+      display:none; position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:25;
+    }
+    .engine-main { flex:1; min-width:0; max-width:100%; overflow-x:clip; }
+
+    /* Give the cockpit enough horizontal room for a readable assembly road and live cards. */
+    .wrap { max-width:none; width:100%; margin:0; padding:20px 16px 48px; box-sizing:border-box; min-width:0; }
+    h1 { font-size:1.4rem; margin:0 0 8px; }
+    .sub { color:#64748b; font-size:13px; margin-bottom:12px; }
+    .disclaimer { background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:10px 12px; border-radius:8px; font-size:12px; margin-bottom:16px; }
+    /* Research navigation is the far-left shell. Inside the cockpit, keep the assembly wide and
+       put the mouse-near controls on the right: simulation config, then account/health results. */
+    .grid { display:grid; grid-template-columns:minmax(0,1fr) 310px; grid-template-areas:"main config" "main rail"; gap:16px; align-items:start; min-width:0; max-width:100%; }
+    .grid > section { grid-area:main; min-width:0; }
+    #engine-config { grid-area:config; }
+    .grid > aside:not(#engine-config) { grid-area:rail; min-width:0; }
+    .grid > * { min-width:0; max-width:100%; }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns:1fr; grid-template-areas:"config" "main" "rail"; }
+      .parts-bank { flex-wrap:nowrap; }
+      .engine-sidebar {
+        position:fixed; left:0; top:0; bottom:0; transform:translateX(-105%); margin-top:0;
+        max-height:none; box-shadow:0 0 0 rgba(0,0,0,0);
+      }
+      .engine-sidebar.is-drawer-open { transform:translateX(0); box-shadow:16px 0 40px rgba(15,23,42,.35); }
+      .engine-shell.sidebar-drawer-open .engine-sidebar-overlay { display:block; }
+      .engine-sidebar-open { display:inline-flex; align-items:center; gap:6px; }
+      .engine-shell.sidebar-collapsed .engine-sidebar { width:220px; flex-basis:220px; }
+      .engine-shell.sidebar-collapsed .engine-sidebar-label,
+      .engine-shell.sidebar-collapsed .engine-sidebar-badge,
+      .engine-shell.sidebar-collapsed .engine-sidebar-brand span,
+      .engine-shell.sidebar-collapsed #engine-sidebar-more { display:initial; }
+    }
+    @media (max-width: 600px) {
+      .lower-modules { grid-template-columns:repeat(2,1fr); }
+      .insight-grid { grid-template-columns:1fr; }
+      .assembly-head { display:block; }
+      .assembly-count { display:block; margin-top:7px; }
+      .road-shell { flex-wrap:wrap; }
+      .judgment-table-wrap { overflow-x:auto; }
+      .judgment-matrix { display:grid; gap:8px; }
+      .judgment-row { grid-template-columns:1fr !important; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .engine-sidebar, .dashboard-progress span, .scroll-fade::before, .scroll-fade::after { transition:none !important; }
+    }
+
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px; }
+    .report-index { display:grid; gap:10px; }
+    .report-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .report-summary-card { padding:10px; border:1px solid #dbe5ee; border-radius:9px; background:#f8fbff; }
+    .report-summary-card strong { display:block; color:#0f766e; font-size:11px; margin-bottom:4px; }
+    .report-summary-card span { display:block; color:#475569; font-size:12px; line-height:1.45; }
+    .report-sections { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+    .report-section { padding:8px 9px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; }
+    .report-section b { display:block; font-size:11px; color:#1e293b; }
+    .report-section small { display:block; margin-top:3px; color:#64748b; font-size:10px; }
+    .report-empty { padding:12px; border:1px dashed #cbd5e1; border-radius:9px; color:#64748b; font-size:12px; background:#f8fafc; }
+    .report-flow { overflow:auto; padding:12px; border:1px solid #c9d8e6; border-radius:12px; background:#f8fbff; }
+    .report-flow-head { display:flex; justify-content:space-between; gap:12px; align-items:baseline; margin-bottom:4px; color:#1e293b; }
+    .report-flow-head strong { font-size:13px; } .report-flow-head span { margin-left:9px; color:#64748b; font-size:10px; } .report-flow-head b { color:#0f766e; font-size:10px; }
+    .report-flow svg { display:block; width:1060px; max-width:none; height:520px; }
+    .flow-stage { fill:#2563eb; font:700 12px system-ui,sans-serif; } .flow-stage-sub { fill:#64748b; font:11px system-ui,sans-serif; }
+    .flow-edge { fill:none; stroke-width:1.5; opacity:.48; } .flow-edge.source-edge { stroke:#94a3b8; } .flow-edge.analysis-edge { stroke:#60a5fa; } .flow-edge.risk-edge { stroke:#f59e0b; } .flow-edge.approved-edge { stroke:#16a34a; stroke-width:2.5; opacity:.9; } .flow-edge.counter-edge { stroke:#ef4444; stroke-dasharray:5 4; }
+    .flow-node rect { stroke-width:1.5; } .flow-node text { fill:#0f172a; font:600 10px system-ui,sans-serif; } .flow-node.source rect { fill:#eef2f7; stroke:#94a3b8; } .flow-node.analyst rect { fill:#e0f2fe; stroke:#60a5fa; } .flow-node.debate rect { fill:#ede9fe; stroke:#8b5cf6; } .flow-node.risk rect { fill:#fff7ed; stroke:#f59e0b; } .flow-node.decision rect { fill:#166534; stroke:#22c55e; stroke-width:2.5; } .flow-node.decision text { fill:#fff; font-weight:800; }
+    .card h2 { font-size:14px; margin:0 0 10px; }
+    label { display:block; font-size:12px; color:#64748b; margin:8px 0 4px; }
+    input, select { width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; }
+    .btn { background:#0f172a; color:#fff; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; font-size:13px; margin-right:6px; margin-top:8px; }
+    .btn.secondary { background:#fff; color:#0f172a; border:1px solid #cbd5e1; }
+    .btn.danger { background:#b91c1c; }
+    .source-card { border:1px dashed #94a3b8; padding:8px; margin:6px 0; border-radius:8px; background:#f8fafc; cursor:grab; font-size:12px; }
+    .source-card.dragging { opacity:.5; }
+    .drop-zone { min-height:80px; border:2px dashed #cbd5e1; border-radius:8px; padding:8px; background:#fafafa; }
+    .drop-zone.over { border-color:#0d9488; background:#ecfdf5; }
+    .assembly { border:1px solid #dbe5ee; border-radius:14px; padding:14px; background:linear-gradient(180deg,#f8fbff,#fff); margin-bottom:16px; min-width:0; max-width:100%; box-sizing:border-box; overflow:hidden; }
+    .assembly-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; }
+    .assembly-head h2 { margin:0; font-size:15px; } .assembly-head p { margin:4px 0 0; color:#64748b; font-size:11px; }
+    .assembly-tools { display:flex; align-items:center; gap:4px; flex:none; }
+    .assembly-tools button { min-width:28px; height:26px; padding:3px 7px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; color:#334155; cursor:pointer; font-size:11px; }
+    .assembly-tools button:hover { border-color:#0f766e; color:#0f766e; background:#f0fdfa; }
+    .assembly-viewport { min-width:0; max-width:100%; overflow:hidden; }
+    .assembly-viewport .road-shell { --road-zoom:1; zoom:var(--road-zoom); }
+    .assembly-count { color:#0f766e; font-weight:800; font-size:11px; white-space:nowrap; }
+    .parts-bank {
+      display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; padding:4px 2px 12px;
+      border-bottom:1px solid #e8eef5; max-width:100%; min-width:0;
+      -webkit-overflow-scrolling:touch; scrollbar-width:thin;
+    }
+    .parts-bank-bottom { margin-top:12px; padding-top:12px; padding-bottom:4px; border-top:1px solid #e8eef5; border-bottom:0; background:rgba(239,246,255,.45); border-radius:9px; }
+    .parts-bank.is-overflowing { box-shadow:inset -18px 0 16px -16px rgba(15,23,42,.18); }
+    .scroll-hint { color:#64748b; font-size:10px; margin:0 0 6px; display:none; }
+    .parts-bank.is-overflowing + .scroll-hint, .parts-bank.is-overflowing ~ .scroll-hint,
+    .scroll-hint.is-visible { display:block; }
+    .part-card { flex:0 0 150px; min-width:140px; max-width:160px; min-height:68px; border:1px solid #d8e3ed; border-radius:10px; padding:9px; background:#fff; cursor:grab; box-shadow:0 3px 12px rgba(15,23,42,.05); box-sizing:border-box; }
+    .part-card:hover { border-color:#2dd4bf; transform:translateY(-1px); } .part-card.dragging { opacity:.45; }
+    .part-card strong { display:block; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .part-card small { display:block; color:#64748b; margin-top:4px; line-height:1.35; font-size:10px; }
+    .part-type { display:inline-block; color:#0f766e; background:#e6fffa; border-radius:999px; padding:2px 5px; margin-bottom:5px; font-size:9px; font-weight:800; }
+    .part-title { flex:0 0 auto; align-self:center; color:#64748b; font-size:11px; font-weight:800; white-space:nowrap; }
+    .engine-road { margin-top:14px; min-width:0; max-width:100%; } .road-label { display:flex; justify-content:space-between; color:#64748b; font-size:10px; margin-bottom:6px; gap:8px; }
+    .road-shell {
+      display:flex; align-items:center; gap:8px; min-width:0; max-width:100%;
+      padding:12px; border:2px solid #0f766e; border-radius:14px;
+      background:linear-gradient(90deg,#ecfdf5,#f0fdfa 45%,#eff6ff);
+      box-shadow:inset 0 0 0 4px rgba(255,255,255,.65); box-sizing:border-box;
+    }
+    .road-shell.over { border-color:#2563eb; background:#eff6ff; }
+    .road-shell.is-empty .road-track { min-height:64px; }
+    .road-shell.is-empty .road-empty { min-width:190px; }
+    .road-track {
+      flex:1 1 auto; min-width:0; min-height:86px; display:flex; align-items:center; gap:8px;
+      overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:thin;
+    }
+    .road-core { flex:0 0 110px; min-width:100px; min-height:60px; padding:9px; border-radius:10px; color:#fff; background:#0f172a; box-shadow:0 7px 18px rgba(15,23,42,.18); box-sizing:border-box; }
+    .road-core b { display:block; font-size:11px; } .road-core small { display:block; color:#cbd5e1; margin-top:4px; font-size:9px; line-height:1.3; }
+    .road-arrow { color:#0f766e; font-weight:900; font-size:18px; flex:0 0 auto; } .assembled-part { flex:0 0 142px; min-width:130px; min-height:62px; padding:9px; border:1px solid #99f6e4; border-radius:10px; background:#fff; box-shadow:0 4px 12px rgba(13,148,136,.1); box-sizing:border-box; }
+    .assembled-part b { display:block; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .assembled-part small { display:block; color:#64748b; margin-top:4px; font-size:9px; } .assembled-part button { border:0; background:transparent; color:#b91c1c; cursor:pointer; float:right; font-size:11px; }
+    .road-empty { min-width:160px; color:#64748b; font-size:11px; text-align:center; padding:14px; border:1px dashed #94a3b8; border-radius:9px; flex:0 0 auto; }
+    .lower-modules { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; margin-top:10px; } .lower-module { padding:8px; border-radius:8px; background:#fff; border:1px solid #dbe5ee; text-align:center; font-size:10px; color:#475569; min-width:0; } .lower-module b { display:block; color:#0f172a; font-size:11px; margin-bottom:3px; }
+    .dynamic-dashboard { border:1px solid #1e3554; border-radius:14px; overflow:hidden; background:#0b1627; color:#dbeafe; margin-bottom:16px; box-shadow:0 16px 34px rgba(15,23,42,.16); max-width:100%; box-sizing:border-box; min-width:0; }
+    /* P12 multi-dim judgment */
+    .judgment-panel { padding:12px 16px 16px; border-top:1px solid #1d3652; }
+    .judgment-summary { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr); gap:10px; margin-bottom:12px; }
+    .judgment-scorecard { padding:12px; border:1px solid #284766; border-radius:10px; background:#102238; min-width:0; }
+    .judgment-scorecard h3 { margin:0 0 6px; color:#8de4d2; font-size:11px; }
+    .judgment-scorecard .score { font:800 28px/1.1 ui-monospace,monospace; color:#fff; }
+    .judgment-scorecard .meta { color:#91a9c3; font-size:10px; margin-top:6px; }
+    .judgment-signals { display:grid; grid-template-columns:1fr 1fr; gap:8px; min-width:0; }
+    .judgment-signals ul { margin:0; padding-left:16px; color:#dbe7f5; font-size:11px; }
+    .judgment-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+    .judgment-tab { border:1px solid #284766; background:#102238; color:#89a4c1; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:11px; }
+    .judgment-tab[aria-selected="true"] { border-color:#f97316; color:#fff; background:#1a2f48; }
+    .judgment-tab:focus-visible { outline:2px solid #f97316; outline-offset:1px; }
+    .judgment-table-wrap { overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch; }
+    .judgment-matrix { width:100%; border-collapse:collapse; font-size:11px; min-width:520px; }
+    .judgment-matrix th, .judgment-matrix td { text-align:left; padding:8px 7px; border-bottom:1px solid #1d3652; color:#dbe7f5; vertical-align:top; }
+    .judgment-matrix th { color:#8de4d2; font-weight:700; }
+    .judgment-dir { font-weight:800; }
+    .judgment-dir.up { color:#34d399; } .judgment-dir.down { color:#f87171; } .judgment-dir.flat { color:#fbbf24; } .judgment-dir.unknown { color:#94a3b8; }
+    .judgment-state { font-size:9px; padding:2px 6px; border-radius:99px; background:#1e293b; color:#cbd5e1; }
+    .judgment-state.missing { color:#fbbf24; } .judgment-state.conflict { color:#f87171; }
+    .research-note { color:#fbbf24; font-size:10px; margin:0 0 8px; }
+    .dashboard-head { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:14px 16px; background:linear-gradient(90deg,#12233d,#102a3b); border-bottom:1px solid #27425f; }
+    .dashboard-head h2 { margin:0; color:#fff; font-size:14px; } .dashboard-head p { margin:4px 0 0; color:#91a9c3; font-size:10px; }
+    .hud { display:flex; gap:10px; align-items:center; color:#8de4d2; font:700 11px ui-monospace,monospace; white-space:nowrap; } .hud .pulse { width:8px; height:8px; border-radius:50%; background:#64748b; } .hud.live .pulse { background:#34d399; box-shadow:0 0 0 4px rgba(52,211,153,.14); }
+    .dashboard-progress { height:4px; background:#162b45; } .dashboard-progress span { display:block; width:0%; height:100%; background:linear-gradient(90deg,#2dd4bf,#60a5fa); transition:width .35s ease; }
+    .route-strip { display:flex; align-items:center; gap:7px; overflow:auto; padding:12px 16px; border-bottom:1px solid #1d3652; } .route-stop { flex:0 0 95px; padding:7px; border:1px solid #284766; border-radius:8px; color:#89a4c1; font-size:10px; text-align:center; } .route-stop.active { border-color:#2dd4bf; color:#a7f3d0; background:#10343b; } .route-stop.done { border-color:#3b82f6; color:#bfdbfe; } .route-line { flex:0 0 20px; height:1px; background:#33516e; }
+    .insight-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; padding:12px 16px 16px; } .insight-card { min-height:94px; padding:11px; border:1px solid #24405e; border-radius:9px; background:#102238; } .insight-card.active { border-color:#fbbf24; box-shadow:0 0 0 2px rgba(251,191,36,.12); } .insight-card h3 { margin:0 0 6px; color:#8de4d2; font-size:10px; letter-spacing:.03em; } .insight-card p { margin:0; color:#dbe7f5; font-size:11px; line-height:1.55; } .insight-card small { display:block; margin-top:7px; color:#7894b2; font-size:9px; } .insight-card.positive { border-color:#16866e; } .insight-card.warning { border-color:#a16207; }
+    .dynamic-empty { color:#91a9c3; font-size:11px; padding:15px 16px; }
+    .timeline { max-height:420px; overflow:auto; font-size:12px; }
+    .event { border-left:3px solid #0d9488; padding:6px 8px; margin:8px 0; background:#f8fafc; }
+    .event .meta { color:#64748b; font-size:11px; }
+    pre { background:#0f172a; color:#e2e8f0; padding:10px; border-radius:8px; font-size:11px; overflow:auto; max-height:200px; }
+    .stat { font-size:13px; margin:4px 0; }
+    .ticker-presets { display:flex; gap:5px; flex-wrap:wrap; margin:6px 0 4px; } .ticker-presets button { border:1px solid #cbd5e1; background:#fff; color:#0f766e; border-radius:999px; padding:4px 7px; cursor:pointer; font:10px ui-monospace,monospace; } .ticker-presets button:hover { border-color:#0f766e; background:#ecfdf5; }
+    .empty { color:#94a3b8; font-size:12px; padding:12px; text-align:center; }
+    .status { font-weight:600; }
+    .warning-hint { color:#b45309 !important; }
+    #btn-engine-start:disabled { opacity:.55; cursor:not-allowed; }
+    .hud.reconnect .pulse { background:#fbbf24; }
+    .anchor-target:focus { outline:2px solid #f97316; outline-offset:3px; }
+  </style>
+</head>
+<body>
+  <nav class="global-nav" aria-label="主导航"></nav>
+
+  <div class="engine-shell" id="engine-shell">
+    <div class="engine-sidebar-overlay" id="engine-sidebar-overlay" hidden aria-hidden="true"></div>
+    <nav class="engine-sidebar" id="engine-sidebar" aria-label="投资引擎研究导航" aria-expanded="true">
+      <div class="engine-sidebar-brand">
+        <strong>研究导航</strong>
+        <span>ENGINE</span>
+      </div>
+      <ul class="engine-sidebar-list" id="engine-sidebar-list"></ul>
+      <div class="engine-sidebar-foot">
+        <button type="button" id="engine-sidebar-more" aria-expanded="false">显示更多</button>
+        <button type="button" id="engine-sidebar-toggle" aria-expanded="true" aria-label="折叠研究导航">«</button>
+        <button type="button" id="engine-sidebar-close" class="secondary" style="display:none">关闭</button>
+      </div>
+    </nav>
+    <button type="button" class="engine-sidebar-open" id="engine-sidebar-open" aria-expanded="false" aria-controls="engine-sidebar">☰ 研究导航</button>
+
+    <div class="engine-main">
+      <div class="wrap" id="engine-overview" tabindex="-1">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:8px">
+          <div>
+            <h1 style="margin:0 0 6px">投资引擎</h1>
+            <p class="sub" style="margin:0">TradingAgents 驱动的研究模拟 · Engine Live Journey · Paper Portfolio。不修改 Plaza。</p>
+          </div>
+          <div style="text-align:right;min-width:220px">
+            <button class="btn" id="btn-engine-start" type="button" style="font-size:14px;padding:12px 18px;margin:0">创建并启动 Engine</button>
+            <p class="stat muted" id="engine-start-hint" style="margin:6px 0 0;max-width:280px;margin-left:auto">首屏主操作：校验配置后一键创建并启动</p>
+          </div>
+        </div>
+        <div class="disclaimer">
+          本页面仅用于研究与模拟，不构成投资建议，绝不连接真实券商。历史运行不会读取未来信息文档。“营收/价值推演”仅指模拟组合价值路径。
+        </div>
+
+        <div class="grid">
+          <aside class="card anchor-target" id="engine-config" tabindex="-1">
+            <h2>模拟配置</h2>
+            <label>行业板块</label>
+            <select id="sector"><option value="ai_compute" selected>AI / 算力与半导体</option><option value="cloud_software">云计算 / 软件</option><option value="新能源">新能源 / 电池</option><option value="智能制造">智能制造 / 工业</option><option value="医药健康">医药 / 健康</option><option value="消费科技">消费科技</option><option value="宽基指数">宽基指数 / ETF</option><option value="">自定义 / 未指定</option></select>
+            <label>股票 / 标的 Ticker</label>
+            <input id="ticker" value="NVDA" maxlength="12" list="ticker-presets" />
+            <datalist id="ticker-presets"><option value="NVDA">NVIDIA</option><option value="AMD">AMD</option><option value="TSM">台积电</option><option value="MSFT">Microsoft</option><option value="GOOGL">Alphabet</option><option value="AAPL">Apple</option><option value="QQQ">Nasdaq 100 ETF</option></datalist>
+            <div class="ticker-presets" aria-label="常用标的"><button type="button" data-ticker="NVDA">NVDA</button><button type="button" data-ticker="AMD">AMD</button><button type="button" data-ticker="TSM">TSM</button><button type="button" data-ticker="QQQ">QQQ</button></div>
+            <label>交易日期 (as_of / cutoff)</label>
+            <input id="trade_date" type="date" />
+            <label>初始资金</label>
+            <input id="cash" type="number" value="100000" min="1000" />
+            <label>辩论轮数</label>
+            <input id="debate" type="number" value="1" min="0" max="5" />
+            <label>风险轮数</label>
+            <input id="risk" type="number" value="1" min="0" max="5" />
+            <label>模式</label>
+            <select id="mode">
+              <option value="fixture" selected>离线 fixture（推荐）</option>
+              <option value="live">在线 TradingAgents（需安装 extra）</option>
+            </select>
+            <div class="row">
+              <button class="btn" id="btn-create" type="button">创建模拟</button>
+              <button class="btn" id="btn-start" type="button" disabled>启动</button>
+              <button class="btn danger" id="btn-cancel" type="button" disabled>取消</button>
+            </div>
+            <p class="stat">当前 run: <code id="run-id">—</code></p>
+            <p class="stat">状态: <span class="status" id="run-status">—</span></p>
+
+            <p class="stat" style="margin-top:18px">装配提示：把中间主干道周边的来源团队拖入主干道，即可纳入本次模拟。右侧组合状态会随运行更新。</p>
+          </aside>
+
+          <section class="card">
+            <div class="assembly anchor-target" id="engine-assembly" tabindex="-1">
+              <div class="assembly-head"><div><h2>投资引擎装配台</h2><p>横向主干道是执行顺序；上方零件是信息源团队与证据入口，拖入后会成为本次模拟的上下文。</p></div><div class="assembly-tools" aria-label="装配台缩放"><button type="button" id="assembly-zoom-out" aria-label="缩小装配台">−</button><button type="button" id="assembly-zoom-reset">100%</button><button type="button" id="assembly-zoom-in" aria-label="放大装配台">＋</button><button type="button" id="assembly-zoom-fit">适配</button><span class="assembly-count" id="assembly-count">0 个信息模块</span></div></div>
+              <div class="parts-bank" id="module-library" aria-label="可拖拽信息源团队">
+                <span class="part-title">可用零件</span>
+                <div class="part-card" draggable="true" data-id="team:ai_news_60s" data-name="60 秒 AI 信息团队" data-kind="team"><span class="part-type">AGENT TEAM</span><strong>60 秒 AI 信息团队</strong><small>AI 快讯、核验、产业映射</small></div>
+                <div class="part-card" draggable="true" data-id="team:dufu_world_intel" data-name="独夫之心世界趋势团队" data-kind="team"><span class="part-type">AGENT TEAM</span><strong>独夫之心世界趋势</strong><small>世界趋势、数据分析、情景树</small></div>
+              </div>
+              <div class="engine-road" id="engine-context" tabindex="-1">
+                <div class="road-label"><span>信息到达 → Agent 推理 → 风险门禁 → 纸面成交</span><span class="scroll-hint" id="road-scroll-hint">左右滑动查看已装配模块</span></div>
+                <div class="assembly-viewport"><div class="road-shell drop-zone" id="source-drop" aria-label="投资引擎横向主干道">
+                  <div class="road-core" data-road-core="ingress"><b>信息入口</b><small>Sources / Agents<br>as_of cutoff</small></div>
+                  <span class="road-arrow" aria-hidden="true">→</span>
+                  <div class="road-track" id="road-modules-scroll" tabindex="0" aria-label="已装配模块，可横向滚动">
+                    <div id="source-selected" style="display:contents"></div>
+                    <div class="road-empty" id="source-empty">把周边零件拖到这里组装 Engine</div>
+                  </div>
+                  <span class="road-arrow" aria-hidden="true">→</span>
+                  <div class="road-core" data-road-core="research"><b>Research Graph</b><small>多空辩论<br>风险校验</small></div>
+                  <span class="road-arrow" aria-hidden="true">→</span>
+                  <div class="road-core" data-road-core="portfolio"><b>Paper Portfolio</b><small>模拟订单<br>不连接券商</small></div>
+                </div></div>
+              </div>
+              <p class="scroll-hint" id="parts-scroll-hint">零件过多时可在栏内横向滚动</p>
+              <div class="parts-bank parts-bank-bottom" id="module-library-bottom" aria-label="可拖拽数据源零件，可横向滚动"><span class="part-title">数据与上下文零件</span><div class="part-card" draggable="true" data-id="document:latest" data-name="最新动态 HTML 文档" data-kind="document"><span class="part-type">DOCUMENT</span><strong>最新动态 HTML</strong><small>把已发布研究报告接入上下文</small></div><div class="part-card" draggable="true" data-id="market:event-clock" data-name="事件时钟" data-kind="market"><span class="part-type">ENGINE</span><strong>事件时钟</strong><small>按 as_of 截止时间排列信息</small></div><div id="source-library" style="display:contents"></div></div>
+              <div class="lower-modules"><div class="lower-module"><b>Context Cutoff</b>历史信息冻结</div><div class="lower-module"><b>Analyst Debate</b>多 Agent 观点</div><div class="lower-module"><b>Risk Gate</b>风险与反证</div><div class="lower-module"><b>Order Lifecycle</b>纸面成交模型</div></div>
+            </div>
+
+            <section class="dynamic-dashboard anchor-target" id="dynamic-dashboard" tabindex="-1" aria-live="polite">
+              <div id="engine-dashboard" style="display:contents"></div>
+              <div class="dashboard-head"><div><h2>Engine Live Journey</h2><p>引擎启动后由事件流驱动判断、规划、价值推演与纸面组合</p></div><div class="hud" id="engine-hud"><span class="pulse"></span><span id="engine-phase">待启动</span><span id="engine-progress">0%</span><span id="engine-conn" style="opacity:.75">未连接</span></div></div>
+              <div class="dashboard-progress"><span id="engine-progress-bar"></span></div>
+              <div class="route-strip" id="engine-route"><span class="route-stop active" data-route="context">信息上下文</span><span class="route-line">→</span><span class="route-stop" data-route="judgment">判断形成</span><span class="route-line">→</span><span class="route-stop" data-route="plan">规划路线</span><span class="route-line">→</span><span class="route-stop" data-route="risk">风险门禁</span><span class="route-line">→</span><span class="route-stop" data-route="portfolio">纸面成交</span></div>
+              <div class="insight-grid">
+                <article class="insight-card" id="judgment-card"><h3>当前判断 · 分析</h3><p>等待市场分析师启动。</p><small>事实/分析/推断标签由事件 structured 提供 · 研究/模拟，非投资建议</small></article>
+                <article class="insight-card" id="plan-card"><h3>行驶规划 · 模拟</h3><p>等待研究图谱规划路线。</p><small>base / bull / bear 条件路径</small></article>
+                <article class="insight-card" id="revenue-card"><h3>价值推演 · 模拟</h3><p>尚未形成纸面收益路径。</p><small>非上市公司真实营收；仅为组合权益路径</small></article>
+                <article class="insight-card" id="risk-card"><h3>风险门禁</h3><p>等待激进 / 中性 / 保守风险节点。</p><small>approved / reduced / rejected</small></article>
+                <article class="insight-card" id="portfolio-card"><h3>纸面组合</h3><p>空仓，等待 Portfolio Manager 裁决。</p><small>订单生命周期由模拟器记录</small></article>
+                <article class="insight-card" id="context-card"><h3>证据上下文</h3><p>等待信息源团队和历史文档装载。</p><small>严格遵守 as_of 截止时间</small></article>
+              </div>
+              <section class="judgment-panel" id="judgment-dimensions-panel" aria-label="多维股票判断">
+                <p class="research-note">研究/模拟评级矩阵 · 不构成投资建议 · 仅使用 as_of 之前证据</p>
+                <div class="judgment-summary">
+                  <div class="judgment-scorecard" id="overall-judgment-card">
+                    <h3>评级摘要 · overall_judgment</h3>
+                    <div class="score" id="overall-score">—</div>
+                    <div class="meta" id="overall-meta">等待分析事件…</div>
+                  </div>
+                  <div class="judgment-signals">
+                    <div><h3 style="margin:0 0 6px;color:#8de4d2;font-size:11px">最强正向</h3><ul id="judgment-bull-signals"><li class="muted">—</li></ul></div>
+                    <div><h3 style="margin:0 0 6px;color:#8de4d2;font-size:11px">最强反向</h3><ul id="judgment-bear-signals"><li class="muted">—</li></ul></div>
+                  </div>
+                </div>
+                <div class="judgment-tabs" role="tablist" aria-label="判断维度分组" id="judgment-tabs"></div>
+                <div class="judgment-table-wrap">
+                  <table class="judgment-matrix" id="judgment-matrix">
+                    <thead><tr><th>维度</th><th>分数</th><th>方向</th><th>置信</th><th>证据</th><th>as_of</th><th>状态</th><th>理由</th></tr></thead>
+                    <tbody id="judgment-matrix-body"><tr><td colspan="8" style="color:#91a9c3">启动 Engine 后填充多维矩阵</td></tr></tbody>
+                  </table>
+                </div>
+              </section>
+            </section>
+
+            <h2 id="engine-timeline" class="anchor-target" tabindex="-1">运行时间线与报告</h2>
+            <div class="timeline" id="timeline"><div class="empty">创建并启动模拟后显示节点进度</div></div>
+            <h2 style="margin-top:16px">报告索引</h2>
+            <section id="reports" class="report-index" aria-live="polite"><div class="report-empty">启动模拟后，这里会把技术索引整理成易读的研究小结。</div></section>
+          </section>
+
+          <aside class="card">
+            <div id="engine-portfolio" class="anchor-target" tabindex="-1">
+              <h2>模拟账户</h2>
+              <div id="portfolio"><div class="empty">空状态：尚无组合</div></div>
+            </div>
+            <h2 style="margin-top:16px" id="engine-health" class="anchor-target" tabindex="-1">运行时健康</h2>
+            <pre id="runtime-health">…</pre>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js" data-page="model-clearance"></script>
+  <script src="/js/global-nav.js" data-page="model-clearance"></script>
+  <script src="/js/engine-state.js"></script>
+  <script src="/js/engine-reducer.js"></script>
+  <script src="/js/engine-judgment.js"></script>
+  <script src="/js/engine-sidebar.js"></script>
+  <script src="/js/ai-model-entry-clearance.js"></script>
+</body>
+</html>

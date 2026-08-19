@@ -24,7 +24,9 @@
     { id: 'memory',        label: 'Agent记忆',  href: '/agent-memory.html' },
     { id: 'digital-twin',  label: '数字孪生',   href: '/Agent-digital-twin.html?office3d=1' },
     { id: 'cost',          label: 'Token节省',  href: '/cost-dashboard.html' },
-    { id: 'pet',           label: '生态配置',   href: '/pet-config.html' }
+    { id: 'pet',           label: '生态配置',   href: '/pet-config.html' },
+    { id: 'data-intelligence', label: '数据采集/分析', href: '/data-intelligence.html' },
+    { id: 'model-clearance',   label: 'AI 模型准入',   href: '/ai-model-entry-clearance.html' }
   ];
 
   /** Path → page id (secondary pages map to nearest primary). */
@@ -36,6 +38,8 @@
     { re: /Agent-digital-twin|digital-twin-cli|sandbox-twin/i, id: 'digital-twin' },
     { re: /cost-dashboard|datacenter-ratchet/i, id: 'cost' },
     { re: /pet-config/i, id: 'pet' },
+    { re: /data-intelligence/i, id: 'data-intelligence' },
+    { re: /ai-model-entry-clearance|model-clearance/i, id: 'model-clearance' },
     { re: /system-evolution/i, id: 'agents' },
     { re: /tasks\.html/i, id: 'agents' }
   ];

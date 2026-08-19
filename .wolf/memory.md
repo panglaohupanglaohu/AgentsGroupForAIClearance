@@ -469,3 +469,9 @@
 | 17:42 | 拓扑连线编辑工具栏新增「↩ 回退」与「↪ 下一步」Undo/Redo功能，支持多步历史回退与重做 | agent-team-config.html/js | 测试通过 | ~1k |
 
 | 18:28 | 修复团队拓扑模式与当前选中团队自动对齐逻辑：切换团队自动切至团队所属领域专属拓扑（Build System->研发全流水线/公有云xOPs->xOPs运营环/Energy->能效治理环），下拉菜单动态显示当前团队智能自适应匹配项 | agent-team-config.js | 测试通过 | ~1k |
+
+## 2026-08-20 model-clearance 模块并入
+- 从分支 model-clearance-wip (2f692a9) 并入 src/backend/domain (information_sources + investment_simulation)、data-intelligence.html、ai-model-entry-clearance.html、engine-*.js 及 5 个测试文件
+- main.py 挂载 domain.api_routes (36 条路由)；nav.js / global-nav.js 新增 data-intelligence、model-clearance 两个导航项
+- 验证：vitest 19/19 通过；test_workflow_pipeline_mode.py 通过；/api/v1/information-sources 返回 401（路由已挂，需登录态）
+- 遗留：domain 内 investment/投资 术语共 68 处待按 TODOS T002-T006 改名

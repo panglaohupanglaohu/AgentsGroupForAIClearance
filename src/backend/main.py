@@ -687,6 +687,14 @@ async def startup():
         except Exception as e:
             _handle_startup_failure("operations_evidence_api", e, critical=True)
 
+        # 4d-ter. 模型准入与情报采集域（数据采集/分析 + AI 模型准入控制台）
+        try:
+            from domain.api_routes import router as clearance_domain_router
+            app.include_router(clearance_domain_router)
+            logger.info("✅ Model clearance domain API mounted (/api/v1/information-sources, /api/v1/model-clearance)")
+        except Exception as e:
+            logger.warning(f"⚠️ Model clearance domain API failed: {e}")
+
         # 4e. 技能萃取 WebSocket
         try:
             from agents.skill_extract_ws import skill_extract_ws_endpoint
