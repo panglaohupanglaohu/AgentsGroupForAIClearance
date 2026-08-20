@@ -230,6 +230,10 @@ _AUTH_EXEMPT_READONLY_PATHS = {
 _AUTH_EXEMPT_READONLY_PREFIXES = (
     "/api/v1/agent-config/teams",     # teams / teams-tree / teams/{id} 只读豁免
     "/api/v1/agent-memory",           # Agent 记忆中枢只读（overview/lifecycle/matrix）；写操作仍要登录
+    "/api/v1/model-clearance",        # 模型准入知识库与条目只读
+    "/api/v1/information-sources",    # 信息源列表只读
+    "/api/v1/information-documents",  # 历史文档与简报只读
+    "/api/v1/information-schedules",  # 调度任务只读
 )
 _SAFE_HTTP_METHODS = {"GET", "HEAD", "OPTIONS"}
 

@@ -17,6 +17,8 @@ TEST_SCRIPTS = [
     "tests/test_runtime_baseline.py",
     "tests/test_clearance_continuous.py",
     "tests/test_workflow_pipeline_mode.py",
+    "tests/test_model_clearance_operability.py",
+    "scripts/audit_sampling.py",
 ]
 
 
@@ -46,7 +48,7 @@ def main():
 
     print("==================================================")
     if all_passed:
-        print(" 🎉 ALL 10 TEST SUITES PASSED SUCCESSFULLY!")
+        print(f" 🎉 ALL {len(TEST_SCRIPTS)} TEST SUITES PASSED SUCCESSFULLY!")
         return 0
     else:
         print(" ⚠️ SOME TEST SUITES FAILED")

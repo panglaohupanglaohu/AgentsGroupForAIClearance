@@ -5,6 +5,7 @@
 > Last updated: 2026-06-12
 
 ## User Preferences
+- [2026-08-20] 模型准入治理不应过度依赖来源/产地判断；文档与实现应改为 Lenovo 可直接管理和验证的控制体系优先（owner、kill-switch、rollback、SLA、可验签处置证据），来源信息仅作风险信号与条件收紧依据。
 - [2026-08-15] 议事广场国际化不接受页面内巨型中英文本映射 + 全 body MutationObserver 重扫方案；应使用明确翻译键、可控动态渲染和项目共享 i18n 接口，避免隐式文本替换与主线程风险。
 - [2026-07-25] 模型与连接里配的全局 LLM 必须全局生效，其它路由/团队模型/硬编码一律不要生效。
 - [2026-07-16] **Taste Skill 官方源** = https://www.tasteskill.dev （`npx skills add Leonxlnx/taste-skill --skill design-taste-frontend`；本地 `.agents/skills/design-taste-frontend/SKILL.md`）。规则要点：Page Theme Lock / Color Consistency Lock（单 accent）/ 禁 AI-purple·mesh / off-white+off-black 勿纯色。产品台浅色壳：`html.taste-light` + `css/taste-light.css`（除数字孪生暗色沉浸）；Skill 原文偏 landing，控制台取 cockpit 密度 dials。

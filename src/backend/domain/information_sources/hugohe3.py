@@ -9,7 +9,7 @@ import re
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
 
-from .report_schemas import AiNews60sReport, WorldIntelReport, validate_report
+from .report_schemas import AiNews60sReport, OpenWeightsReport, WorldIntelReport, validate_report
 
 _SCRIPT_RE = re.compile(r"<\s*script\b", re.I)
 _ON_ATTR_RE = re.compile(r"\son\w+\s*=", re.I)
@@ -362,7 +362,7 @@ def _card_conclusion(
     place = ", ".join(str(row.get("host")) for row in sources[:2] if row.get("host")) or "多来源域名"
     obj = str((topics[0].get("name") if topics else None) or (getattr(report, "related_companies", []) or [None])[0] or team_name)
     focal = str(signals[0].get("title") or "本轮信号") if signals else "本轮证据集合"
-    why = getattr(report, "why_it_matters", []) or getattr(report, "market_transmission", []) or []
+    why = getattr(report, "why_it_matters", []) or _transmission_claims(report) or []
     impact_text = str(why[0]) if why else "影响待结合更多来源核验"
     actions = {
         "cover": "先读核心结论，再查看证据卡",
@@ -594,7 +594,7 @@ def _deck_analysis(report: Union[AiNews60sReport, WorldIntelReport]) -> Dict[str
     return analysis
 
 
-def _world_display_title(report: WorldIntelReport) -> str:
+def _world_display_title(report: Union[WorldIntelReport, OpenWeightsReport]) -> str:
     """Recover a useful cover title from citations for older URL-first runs."""
     current = str(report.what_happened.text or "").strip()
     if current and not current.startswith("来源条目缺少可读标题"):
@@ -629,7 +629,16 @@ def _ai_display_title(report: AiNews60sReport, analysis: Optional[Dict[str, Any]
     return "等待本轮研究结论"
 
 
-def _research_overview_deck(report: Union[AiNews60sReport, WorldIntelReport], *, team_name: str) -> str:
+def _transmission_claims(report: Any) -> List[Any]:
+    """世界趋势叫 market_transmission，开放权重叫 admission_impact，同一段落的两种语义。"""
+    return list(
+        getattr(report, "market_transmission", None)
+        or getattr(report, "admission_impact", None)
+        or []
+    )
+
+
+def _research_overview_deck(report: Union[AiNews60sReport, WorldIntelReport, OpenWeightsReport], *, team_name: str) -> str:
     """Render all 20 overview card grammars as a static research deck.
 
     The deck borrows the *visual grammar* of the reference PPT Master project
@@ -700,7 +709,9 @@ def _research_overview_deck(report: Union[AiNews60sReport, WorldIntelReport], *,
         )
         impact = _claim_block(report.risks_and_counterpoints[:3], "反证与限制") + "<p class='deck-card-meta'>影响映射：" + _esc("、".join(report.related_companies[:4]) or "暂无可确认产业节点") + "</p>"
     else:
-        world_claims = [report.what_happened] + list(report.timeline[:2]) + list(report.market_transmission[:1])
+        transmission = _transmission_claims(report)
+        transmission_heading = "市场传导" if hasattr(report, "market_transmission") else "准入影响路径"
+        world_claims = [report.what_happened] + list(report.timeline[:2]) + transmission[:1]
         conclusion = (
             exec_kpis
             + evidence_mix
@@ -709,7 +720,7 @@ def _research_overview_deck(report: Union[AiNews60sReport, WorldIntelReport], *,
             + "<details class='deck-method'><summary>方法与口径（折叠）</summary>"
             "<p>事件卡、时间线与情景树均绑定本轮证据；情景为分析框架非预测保证。</p></details>"
         )
-        impact = _claim_block(report.market_transmission[:3], "市场传导") + _claim_block(report.views_and_counterpoints[:3], "反证与限制")
+        impact = _claim_block(transmission[:3], transmission_heading) + _claim_block(report.views_and_counterpoints[:3], "反证与限制")
     cards.append(card(2, "editor-note", "EXECUTIVE FINDING", "编辑结论 · 本轮核心判断", conclusion, state="observed" if evidence_count else "gap", featured=True))
     # CONTENTS: real status + one-line abstract + jump anchors for remaining deck cards
     toc_specs = [
@@ -725,7 +736,7 @@ def _research_overview_deck(report: Union[AiNews60sReport, WorldIntelReport], *,
         ("closing", "inferred", "下一步与边界"),
     ]
     summary_html = _claim_block(
-        (report.bullets[:5] if isinstance(report, AiNews60sReport) else ([report.what_happened] + list(report.drivers[:2]) + list(report.market_transmission[:2]))),
+        (report.bullets[:5] if isinstance(report, AiNews60sReport) else ([report.what_happened] + list(report.drivers[:2]) + _transmission_claims(report)[:2])),
         "本轮核心结论",
     ) + impact
     cards.append(card(3, "executive-summary", "EXECUTIVE SUMMARY", "结论摘要 · 先看发生了什么", summary_html, state="observed" if evidence_count else "gap"))
@@ -842,6 +853,39 @@ def render_world(report: WorldIntelReport) -> str:
         "scenarios": [{"name": s.name, "triggers": s.trigger_conditions} for s in report.scenarios]
     }
     return _wrap(body, report.model_dump(), chart_data=chart, chart_alt="情景树：乐观/基准/悲观及触发条件")
+
+
+def render_open_weights(report: OpenWeightsReport) -> str:
+    scenarios = ["<section class='scenario-slide' aria-labelledby='h-scen'><div class='slide-kicker'>ECOSYSTEM SCENARIOS · 16:9 STORYBOARD</div><h2 id='h-scen'>三情景树</h2><div class='scenario-grid'>"]
+    for s in report.scenarios:
+        triggers = "; ".join(s.trigger_conditions)
+        scenarios.append(
+            f"<article class='scenario-card'><span class='scenario-name'>{_esc(s.name)}</span>"
+            f"<strong>{_esc(s.summary)}</strong><p>触发条件：{_esc(triggers)}</p>"
+            f"<em>不确定性：{_esc(s.uncertainty)}</em></article>"
+        )
+    scenarios.append("</div></section>")
+    body = f"""
+<article class="hugohe3-doc" data-channel="open_weights" data-run="{_esc(report.run_id)}">
+  <header class='deck-cover'>
+    <div class='slide-kicker'>OPEN WEIGHTS · MODEL ECOSYSTEM WATCH</div>
+    <p class="kicker">开放权重资源 · 数据截止 <time datetime="{_esc(report.data_cutoff)}">{_esc(report.data_cutoff)}</time></p>
+    <h1>{_esc(_world_display_title(report))}</h1>
+    <p class="disclaimer" role="note">{_esc(report.disclaimer)}</p>
+  </header>
+  {_research_overview_deck(report, team_name="开放权重资源 · 模型生态研判")}
+  <div class='deck-section-grid'><div class='deck-slide'>{_claim_block(report.timeline, "发布与更新时间线")}</div><div class='deck-slide'>{_claim_block(report.drivers, "生态驱动因素")}</div><div class='deck-slide'>{_claim_block(report.data_trends, "规模与能力趋势")}</div><div class='deck-slide'>{_claim_block(report.views_and_counterpoints, "观点与反证")}</div></div>
+  <div class='deck-slide'>{_claim_block(report.license_watch, "许可证与合规观察")}</div>
+  {"".join(scenarios)}
+  <div class='deck-slide'>{_claim_block(report.admission_impact, "对 Lenovo 准入门禁的影响路径")}</div>
+  {_citations_block(report.citations)}
+  <footer><p>运行 ID: <code>{_esc(report.run_id)}</code></p></footer>
+</article>
+"""
+    chart = {
+        "scenarios": [{"name": s.name, "triggers": s.trigger_conditions} for s in report.scenarios]
+    }
+    return _wrap(body, report.model_dump(), chart_data=chart, chart_alt="开放权重生态情景树：乐观/基准/悲观及触发条件")
 
 
 def _wrap(
@@ -989,17 +1033,21 @@ def _wrap(
 
 
 def hugohe3_render(
-    payload: Union[dict, AiNews60sReport, WorldIntelReport],
+    payload: Union[dict, AiNews60sReport, WorldIntelReport, OpenWeightsReport],
     *,
     channel: Optional[str] = None,
 ) -> str:
     """Validate report and render immutable HTML document string."""
     if isinstance(payload, AiNews60sReport):
         return render_ai60(payload)
+    if isinstance(payload, OpenWeightsReport):
+        return render_open_weights(payload)
     if isinstance(payload, WorldIntelReport):
         return render_world(payload)
     ch = channel or payload.get("channel")
     report = validate_report(ch, payload)
     if isinstance(report, AiNews60sReport):
         return render_ai60(report)
+    if isinstance(report, OpenWeightsReport):
+        return render_open_weights(report)
     return render_world(report)

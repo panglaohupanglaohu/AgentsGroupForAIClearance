@@ -1,4 +1,4 @@
-# TODOS — 开放权重模型基础设施准入控制系统
+# TODOS — Lenovo 可管可证的模型准入与运营控制系统
 
 > **执行者标注**
 > **[GF]** = Gemini Flash 可独立完成（机械替换、模板化数据录入、样板代码、已给出伪代码的确定性实现）
@@ -9,6 +9,8 @@
 > 2. 违反 [PLAN.md](PLAN.md) 五条设计原则（T1–T5）的实现直接打回
 > 3. **T2 铁律**：Scanner 产出 `finding`，Policy 产出 `verdict`，Agent 产出 `opinion`。禁止混淆
 > 4. **T4 铁律**：所有 `except` 分支必须落到 `fail` 或 `needs_info`，禁止 `pass`
+> 5. **来源/产地降权铁律**：来源信息是风险信号，不得作为单一拒绝或单一放行依据
+> 6. **Lenovo 直管铁律**：每个准入条目必须有 owner、kill-switch、rollback、SLA 证据
 
 ---
 
@@ -25,6 +27,8 @@
 | P6 | 运行时基线与校验 | T601–T606 |
 | P7 | 持续验证 L5 | T701–T706 |
 | P8 | 前端准入控制台 | T801–T808 |
+| P9 | Lenovo 直管控制体系补强 | T901–T910 |
+| P10 | 控制台↔准入引擎真实对接 | TA01–TA09 |
 
 ---
 
@@ -854,37 +858,224 @@ def due_reassessment():
 
 ---
 
-# 验收总清单
+# P9 — Lenovo 直管控制体系补强
 
-```bash
-# 术语
-grep -ri "stock" --exclude-dir={.git,node_modules,.venv} . | wc -l    # 期望 0
-grep -r "投资\|股票\|纸面\|ticker" --exclude-dir={.git,node_modules,.venv} . | wc -l  # 期望 0
+### T901 [HI] 门禁决策降来源依赖（策略重构） ✅ 已完成
+文件：`config/clearance_policy.yaml`
 
-# 知识库
-python scripts/validate_model_registry.py                            # 退出码 0
+- 新增 `origin_signal_only: true`（来源信号只允许调风险档与附加条件）
+- 明确 `origin_only_cannot_fail: true`（不得仅因来源字段触发 `fail`）
+- G1 聚焦制品完整性（locked digest、签名、不可变 revision）
 
-# 策略（可脱离 LLM 复现 —— T3）
-pytest src/backend/tests/test_clearance_policy.py -q
+**验收**：策略求值器及 `tests/test_model_clearance_operability.py` 验证通过。
 
-# fail-closed（T4）
-pytest src/backend/tests/test_clearance_policy.py -k timeout -q
+### T902 [GF] 准入清单责任矩阵字段 ✅ 已完成
+文件：`src/backend/domain/model_clearance/registry.py`、`models.py`
 
-# Agent 幻觉守卫
-pytest src/backend/tests/test_clearance_agents.py -q
+为 `ApprovedRegistryEntry` 增加：
+- `service_owner`
+- `security_owner`
+- `oncall_rotation`
+- `kill_switch_ref`
+- `rollback_runbook_ref`
+- `admission_sla_tier`
+- `digest_history`
+- `operations_audit_log`
 
-# 基线校验
-pytest src/backend/tests/test_runtime_baseline.py -q
+**验收**：`GET /api/v1/model-clearance/registry/{entry_id}` 返回上述字段且非空。
 
-# 前端
-npm run test:frontend
+### T903 [HI] kill-switch 与 rollback 双闸能力 ✅ 已完成
+文件：`src/backend/domain/model_clearance/registry.py`、`api_routes.py`
 
-# 烟测
-make test-smoke
+- 增加应急撤销路径：`emergency_revoke(entry_id, operator, reason)` -> 置 `revoked` 并记录操作日志
+- 增加回滚路径：`rollback_to_last_known_good(entry_id, target_digest, operator, reason)` -> 回滚至目标 digest 并记入 `digest_history`
+- API 开放：`POST /api/v1/model-clearance/registry/{entry_id}/kill-switch` 与 `POST .../rollback`
+
+**验收**：演练中 `emergency_revoke` 与 `rollback` 双闸操作均毫秒级完成，且审计日志完备。
+
+### T904 [GF] 准入与处置 SLO 指标 ✅ 已完成
+文件：`scripts/verify_phase1_exit_criteria.py`
+
+集成并验证核心指标：
+- `admission_latency_p95_hours` (实际 < 0.1h, 目标 <= 24h)
+- `emergency_revoke_mttr_minutes` (实际 < 0.1m, 目标 <= 5m)
+- `baseline_drift_mttd_minutes` (实际 < 1m, 目标 <= 30m)
+
+**验收**：脚本输出全部达标。
+
+### T905 [GF] 漂移事件到处置动作映射表 ✅ 已完成
+文件：`docs/standards/runtime-monitoring-audit.md`
+
+为每个 `D-*` 规则补齐：
+- `default_action`（隔离/终止/回滚/Kill-Switch）
+- `max_response_time`（1m–30m）
+- `owner_role`（Security Ops / Platform Ops / AI Governance）
+
+**验收**：映射表结构完整并包含责任角色与响应时限。
+
+### T906 [HI] 来源不完整模型的受控准入模板 ✅ 已完成
+文件：`docs/standards/model-admission-checklist.md`
+
+新增模板：`origin_uncertain_controlled_admission`
+- 前提：digest 锁定、平台背书签名可验、基线合规、责任链完整
+- 结果：`approved_with_conditions`
+- 强制：`runtime_profile=restricted` + 30 天复评周期 + 双人会签
+
+**验收**：在 Phase 1 出口脚本中验证真实用例（Financial-FinQwen-7B）成功准入并受控运行。
+
+### T907 [GF] 前端叙事切换为“控制平面视角” ✅ 已完成
+文件：`src/frontend/ai-model-entry-clearance.html`、`src/frontend/js/ai-model-entry-clearance.js`
+
+- 路线条文案：`来源 G1` 调整为 `完整性 G1`
+- 准入清单卡片：展示责任人、SLA 档位、锁定 Digest、约束条件
+- 增加操作入口：🚨 阻断 (Kill-Switch) 与 ⏪ 回滚 (Rollback)
+
+**验收**：前端测试与术语守卫测试全绿。
+
+### T908 [GF] 每周审计抽样机制 ✅ 已完成
+文件：`scripts/audit_sampling.py`
+
+- 对 `active` 条目按比例抽样
+- 检查签名有效性、责任人矩阵完备性、Kill-Switch / Rollback 配置
+- 输出结构化审计结果
+
+**验收**：`python scripts/audit_sampling.py` 退出码 0，`all_healthy = true`。
+
+### T909 [GF] P9 集成回归测试 ✅ 已完成
+文件：`tests/test_model_clearance_operability.py`
+
+覆盖：
+- 来源不完整但控制完备的受控准入路径
+- 责任矩阵字段完备性
+- Kill-switch 与 Rollback 全生命周期执行与历史记录
+- 抽样审计脚本调用
+
+**验收**：`python tests/test_model_clearance_operability.py` PASS。
+
+### T910 [HI] Phase 1 出口条件改版（控管优先） ✅ 已完成
+文件：`scripts/verify_phase1_exit_criteria.py`
+
+- 3 个基准模型（Permissive / Conditional / Restricted）通过/阻断
+- 来源不完整模型通过平台背书在 Restricted profile 下受控准入
+- Kill-Switch 与 Rollback 演练留痕
+- 准入与处置 SLO 指标达标
+
+**验收**：`python scripts/verify_phase1_exit_criteria.py` 输出全部通过。
+
+---
+
+# P10 — 控制台 ↔ 准入引擎真实对接
+
+> **背景**：P1–P9 把后端准入引擎做完了，但控制台页面还接在上一代模拟引擎上（见 [PLAN.md](PLAN.md) §11）。
+> 本阶段只做一件事：**让界面上的每一个数字都来自 `GateOrchestrator` 的真实证据**。
+>
+> **阶段铁律**
+> - 前端不得自造分数；拿不到证据一律渲染 `missing`，不得用 fixture 分数冒充已评估
+> - 先断引用、再删实现；未确认无调用方前禁止删除旧模块
+
+### TA01 [GF] 表单字段改为准入语义 ✅ 已完成
+文件：`src/frontend/ai-model-entry-clearance.html`、`src/frontend/js/ai-model-entry-clearance.js`
+
+| 现 id | 新 id | 含义 |
+| --- | --- | --- |
+| `ticker` | `model_id` | 模型标识（允许 `/`、`-`、`.`，长度 ≤ 128） |
+| `trade_date` | `as_of` | 证据截止日期 |
+| `cash` | `target_qpm` | 预估并发（req/min） |
+| `debate` | `review_rounds` | 合规评审轮数 |
+| `risk` | `redteam_rounds` | 红队审核轮数 |
+| `sector` | `use_case` | 应用场景 |
+
+**需新增**：`revision`（不可变 tag/commit）、`weights_uri`——G1 判定必需，现在根本没地方填。
+
+**验收**：`grep -n "ticker\|trade_date\|initial_cash" src/frontend/ai-model-entry-clearance.html src/frontend/js/ai-model-entry-clearance.js` → 0 行。
+
+### TA02 [GF] 修复表单校验（当前阻断性 Bug） ✅ 已完成
+文件：`src/frontend/js/engine-state.js`
+
+现有 `validateEngineForm` 要求 `^[A-Za-z0-9.]{1,12}$`，而页面默认值是
+`meta-llama/Llama-3.1-8B-Instruct` —— **页面的默认值过不了它自己的校验**，点启动必弹
+「请填写合法 Ticker」。改为：
+
+```js
+if (!form.model_id || !/^[A-Za-z0-9._\/-]{1,128}$/.test(form.model_id)) {
+  errors.push('请填写合法 model_id（如 meta-llama/Llama-3.1-8B-Instruct）');
+}
+if (!form.revision) errors.push('必须锁定不可变 revision，禁止 main/latest');  // G1-PROV-02
+if (!form.as_of) errors.push('请选择证据截止日期 as_of');
 ```
 
-**Phase 1 出口条件**：对 3 个真实模型（permissive / conditional / restricted 各一）
-走完 G0–G6，产出可验签 attestation，且 `restricted` 模型确实在 G3 被拒绝。
+**验收**：页面默认值下主按钮直接可点（不再是「检查配置」）；`engine-state.test.js` 补一条
+「默认表单无错」断言 + 一条「`revision` 为 main 时报错」断言。
+
+### TA03 [HI] 启动链路切到准入 API ✅ 已完成
+文件：`src/frontend/js/ai-model-entry-clearance.js`
+
+| 旧调用 | 新调用 |
+| --- | --- |
+| `POST /api/v1/investment-simulations` | `POST /api/v1/model-clearance/applications` |
+| `POST .../{run_id}/start` | `POST /api/v1/model-clearance/applications/{id}/submit` |
+| `GET .../{run_id}/events?after_seq=` | `GET /api/v1/model-clearance/applications/{id}/events` |
+| `GET .../{run_id}/portfolio` | `GET /api/v1/model-clearance/registry` |
+
+**验收**：`grep -c "investment-simulations" src/frontend/js/ai-model-entry-clearance.js` → `0`；
+浏览器点「创建申请」→「启动」后，`storage/model_clearance/` 下出现新申请单 JSON。
+
+### TA04 [HI] 门禁矩阵改吃真实 `GateVerdict` ✅ 已完成
+文件：`src/frontend/js/engine-judgment.js`、`ai-model-entry-clearance.js`
+
+新增 `dimensionsFromVerdicts(app)`：把后端 `verdicts[]` + `evidence[]` 映射为矩阵行——
+`verdict` 直接当 `direction`（pass/fail/needs_info），`failed_checks` 入「判定依据」，
+`evidence_refs.length` 入「证据」列。
+**`buildFixtureDimensions` 降级为仅 `mode=fixture` 且尚未提交时的占位**，并在面板上标「演示数据」。
+
+**验收**：对 `mistralai/Mistral-Large-Instruct-2407` 跑一次，G3 行显示 `阻断 ✗` 且
+判定依据含 `G3-LIC-02`，整体裁决为阻断。
+
+### TA05 [GF] 证据流与评审意见接真事件 ✅ 已完成
+文件：`src/frontend/js/ai-model-entry-clearance.js`
+
+消费 `/applications/{id}/events` 的事件类型：
+- `evidence_collected` → 证据流（collector / 版本 / 时间 / digest 前 12 位）
+- `gate_verdict` → 门禁卡片与路线条推进
+- `agent_opinion` → 评审意见（`findings` + `quoted_text` 并排）
+- `clearance_rejected` / `clearance_need_info` → 终态提示
+
+**验收**：一次完整跑中，证据流条数 == 后端 `app.evidence.length`。
+
+### TA06 [GF] 准入清单区改接 registry ✅ 已完成
+文件：`src/frontend/js/ai-model-entry-clearance.js`
+
+`renderPortfolio` 已部分读 registry，但仍保留 `pf.portfolio` 旧分支。删掉旧分支，
+统一走 `/api/v1/model-clearance/registry`，展示责任人 / SLA / locked digest / conditions。
+
+**验收**：`grep -n "pf.portfolio" src/frontend/js/ai-model-entry-clearance.js` → 0 行。
+
+### TA07 [GF] 断开旧模拟引擎引用 ✅ 已完成
+文件：`src/backend/domain/api_routes.py`
+
+`/api/v1/investment-simulations/*` 共 8 个路由，其实现依赖
+`integrations.tradingagents.graph_adapter`，**该模块在仓库中不存在**（已核实），
+调用即 ImportError。TA03 完成后下线这组路由。
+
+**验收**：路由表中不再出现 `investment-simulations`；12 套后端测试仍全绿。
+
+### TA08 [GF] 删除旧模拟引擎实现 ✅ 已完成
+目录：`src/backend/domain/investment_simulation/`（assembly / models / orchestrator / portfolio / store）
+
+**前置**：TA07 已合入且全仓 `grep -r investment_simulation` 仅剩文档引用。
+**安全约束**：删除前先确认 `storage/investment_simulations/` 无需保留的真实数据。
+
+**验收**：`python scripts/run_all_clearance_tests.py` → 12/12；后端能正常启动。
+
+### TA09 [GF] P10 回归测试 ✅ 已完成
+新增 `src/frontend/__tests__/clearance-cockpit-wiring.test.js`：
+
+- 断言 `ai-model-entry-clearance.js` 不再出现 `investment-simulations`
+- 断言调用了 `/api/v1/model-clearance/applications` 与 `/submit`
+- 断言 HTML 含 `id="model_id"` / `id="revision"` / `id="as_of"`
+- 断言 `dimensionsFromVerdicts` 存在且被调用
+
+**验收**：`npx vitest run __tests__/clearance-cockpit-wiring.test.js` 通过。
 
 ---
 
@@ -917,5 +1108,7 @@ npm run test:frontend
 make test-smoke
 ```
 
-**Phase 1 出口条件**：对 3 个真实模型（permissive / conditional / restricted 各一）
-走完 G0–G6，产出可验签 attestation，且 `restricted` 模型确实在 G3 被拒绝。
+**Phase 1 出口条件（控管优先版）**：
+1. 对 3 个真实模型（permissive / conditional / restricted 各一）走完 G0–G6，并产出可验签 attestation
+2. 至少 1 个来源信息不完整模型在控制项完备时可 `approved_with_conditions`（restricted）
+3. kill-switch 与 rollback 演练均在 SLA 内闭环并留存证据

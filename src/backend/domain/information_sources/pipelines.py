@@ -525,6 +525,91 @@ def _world_analysis(records: List[EvidenceRecord], cutoff: str) -> Dict[str, Any
     )
 
 
+_OPEN_WEIGHTS_TOPIC_RULES = (
+    ("模型发布与权重", ("发布", "release", "权重", "weights", "checkpoint", "开源", "open-source", "模型卡", "model card")),
+    ("许可证与合规", ("许可证", "license", "apache", "mit", "商用", "commercial", "条款", "aup", "合规")),
+    ("能力与评测", ("基准", "benchmark", "评测", "mmlu", "推理能力", "上下文", "context", "多模态")),
+    ("推理与部署成本", ("显存", "vram", "量化", "quant", "gguf", "推理", "inference", "吞吐", "部署", "算力")),
+    ("安全与红队", ("越狱", "jailbreak", "注入", "injection", "红队", "安全", "对齐", "有害")),
+    ("供应链与出处", ("签名", "signature", "sbom", "bom", "供应链", "溯源", "digest", "投毒", "pickle")),
+)
+
+
+def _open_weights_topics(text: str) -> List[str]:
+    lowered = text.lower()
+    matched = [name for name, keywords in _OPEN_WEIGHTS_TOPIC_RULES if any(k.lower() in lowered for k in keywords)]
+    return matched or ["其他生态动态"]
+
+
+def _open_weights_analysis(records: List[EvidenceRecord], cutoff: str) -> Dict[str, Any]:
+    """Auditable analysis layer for the 开放权重资源 deck.
+
+    Shares evidence-quality mechanics with the other channels but swaps in an
+    open-weights taxonomy and admission-oriented handoff language.
+    """
+    analysis = _ai60_analysis(records, cutoff)
+    topic_rows: Dict[str, Dict[str, Any]] = {}
+    for record in records:
+        text = " ".join(filter(None, [record.title, record.summary, record.content]))
+        for topic in _open_weights_topics(text):
+            row = topic_rows.setdefault(topic, {"name": topic, "count": 0, "examples": []})
+            row["count"] += 1
+            if len(row["examples"]) < 3 and record.title:
+                row["examples"].append(record.title)
+    total = max(1, len(records))
+    clusters = sorted(topic_rows.values(), key=lambda row: (-row["count"], row["name"]))
+    for row in clusters:
+        row["share"] = round(row["count"] / total, 2)
+    diversity_ratio = min(1.0, int(analysis.get("source_diversity") or 0) / max(3, total))
+    topic_coverage = min(1.0, len(clusters) / 4)
+    freshness = float(analysis.get("freshness_ratio") or 0)
+    evidence_score = round(0.40 * diversity_ratio + 0.35 * topic_coverage + 0.25 * freshness, 2)
+    top_topics = [row["name"] for row in clusters[:3]] or ["暂无主题"]
+    analysis.update(
+        {
+            "method": ["文本标准化", "开放权重议题聚类", "许可证线索抽取", "时效/来源覆盖评分", "准入影响推演"],
+            "topic_clusters": clusters,
+            "evidence_score": evidence_score,
+            "signal_strength": "强" if evidence_score >= 0.72 else "中" if evidence_score >= 0.45 else "弱",
+            "evidence_graph": {
+                "nodes": [{"id": f"ow-topic-{idx}", "label": row["name"], "count": row["count"]} for idx, row in enumerate(clusters[:6])],
+                "edges": [{"from": "ow-evidence", "to": f"ow-topic-{idx}", "weight": row["count"]} for idx, row in enumerate(clusters[:6])],
+            },
+            "reasoning_steps": [
+                {"stage": "采集", "status": "done", "detail": f"读取 {len(records)} 条开放权重生态证据，覆盖 {int(analysis.get('source_diversity') or 0)} 个来源域名"},
+                {"stage": "清理", "status": "done", "detail": "Data Engineer 完成去噪、版本对齐与引用保留"},
+                {"stage": "聚类", "status": "done", "detail": "主要议题：" + "、".join(top_topics)},
+                {"stage": "许可证", "status": "done", "detail": "License Watch 抽取许可证线索，结论须回原文核对"},
+                {"stage": "准入", "status": "done", "detail": "Admission Mapper 输出门禁影响假设，不替代 G1–G6 实际判定"},
+            ],
+            "business_implications": [
+                {"stage": "供应链完整性", "detail": "签名、digest 与序列化格式直接决定 G1/G2 能否通过。", "label": "analysis"},
+                {"stage": "许可证范围", "detail": "许可证类别与附加义务决定 G3 的 scope 与运行时 conditions。", "label": "analysis"},
+                {"stage": "资源可行性", "detail": "参数规模与量化方案影响 G4 的显存与并发估算。", "label": "inference"},
+            ],
+            "open_questions": [
+                "该模型是否提供厂商签名与可验证的 digest？",
+                "许可证的商用边界与附加义务能否在原文中逐条定位？",
+                "红队与安全评测证据是否覆盖我方目标场景？",
+            ],
+        }
+    )
+    return _deck_enrichment(
+        records,
+        cutoff,
+        analysis,
+        topic_to_stage={
+            "模型发布与权重": "制品完整性与版本锁定节点",
+            "许可证与合规": "许可证与管辖权门禁节点",
+            "能力与评测": "能力基线与场景匹配节点",
+            "推理与部署成本": "资源估算与集群容量节点",
+            "安全与红队": "安全行为与红队门禁节点",
+            "供应链与出处": "AI-BOM 与漏洞暴露面节点",
+            "其他生态动态": "待人工确认的准入节点",
+        },
+    )
+
+
 async def _collect_evidence(
     sources: List[SourceConfig],
     *,
@@ -637,6 +722,33 @@ def _default_fixture_sources(team_id: str) -> List[SourceConfig]:
                 "url": "https://example.com/ai/enterprise-survey",
                 "content": "调研显示 40% 企业将生成式 AI 纳入生产工作流，成本与合规仍是主障碍。",
                 "published_at": "2026-07-03T12:00:00+00:00",
+            },
+        ]
+    elif team_id == "open_weights":
+        items = [
+            {
+                "title": "新一代开放权重模型发布，附 safetensors 与模型卡",
+                "url": "https://example.com/ow/model-release",
+                "content": "该系列以 safetensors 格式分发权重，提供不可变 revision 与完整模型卡，未附厂商签名。",
+                "published_at": "2026-07-01T10:00:00+00:00",
+            },
+            {
+                "title": "许可证条款更新：商用需满足月活上限",
+                "url": "https://example.com/ow/license-update",
+                "content": "厂商更新许可证，商用场景新增月活用户上限与命名归属义务，AUP 同步修订。",
+                "published_at": "2026-07-02T09:00:00+00:00",
+            },
+            {
+                "title": "量化方案与显存占用实测",
+                "url": "https://example.com/ow/quantization",
+                "content": "社区实测 4bit/8bit 量化在长上下文与高并发下的 KV-Cache 与激活峰值显存开销。",
+                "published_at": "2026-07-03T11:00:00+00:00",
+            },
+            {
+                "title": "权重供应链风险：pickle 反序列化面",
+                "url": "https://example.com/ow/supply-chain",
+                "content": "安全团队指出部分仓库仍以 pickle 类格式分发，存在任意代码执行面，建议锁定 digest 并改用 safetensors。",
+                "published_at": "2026-07-04T08:00:00+00:00",
             },
         ]
     else:
@@ -839,6 +951,89 @@ def build_dufu_report(records: List[EvidenceRecord], run_id: str, cutoff: str) -
     }
 
 
+def build_open_weights_report(records: List[EvidenceRecord], run_id: str, cutoff: str) -> Dict[str, Any]:
+    cites = [_citation_from_evidence(r) for r in records] or [
+        {
+            "url": "https://example.com/open-weights-fallback",
+            "title": "fallback",
+            "fetched_at": cutoff,
+            "content_hash": "0" * 64,
+        }
+    ]
+    analysis = _open_weights_analysis(records, cutoff)
+    primary = _world_primary(records)
+    what = _claim(
+        _evidence_claim_text(primary) if primary else "本轮开放权重生态待观察",
+        ClaimLabel.FACT.value,
+        "取决于厂商后续声明与模型卡更新",
+        cites,
+    )
+    timeline = [
+        _claim(
+            f"{r.normalized_published_at or r.fetched_at or cutoff}: {_evidence_claim_text(r)}",
+            ClaimLabel.FACT.value,
+            "时间戳以来源为准",
+            [_citation_from_evidence(r)],
+        )
+        for r in records[:5]
+    ] or [_claim("暂无时间线节点", ClaimLabel.INFERENCE.value, "高", cites)]
+    return {
+        "channel": "open_weights",
+        "what_happened": what,
+        "timeline": timeline,
+        "drivers": [
+            _claim("权重开放度、许可证条款与推理成本是本轮核心驱动", ClaimLabel.ANALYSIS.value, "中", cites)
+        ],
+        "data_trends": [
+            _claim("参数规模与量化方案分化，长上下文推高 KV-Cache 显存需求", ClaimLabel.ANALYSIS.value, "中", cites)
+        ],
+        "views_and_counterpoints": [
+            _claim("主流叙事强调开放权重可自主可控；反证指出训练数据不可独立验证", ClaimLabel.OPINION.value, "中", cites),
+            _claim("替代解释：基准提升可能来自评测集污染而非能力增强", ClaimLabel.INFERENCE.value, "高", cites),
+        ],
+        "license_watch": [
+            _claim(
+                "许可证类别与附加义务需逐条回原文定位，无法定位的结论一律作废",
+                ClaimLabel.ANALYSIS.value,
+                "中——条款可能随版本变更",
+                cites,
+            )
+        ],
+        "scenarios": [
+            {
+                "name": "optimistic",
+                "summary": "厂商补齐签名与安全评测，可直接进入标准准入",
+                "trigger_conditions": ["发布可验证签名与 digest", "提供完整红队评测报告"],
+                "uncertainty": "中",
+            },
+            {
+                "name": "base",
+                "summary": "权重可用但签名缺失，需平台背书并降档运行",
+                "trigger_conditions": ["仅提供 safetensors 与模型卡", "无厂商签名"],
+                "uncertainty": "中",
+            },
+            {
+                "name": "pessimistic",
+                "summary": "许可证收紧或检出高危序列化面，准入受阻",
+                "trigger_conditions": ["许可证转为受限/禁止商用", "检出 pickle 类权重或 Critical CVE"],
+                "uncertainty": "高",
+            },
+        ],
+        "admission_impact": [
+            _claim(
+                "权重格式与签名 → G1/G2 完整性与供应链 → G3 许可证范围 → G4 资源可行性（研究性映射，不替代实际门禁判定）",
+                ClaimLabel.SCENARIO.value,
+                "高——以实际扫描证据为准",
+                cites,
+            )
+        ],
+        "citations": cites,
+        "analysis": analysis,
+        "data_cutoff": cutoff,
+        "run_id": run_id,
+    }
+
+
 async def run_ai_news_60s_pipeline(
     *,
     sources: Optional[List[SourceConfig]] = None,
@@ -1002,9 +1197,86 @@ async def run_dufu_world_intel_pipeline(
     }
 
 
+async def run_open_weights_pipeline(
+    *,
+    sources: Optional[List[SourceConfig]] = None,
+    evidence_store: Optional[EvidenceStore] = None,
+    document_store: Optional[DocumentStore] = None,
+) -> Dict[str, Any]:
+    """Collector → Data Engineer → Model Analyst → Red Team → License Watch → Admission Mapper → Lead Gate → Presenter."""
+    run_id = str(uuid.uuid4())[:12]
+    cutoff = _cutoff()
+    store = evidence_store or get_evidence_store()
+    docs = document_store or get_document_store()
+    sources = sources or _default_fixture_sources("open_weights")
+    steps: List[Dict[str, Any]] = []
+
+    records = await _collect_evidence(sources, run_id=run_id, store=store)
+    fresh_count = len(records)
+    if len(records) < 12:
+        records = _reuse_cached_evidence(store, sources, records)
+    cached_count = max(0, len(records) - fresh_count)
+    steps.append(
+        {
+            "step": "collector_data_engineer",
+            "evidence": len(records),
+            "fresh_evidence": fresh_count,
+            "cached_evidence": cached_count,
+            "summary": (
+                f"Weights Collector / Data Engineer 已处理 {fresh_count} 条新证据"
+                + (f"，复用同来源缓存 {cached_count} 条" if cached_count else "")
+            ),
+        }
+    )
+    if not records:
+        batch = FetchBatch(
+            source_id="synthetic",
+            items=[
+                FetchItem(
+                    title="合成开放权重议题",
+                    url="https://example.com/open-weights/synthetic",
+                    content="离线占位开放权重生态议题。",
+                )
+            ],
+        )
+        cfg = SourceConfig(source_id="synthetic", kind="fixture", name="synthetic")
+        records = store.normalize_and_store(batch, cfg, run_id=run_id).records
+    steps.append({"step": "model_analyst_red_team", "ok": True, "counterpoints": True})
+
+    report = build_open_weights_report(records, run_id, cutoff)
+    steps.append({"step": "license_watch_admission_mapper", "ok": True})
+    html = hugohe3_render(report, channel="open_weights")
+    steps.append({"step": "lead_gate_presenter", "ok": True})
+
+    doc = docs.create_published(
+        channel="open_weights",
+        title=report["what_happened"]["text"][:80],
+        run_id=run_id,
+        as_of=cutoff,
+        html=html,
+        report=report,
+        evidence_ids=[r.evidence_id for r in records],
+        evidence_urls=[r.url for r in records],
+        content_hashes=[r.content_hash for r in records],
+        metadata={"pipeline": "open_weights", "steps": steps},
+    )
+    return {
+        "run_id": run_id,
+        "channel": "open_weights",
+        "document_id": doc.document_id,
+        "version": doc.version,
+        "as_of": doc.as_of,
+        "steps": steps,
+        "evidence_count": len(records),
+        "html_bytes": len(html.encode("utf-8")),
+    }
+
+
 async def run_team_pipeline(team_id: str, **kwargs) -> Dict[str, Any]:
     if team_id == "ai_news_60s":
         return await run_ai_news_60s_pipeline(**kwargs)
     if team_id == "dufu_world_intel":
         return await run_dufu_world_intel_pipeline(**kwargs)
+    if team_id == "open_weights":
+        return await run_open_weights_pipeline(**kwargs)
     raise ValueError(f"Unsupported team pipeline: {team_id}")

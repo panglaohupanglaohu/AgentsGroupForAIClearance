@@ -1,10 +1,14 @@
 version: 1
-name: "Open-Weights Model Admission Clearance Policy"
+name: "Lenovo Verifiable Model Admission Clearance Policy"
 updated_at: "2026-08-20T00:00:00Z"
+
+# 战略原则：来源/产地仅为风险信号，必须由技术与运营控制项（digest、基线、kill-switch、SLA）承接判定
+origin_signal_only: true
+origin_only_cannot_fail: true
 
 gates:
   G1:
-    name: "Provenance & Authenticity Gate"
+    name: "Artifact Integrity & Traceability Gate"
     blocker_checks:
       - G1-PROV-01
       - G1-PROV-02
@@ -25,7 +29,7 @@ gates:
       - id: G1-PROV-05
         expr: "evidence.vendor_signature == 'present' or evidence.endorsement == 'platform'"
         on_false: fail
-        message: "必须具备厂商签名或平台背书签名"
+        message: "必须具备厂商签名或平台背书签名以锁定不可变 digest"
 
   G2:
     name: "BOM & Supply Chain Security Gate"

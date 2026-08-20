@@ -39,7 +39,7 @@
     { re: /cost-dashboard|datacenter-ratchet/i, id: 'cost' },
     { re: /pet-config/i, id: 'pet' },
     { re: /data-intelligence/i, id: 'data-intelligence' },
-    { re: /ai-model-entry-clearance|model-clearance/i, id: 'model-clearance' },
+    { re: /ai-model-entry-clearance|model-clearance|open-weights-models/i, id: 'model-clearance' },
     { re: /system-evolution/i, id: 'agents' },
     { re: /tasks\.html/i, id: 'agents' }
   ];

@@ -11,7 +11,7 @@ from xml.etree.ElementTree import Element
 
 from ..models import FetchBatch, FetchItem, HealthResult, SourceConfig, SourceManifest
 from ..ssrf import SSRFBlockedError
-from .base import BaseConnector
+from .base import BaseConnector, describe_exception
 
 MANIFEST = SourceManifest(
     kind="rss",
@@ -151,7 +151,7 @@ class RssConnector(BaseConnector):
         except Exception as exc:
             return HealthResult(
                 ok=False,
-                message=str(exc),
+                message=describe_exception(exc),
                 latency_ms=round((time.perf_counter() - t0) * 1000, 1),
             )
 

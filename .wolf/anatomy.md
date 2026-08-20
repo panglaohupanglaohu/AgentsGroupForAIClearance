@@ -5,6 +5,11 @@
 
 ## ./
 
+- `PLAN.md` — 模型准入与运营控制总纲；已切换为 Lenovo 可管可证优先（来源降权、控管优先）；§11 记录控制台↔准入引擎对接架构
+- `TODOS.md` — 准入系统执行清单；P0–P10（TA01–TA09 控制台真实对接）全阶段已全部完成
+- `src/frontend/__tests__/clearance-cockpit-wiring.test.js` — 控制台去金融化与准入 API 真实对接回归测试
+- `scripts/audit_sampling.py` — 每周活跃准入模型抽样审计与可验证性检查脚本
+- `tests/test_model_clearance_operability.py` — Lenovo 直管矩阵、Kill-Switch、Rollback 与抽样审计测试用例
 - `src/frontend/plaza.html` — 议事广场页面；接入共享 i18n 脚本与顶部语言切换按钮
 - `src/frontend/js/plaza.js` — 议事广场交互、3D 场景和页面专用中英词条；动态翻译观察器避免自触发循环
 - `tests/test_workflow_pipeline_mode.py` — 团队流水线模式与多智能体分工验证用例（AgentTeam + TeamStore + _generate_workflow 角色匹配）

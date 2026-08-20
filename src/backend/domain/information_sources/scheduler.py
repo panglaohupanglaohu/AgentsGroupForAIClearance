@@ -22,7 +22,7 @@ from .protocol import SourceRegistry, get_source_registry
 
 logger = logging.getLogger(__name__)
 
-ACTIVE_SCHEDULE_TEAMS = frozenset({"ai_news_60s", "dufu_world_intel"})
+ACTIVE_SCHEDULE_TEAMS = frozenset({"ai_news_60s", "dufu_world_intel", "open_weights"})
 DEFAULT_SCHEDULE_INTERVAL_MINUTES = 30
 _SCHEDULE_PATH = Path(__file__).resolve().parents[4] / "storage" / "information_sources" / "schedules.json"
 

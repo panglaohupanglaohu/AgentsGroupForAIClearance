@@ -33,26 +33,26 @@
 
 ---
 
-## 2. 安全事件检测（Detection Rules）
+## 2. 安全事件检测与处置动作映射（Detection & Remediation Mapping）
 
-**原则**：模型运行时的异常行为几乎都表现为「它试图做准入时没说要做的事」。
+**原则**：模型运行时的异常行为几乎都表现为「它试图做准入时没说要做的事」。所有事件必须具备清晰的处置动作、响应时限与责任归属。
 
-| ID | 检测项 | 触发条件 | 严重级 | 响应 |
-| --- | --- | --- | --- | --- |
-| `D-NET-01` | 异常出站流量 | 出现 NetworkPolicy 白名单外的连接尝试 | Critical | 立即隔离 Pod + 告警 |
-| `D-NET-02` | 出站数据量异常 | 出站字节数环比突增 | High | 告警 + 人工研判 |
-| `D-NET-03` | DNS 异常查询 | 查询非内部域名 | High | 告警 |
-| `D-PRV-01` | 提权尝试 | 容器内出现 setuid / capability 请求 | Critical | 立即终止 Pod |
-| `D-PRV-02` | 非预期进程 | 出现基线外可执行文件（如 shell、curl） | Critical | 立即终止 Pod |
-| `D-FS-01` | 只读文件系统写入尝试 | 根文件系统写失败事件 | High | 告警 |
-| `D-FS-02` | 权重文件变更 | 权重 digest 与登记值不符 | Critical | 立即终止 + 撤销准入 |
-| `D-CFG-01` | 配置漂移 | 实际 Pod spec 与基线不符 | High | 自动修复或阻断调度 |
-| `D-CFG-02` | 镜像漂移 | 运行镜像 digest 不在允许列表 | Critical | 立即终止 |
-| `D-USE-01` | 越权调用 | 调用方身份不在授权 scope | High | 拒绝 + 告警 |
-| `D-USE-02` | 速率异常 | 单调用方请求速率突破限流 | Medium | 限流 + 记录 |
-| `D-SEC-01` | 提示注入特征 | 输入命中注入模式库 | Medium | 拦截 + 记录（仅记特征，不记原文） |
-| `D-SEC-02` | 输出泄露特征 | 输出命中敏感数据模式 | High | 拦截 + 告警 |
-| `D-LOG-01` | 提示词日志被开启 | `DISABLE_PROMPT_LOGGING != true` | High | 阻断部署 |
+| ID | 检测项 | 触发条件 | 严重级 | 默认处置动作 (`default_action`) | 最长响应时限 (`max_response_time`) | 责任角色 (`owner_role`) |
+| --- | --- | --- | --- | --- | --- | --- |
+| `D-NET-01` | 异常出站流量 | 出现 NetworkPolicy 白名单外的连接尝试 | Critical | 立即隔离 Pod + 告警 | 5 分钟 | Security Ops |
+| `D-NET-02` | 出站数据量异常 | 出站字节数环比突增 | High | 告警 + 人工研判 | 15 分钟 | Security Ops |
+| `D-NET-03` | DNS 异常查询 | 查询非内部域名 | High | 阻断并告警 | 15 分钟 | Platform Ops |
+| `D-PRV-01` | 提权尝试 | 容器内出现 setuid / capability 请求 | Critical | 立即终止 Pod | 1 分钟 | Platform Ops |
+| `D-PRV-02` | 非预期进程 | 出现基线外可执行文件（如 shell、curl） | Critical | 立即终止 Pod | 1 分钟 | Platform Ops |
+| `D-FS-01` | 只读文件系统写入尝试 | 根文件系统写失败事件 | High | 告警 + 隔离排查 | 30 分钟 | Platform Ops |
+| `D-FS-02` | 权重文件变更 | 权重 digest 与登记值不符 | Critical | 立即终止 + 触发 Kill-Switch 撤销准入 | 2 分钟 | Security Ops |
+| `D-CFG-01` | 配置漂移 | 实际 Pod spec 与基线不符 | High | 自动修复或阻断调度 | 10 分钟 | Platform Ops |
+| `D-CFG-02` | 镜像漂移 | 运行镜像 digest 不在允许列表 | Critical | 立即终止并回滚至上一基线镜像 | 5 分钟 | Platform Ops |
+| `D-USE-01` | 越权调用 | 调用方身份不在授权 scope | High | 拒绝调用 + 告警 | 即时 (自动化) | Security Ops |
+| `D-USE-02` | 速率异常 | 单调用方请求速率突破限流 | Medium | 限流 + 记录日志 | 即时 (自动化) | Platform Ops |
+| `D-SEC-01` | 提示注入特征 | 输入命中注入模式库 | Medium | 拦截 + 记录特征（不记原文） | 即时 (自动化) | AI Governance |
+| `D-SEC-02` | 输出泄露特征 | 输出命中敏感数据模式 | High | 拦截 + 阻断输出 + 告警 | 即时 (自动化) | AI Governance |
+| `D-LOG-01` | 提示词日志被开启 | `DISABLE_PROMPT_LOGGING != true` | High | 阻断部署 | 5 分钟 | Platform Ops |
 
 ---
 

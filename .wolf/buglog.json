@@ -1,5 +1,35 @@
 [
   {
+    "id": "bug-vite-import-analysis-duplicate-tail",
+    "timestamp": "2026-08-20T03:15:00.000000+00:00",
+    "error_message": "[plugin:vite:import-analysis] Failed to parse source for import analysis because the content contains invalid JS syntax. D:/AgentsGroup2026/src/frontend/js/ai-model-entry-clearance.js:987:0",
+    "file": "src/frontend/js/ai-model-entry-clearance.js",
+    "root_cause": "上一轮编辑 ai-model-entry-clearance.js 时，文件尾部闭包代码被重复追加，导致 IIFE 闭合后存在非法裸悬挂的 then/catch 回调及重复代码",
+    "fix": "删除尾部多余的代码段，通过 node --check 验证全仓 JS 语法通过，28 项前端单测全绿",
+    "tags": [
+      "frontend",
+      "vite",
+      "syntax-error",
+      "import-analysis"
+    ]
+  },
+  {
+    "id": "bug-clearance-ticker-validation-self-rejection",
+    "timestamp": "2026-08-20T03:00:00.000000+00:00",
+    "error_message": "请填写合法 Ticker（字母/数字，最长 12）",
+    "file": "src/frontend/js/engine-state.js, src/frontend/js/ai-model-entry-clearance.js, src/frontend/ai-model-entry-clearance.html",
+    "root_cause": "控制台前端保留了金融模拟遗留校验正则 ^[A-Za-z0-9.]{1,12}$，与页面默认模型ID meta-llama/Llama-3.1-8B-Instruct（含斜杠和短横线）冲突导致自拒；且启动链路仍指向缺失依赖的 legacy investment-simulations API",
+    "fix": "表单字段全部正名为准入语义（model_id / revision / as_of / target_qpm 等）；validateEngineForm 放宽为 ^[A-Za-z0-9._\\/-]{1,128}$ 并强制不可变 revision；启动与轮询链路全面切到 /api/v1/model-clearance/applications 与 submit；下线旧 investment_simulation 目录与路由",
+    "tags": [
+      "frontend",
+      "backend",
+      "model-clearance",
+      "validation",
+      "engine-state",
+      "de-financialization"
+    ]
+  },
+  {
     "id": "bug-plaza-assign-silent-no-task",
     "timestamp": "2026-08-17T08:20:00.000000+00:00",
     "error_message": "广场勾选两个团队点「派发」后，各团队任务页没有相关任务",

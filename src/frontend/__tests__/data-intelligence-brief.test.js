@@ -40,4 +40,14 @@ describe('Data Intelligence conclusion brief (P13)', () => {
     expect(js).toContain('技能：');
     expect(js).toContain('工具：');
   });
+
+  it('exposes dedicated open-weights intelligence tab and license integration', () => {
+    expect(html).toContain('data-tab="openweights"');
+    expect(html).toContain('id="panel-openweights"');
+    expect(html).toContain('id="openweights-grid"');
+    expect(js).toContain('/api/v1/model-clearance/licenses');
+    expect(js).toContain('loadOpenWeights');
+    expect(js).toContain('renderOpenWeights');
+    expect(js).toContain('发起准入评审');
+  });
 });

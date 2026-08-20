@@ -34,14 +34,31 @@
   }
 
   function readForm() {
+    var modelEl = $('model_id');
+    var revEl = $('revision');
+    var uriEl = $('weights_uri');
+    var asOfEl = $('as_of');
+    var ucEl = $('use_case');
+    var qpmEl = $('target_qpm');
+    var revRoundsEl = $('review_rounds');
+    var rtRoundsEl = $('redteam_rounds');
+    var modeEl = $('mode');
+
+    var modelId = (modelEl ? modelEl.value : '').trim();
+    var rev = (revEl ? revEl.value : 'v1.0').trim() || 'v1.0';
+    var weightsUri = (uriEl ? uriEl.value : '').trim();
+    var asOf = asOfEl ? asOfEl.value : '';
+
     return {
-      ticker: ($('ticker').value || '').trim().toUpperCase(),
-      trade_date: $('trade_date').value,
-      sector: $('sector') ? $('sector').value : '',
-      initial_cash: Number($('cash').value || 100000),
-      debate_rounds: Number($('debate').value || 1),
-      risk_rounds: Number($('risk').value || 1),
-      mode: $('mode').value || 'fixture',
+      model_id: modelId,
+      revision: rev,
+      weights_uri: weightsUri,
+      as_of: asOf,
+      use_case: ucEl ? ucEl.value : 'ai_compute',
+      target_qpm: Number(qpmEl ? qpmEl.value : 1000) || 1000,
+      review_rounds: Number(revRoundsEl ? revRoundsEl.value : 1) || 1,
+      redteam_rounds: Number(rtRoundsEl ? rtRoundsEl.value : 1) || 1,
+      mode: modeEl ? modeEl.value : 'fixture',
     };
   }
 
@@ -62,18 +79,18 @@
     };
     var keys = Object.keys(sections);
     if (!keys.length && !decision.action) {
-      root.innerHTML = '<div class="report-empty">模拟尚未生成报告。启动后，这里会把技术索引整理成易读的研究小结。</div>';
+      root.innerHTML = '<div class="report-empty">准入评估尚未生成报告。启动后，这里会把技术索引整理成易读的准入小结。</div>';
       return;
     }
     var action = decision.action || '待定';
     var confidence = decision.confidence == null ? '—' : Math.round(Number(decision.confidence) * 100) + '%';
-    var rationale = safeText(decision.rationale || '等待组合管理 Agent 给出裁决。');
+    var rationale = safeText(decision.rationale || '等待会签裁决。');
     root.innerHTML = renderPipelineFlow(index) + '<div class="report-summary">' +
-      '<div class="report-summary-card"><strong>这次模拟看什么</strong><span>' + safeText(index.ticker || '未指定标的') + ' · 截止 ' + safeText(index.trade_date || '—') + '</span></div>' +
-      '<div class="report-summary-card"><strong>模拟结论</strong><span>' + safeText(action) + ' · 置信度 ' + safeText(confidence) + '</span></div>' +
-      '<div class="report-summary-card"><strong>证据上下文</strong><span>' + (Array.isArray(index.context_versions) ? index.context_versions.length : 0) + ' 个已冻结研究版本 · ' + safeText(index.mode || 'fixture') + ' 模式</span></div>' +
+      '<div class="report-summary-card"><strong>本次评审对象</strong><span>' + safeText(index.model_id || '未指定模型') + ' · 截止 ' + safeText(index.as_of || '—') + '</span></div>' +
+      '<div class="report-summary-card"><strong>准入结论</strong><span>' + safeText(action) + ' · 置信度 ' + safeText(confidence) + '</span></div>' +
+      '<div class="report-summary-card"><strong>证据上下文</strong><span>' + (Array.isArray(index.context_versions) ? index.context_versions.length : 0) + ' 个已冻结证据版本 · ' + safeText(index.mode || 'fixture') + ' 模式</span></div>' +
       '</div><div class="report-summary-card"><strong>一句话解读</strong><span>' + rationale + '</span></div>' +
-      '<div class="report-sections">' + keys.map(function (key) { return '<div class="report-section"><b>' + safeText(labels[key] || key) + '</b><small>已生成研究小节，可在运行目录中追溯</small></div>'; }).join('') + '</div>';
+      '<div class="report-sections">' + keys.map(function (key) { return '<div class="report-section"><b>' + safeText(labels[key] || key) + '</b><small>已生成门禁小节，可在审计日志中追溯</small></div>'; }).join('') + '</div>';
   }
 
   function renderPipelineFlow(index) {
@@ -90,7 +107,7 @@
     var analystNodes = stage2.map(function (key, i) { return { x:cols[1], y:125 + i * 105, label:names[key], tone:'analyst' }; });
     var debateNodes = stage3.map(function (key, i) { return { x:cols[2], y:150 + i * 130, label:names[key], tone:'debate' }; });
     var riskNodes = stage4.map(function (key, i) { return { x:cols[3], y:105 + i * 105, label:names[key], tone:'risk' }; });
-    var finalNode = { x:cols[4], y:270, label:(final.action || 'PENDING') + ' · ' + (final.ticker || index.ticker || '—') + ' (' + Math.round(Number(final.confidence || 0) * 100) + '%)', tone:'decision' };
+    var finalNode = { x:cols[4], y:270, label:(final.action || 'PENDING') + ' · ' + (final.model_id || index.model_id || '—') + ' (' + Math.round(Number(final.confidence || 0) * 100) + '%)', tone:'decision' };
     var allNodes = versionNodes.concat(analystNodes, debateNodes, riskNodes, [finalNode]);
     var edges = '';
     versionNodes.forEach(function (s) { analystNodes.forEach(function (a) { edges += edge(s.x + 48, s.y, a.x - 70, a.y, 'source-edge'); }); });
@@ -178,9 +195,9 @@
     if (!window.EngineJudgment) return;
     var form = readForm();
     if (!judgmentState.dimensions.length) {
-      judgmentState.as_of = form.trade_date || today();
+      judgmentState.as_of = form.as_of || today();
       judgmentState.dimensions = window.EngineJudgment.buildFixtureDimensions({
-        ticker: form.ticker,
+        model_id: form.model_id,
         as_of: judgmentState.as_of,
       });
       judgmentState.overall = window.EngineJudgment.overallFromDimensions(
@@ -309,10 +326,10 @@
     // P12: refresh multi-dim matrix when analysis phase advances
     if (window.EngineJudgment && (route === 'judgment' || s.status === 'running' || s.status === 'completed')) {
       var formJ = readForm();
-      judgmentState.as_of = formJ.trade_date || judgmentState.as_of || today();
-      if (!judgmentState.dimensions.length || s.status === 'completed') {
+      judgmentState.as_of = formJ.as_of || judgmentState.as_of || today();
+      if (!judgmentState.dimensions.length) {
         judgmentState.dimensions = window.EngineJudgment.buildFixtureDimensions({
-          ticker: formJ.ticker,
+          model_id: formJ.model_id,
           as_of: judgmentState.as_of,
         });
       }
@@ -538,8 +555,18 @@
   // ── Networking ────────────────────────────────────────────
   async function loadRuntimeHealth() {
     try {
-      var h = await api().request('/api/v1/trading-runtime/health');
-      $('runtime-health').textContent = JSON.stringify(h, null, 2);
+      var h = await api().request('/api/v1/model-clearance/registry');
+      var list = (h && h.registry) || [];
+      var active = list.filter(function(x) { return x.status === 'active'; }).length;
+      var revoked = list.filter(function(x) { return x.status === 'revoked'; }).length;
+      $('runtime-health').textContent = JSON.stringify({
+        status: 'ok',
+        clearance_engine: 'online',
+        active_models: active,
+        revoked_models: revoked,
+        total_registry_entries: list.length,
+        timestamp: new Date().toISOString(),
+      }, null, 2);
     } catch (e) {
       $('runtime-health').textContent = e.message || String(e);
     }
@@ -591,32 +618,6 @@
     }
   }
 
-  function buildCreateBody(autoStart) {
-    var form = readForm();
-    var modules = ES.modulesFromDraft(draftModules);
-    return {
-      ticker: form.ticker,
-      trade_date: form.trade_date,
-      sector: form.sector,
-      initial_cash: form.initial_cash,
-      debate_rounds: form.debate_rounds,
-      risk_rounds: form.risk_rounds,
-      mode: form.mode,
-      auto_start: !!autoStart,
-      sources: draftModules.map(function (s) {
-        return {
-          sourceId: s.sourceId,
-          name: s.name,
-          kind: s.kind || 'source',
-          priority: s.priority,
-        };
-      }),
-      assembly: modules,
-      deep_model: { provider: 'deepseek', name: 'deepseek-reasoner', model_id: 'deep_think' },
-      quick_model: { provider: 'deepseek', name: 'deepseek-chat', model_id: 'quick_think' },
-    };
-  }
-
   async function createSim(autoStart) {
     var form = readForm();
     var errors = ES.validateEngineForm(form);
@@ -626,33 +627,25 @@
       alert(errors.join('\n'));
       return null;
     }
-    var app = null;
-    try {
-      app = await api().request('/api/v1/model-clearance/applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model_id: form.ticker,
-          applicant: 'security-admin',
-          revision: form.trade_date || 'v1.0',
-          auto_submit: !!autoStart,
-        }),
-      });
-    } catch (e) {
-      // Fallback to simulations endpoint if needed
-      app = await api().request('/api/v1/investment-simulations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildCreateBody(!!autoStart)),
-      });
-    }
+
+    var app = await api().request('/api/v1/model-clearance/applications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model_id: form.model_id,
+        applicant: 'security-admin',
+        revision: form.revision,
+        weights_uri: form.weights_uri,
+        auto_submit: !!autoStart,
+      }),
+    });
 
     engineState = ES.create();
     applySim(app);
     engineState.lastSeq = 0;
     engineState.events = [];
     try {
-      localStorage.setItem('sa_invest_run', app.application_id || app.run_id);
+      localStorage.setItem('sa_clearance_app_id', app.application_id);
     } catch (e) { /* ignore */ }
     renderFromState();
     if (app.status === 'running' || app.status === 'gating' || autoStart) {
@@ -663,18 +656,10 @@
 
   async function startSim() {
     if (!engineState.runId) return;
-    var res = null;
-    try {
-      res = await api().request(
-        '/api/v1/model-clearance/applications/' + encodeURIComponent(engineState.runId) + '/submit',
-        { method: 'POST' }
-      );
-    } catch (e) {
-      res = await api().request(
-        '/api/v1/investment-simulations/' + encodeURIComponent(engineState.runId) + '/start',
-        { method: 'POST' }
-      );
-    }
+    var res = await api().request(
+      '/api/v1/model-clearance/applications/' + encodeURIComponent(engineState.runId) + '/submit',
+      { method: 'POST' }
+    );
     applySim(res);
     renderFromState();
     beginLiveJourney();
@@ -721,89 +706,34 @@
 
   function beginLiveJourney() {
     stopLiveJourney();
-    // Prefer SSE, fall back to polling
-    var useSSE = typeof EventSource !== 'undefined';
-    if (useSSE && engineState.runId) {
-      try {
-        connectSSE();
-        return;
-      } catch (e) {
-        /* fall through */
-      }
-    }
     engineState.connection = 'polling';
     pollTimer = setInterval(poll, 500);
     poll();
   }
 
-  function connectSSE() {
-    var url =
-      '/api/v1/investment-simulations/' +
-      encodeURIComponent(engineState.runId) +
-      '/events/stream?after_seq=' +
-      (engineState.lastSeq || 0);
-    eventSource = new EventSource(url);
-    engineState.connection = 'live';
-    renderFromState();
-
-    eventSource.onmessage = function (msg) {
-      try {
-        var ev = JSON.parse(msg.data);
-        ingestEvents([ev]);
-        renderFromState();
-        // soft refresh sim status periodically via poll once
-      } catch (e) {
-        console.warn(e);
-      }
-    };
-    eventSource.addEventListener('done', function () {
-      stopLiveJourney();
-      poll(); // final state
-    });
-    eventSource.onerror = function () {
-      if (eventSource) {
-        try {
-          eventSource.close();
-        } catch (e) { /* ignore */ }
-        eventSource = null;
-      }
-      engineState.connection = 'reconnecting';
-      renderFromState();
-      // Fallback poll + reconnect later
-      poll().finally(function () {
-        engineState.connection = 'polling';
-        pollTimer = setInterval(poll, 600);
-      });
-    };
-  }
-
   async function poll() {
     if (!engineState.runId) return;
     try {
-      var app = null;
-      var evData = null;
-      try {
-        app = await api().request(
-          '/api/v1/model-clearance/applications/' + encodeURIComponent(engineState.runId)
-        );
-        evData = await api().request(
-          '/api/v1/model-clearance/applications/' + encodeURIComponent(engineState.runId) + '/events'
-        );
-      } catch (e) {
-        app = await api().request(
-          '/api/v1/investment-simulations/' + encodeURIComponent(engineState.runId)
-        );
-        evData = await api().request(
-          '/api/v1/investment-simulations/' +
-            encodeURIComponent(engineState.runId) +
-            '/events?after_seq=' +
-            (engineState.lastSeq || 0)
-        );
+      var app = await api().request(
+        '/api/v1/model-clearance/applications/' + encodeURIComponent(engineState.runId)
+      );
+      var evData = await api().request(
+        '/api/v1/model-clearance/applications/' + encodeURIComponent(engineState.runId) + '/events'
+      );
+      if (app) {
+        applySim(app);
+        if (window.EngineJudgment && ((app.verdicts && app.verdicts.length) || app.status !== 'draft')) {
+          judgmentState.dimensions = window.EngineJudgment.dimensionsFromVerdicts(app, judgmentState.as_of);
+          judgmentState.overall = window.EngineJudgment.overallFromDimensions(
+            judgmentState.dimensions,
+            judgmentState.as_of
+          );
+          renderJudgmentPanel();
+        }
       }
-      if (app) applySim(app);
       if (evData && evData.events) ingestEvents(evData.events);
-      renderPortfolio(null);
-      if (app && (app.status === 'approved' || app.status === 'approved_with_conditions' || app.status === 'rejected' || app.status === 'completed' || app.status === 'failed' || app.status === 'cancelled')) {
+      renderPortfolio();
+      if (app && (app.status === 'approved' || app.status === 'approved_with_conditions' || app.status === 'rejected' || app.status === 'registered' || app.status === 'revoked' || app.status === 'completed' || app.status === 'failed' || app.status === 'cancelled')) {
         stopLiveJourney();
         engineState.progress = 100;
       }
@@ -815,71 +745,63 @@
     }
   }
 
-  function renderPortfolio(pf) {
+  function renderPortfolio() {
     var el = $('portfolio');
     if (!el) return;
-    if (!pf || pf.empty || !pf.portfolio) {
-      // Also try to query model clearance registry if available
-      api().request('/api/v1/model-clearance/registry').then(function(res) {
-        var list = (res && res.registry) || [];
-        if (!list.length) {
-          el.innerHTML = '<div class="empty">空状态：尚无准入条目</div>';
-          return;
-        }
-        var rows = list.map(function(item) {
-          var badgeCls = item.status === 'active' ? 'status-ok' : 'status-bad';
-          return '<div class="stat" style="border-bottom:1px solid #1e3554;padding:6px 0">' +
-            '<strong>' + esc(item.model_id) + '</strong> (' + esc(item.runtime_profile || 'standard') + ')' +
-            '<br><small class="muted">Digest: ' + esc((item.locked_digest || '').slice(0, 16)) + '… · 状态: <span class="' + badgeCls + '">' + esc(item.status) + '</span></small>' +
-            (item.conditions && item.conditions.length ? '<br><small style="color:#fbbf24">约束: ' + esc(item.conditions.join('; ')) + '</small>' : '') +
-            '</div>';
-        }).join('');
-        el.innerHTML = '<div style="font-size:12px">' + rows + '</div>';
-      }).catch(function() {
+    api().request('/api/v1/model-clearance/registry').then(function(res) {
+      var list = (res && res.registry) || [];
+      if (!list.length) {
         el.innerHTML = '<div class="empty">空状态：尚无准入条目</div>';
-      });
-      return;
-    }
-    var p = pf.portfolio;
-    if (p.error) {
-      el.innerHTML = '<div class="status-bad">失败：' + esc(p.error) + '</div>';
-      return;
-    }
-    el.innerHTML =
-      '<div class="stat">准入编号: ' +
-      esc(p.entry_id || 'REG-PENDING') +
-      '</div>' +
-      '<div class="stat">运行时环境 Profile: ' +
-      esc(p.runtime_profile || 'standard') +
-      '</div>' +
-      '<div class="stat">适用范围 Scope: ' +
-      esc(JSON.stringify(p.scope || ['internal'])) +
-      '</div>' +
-      '<div class="stat muted">' +
-      esc(p.disclaimer || '仅供内部治理参考，不构成法律或采购建议。') +
-      '</div>';
+        return;
+      }
+      var rows = list.map(function(item) {
+        var badgeCls = item.status === 'active' ? 'status-ok' : 'status-bad';
+        var ownerInfo = esc(item.service_owner || 'ai-platform-ops@lenovo.com');
+        var slaTier = esc(item.admission_sla_tier || 'tier-1-critical');
+        return '<div class="stat" style="border-bottom:1px solid #1e3554;padding:8px 0">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center">' +
+          '<strong>' + esc(item.model_id) + '</strong>' +
+          '<span class="' + badgeCls + '" style="font-size:11px">' + esc(item.status) + '</span>' +
+          '</div>' +
+          '<div style="margin-top:3px;font-size:11px;color:#64748b">' +
+          'Profile: <b>' + esc(item.runtime_profile || 'standard') + '</b> · SLA: ' + slaTier +
+          '<br>责任人: ' + ownerInfo +
+          '<br>Digest: <code>' + esc((item.locked_digest || '').slice(0, 16)) + '…</code>' +
+          '</div>' +
+          (item.conditions && item.conditions.length ? '<div style="margin-top:2px;font-size:11px;color:#fbbf24">约束: ' + esc(item.conditions.join('; ')) + '</div>' : '') +
+          '<div style="margin-top:6px;display:flex;gap:6px">' +
+          '<button type="button" class="btn" style="padding:2px 6px;font-size:10px" onclick="window.triggerKillSwitch && window.triggerKillSwitch(\'' + esc(item.entry_id) + '\')">🚨 阻断</button>' +
+          '<button type="button" class="btn" style="padding:2px 6px;font-size:10px" onclick="window.triggerRollback && window.triggerRollback(\'' + esc(item.entry_id) + '\')">⏪ 回滚</button>' +
+          '</div>' +
+          '</div>';
+      }).join('');
+      el.innerHTML = '<div style="font-size:12px">' + rows + '</div>';
+    }).catch(function() {
+      el.innerHTML = '<div class="empty">空状态：尚无准入条目</div>';
+    });
   }
 
   async function restore() {
     try {
-      var id = localStorage.getItem('sa_invest_run');
+      var id = localStorage.getItem('sa_clearance_app_id') || localStorage.getItem('sa_invest_run');
       if (!id) return;
-      var app = null;
-      var evData = null;
-      try {
-        app = await api().request('/api/v1/model-clearance/applications/' + encodeURIComponent(id));
-        evData = await api().request('/api/v1/model-clearance/applications/' + encodeURIComponent(id) + '/events');
-      } catch (e) {
-        app = await api().request('/api/v1/investment-simulations/' + encodeURIComponent(id));
-        evData = await api().request('/api/v1/investment-simulations/' + encodeURIComponent(id) + '/events?after_seq=0');
-      }
+      var app = await api().request('/api/v1/model-clearance/applications/' + encodeURIComponent(id));
+      var evData = await api().request('/api/v1/model-clearance/applications/' + encodeURIComponent(id) + '/events');
       applySim(app);
       engineState.lastSeq = 0;
       engineState.events = [];
       if (evData && evData.events) ingestEvents(evData.events);
-      renderPortfolio(null);
+      if (window.EngineJudgment && app && ((app.verdicts && app.verdicts.length) || app.status !== 'draft')) {
+        judgmentState.dimensions = window.EngineJudgment.dimensionsFromVerdicts(app, judgmentState.as_of);
+        judgmentState.overall = window.EngineJudgment.overallFromDimensions(
+          judgmentState.dimensions,
+          judgmentState.as_of
+        );
+        renderJudgmentPanel();
+      }
+      renderPortfolio();
       renderFromState();
-      if (app && (app.status === 'running' || app.status === 'gating' || app.status === 'queued')) {
+      if (app && (app.status === 'running' || app.status === 'gating' || app.status === 'submitted')) {
         beginLiveJourney();
       }
     } catch (e) {
@@ -888,8 +810,8 @@
   }
 
   // ── Wire UI ───────────────────────────────────────────────
-  if ($('trade_date') && !$('trade_date').value) {
-    $('trade_date').value = today();
+  if ($('as_of') && !$('as_of').value) {
+    $('as_of').value = today();
   }
 
   document.querySelectorAll('.part-card').forEach(bindDrag);
@@ -968,13 +890,14 @@
       });
     });
   }
-  document.querySelectorAll('[data-ticker]').forEach(function (button) {
+  document.querySelectorAll('[data-model]').forEach(function (button) {
     button.addEventListener('click', function () {
-      $('ticker').value = button.dataset.ticker;
+      var val = button.dataset.model;
+      if ($('model_id')) $('model_id').value = val;
       syncPrimaryButton();
     });
   });
-  ['ticker', 'trade_date', 'cash', 'mode', 'sector'].forEach(function (id) {
+  ['model_id', 'revision', 'weights_uri', 'as_of', 'target_qpm', 'review_rounds', 'redteam_rounds', 'mode', 'use_case'].forEach(function (id) {
     if ($(id)) {
       $(id).addEventListener('input', syncPrimaryButton);
       $(id).addEventListener('change', syncPrimaryButton);
@@ -998,6 +921,33 @@
   window.addEventListener('resize', function () {
     refreshOverflowHints();
   });
+
+  window.triggerKillSwitch = function(entryId) {
+    if (!confirm('确定对准入条目 [' + entryId + '] 触发紧急 Kill-Switch 阻断吗？')) return;
+    api().request('/api/v1/model-clearance/registry/' + encodeURIComponent(entryId) + '/kill-switch', {
+      method: 'POST',
+      body: JSON.stringify({ operator: 'lenovo-secops-admin', reason: 'UI Manual Kill-Switch Triggered' }),
+    }).then(function() {
+      alert('已执行 Kill-Switch 紧急阻断！');
+      renderPortfolio();
+    }).catch(function(err) {
+      alert('Kill-Switch 失败: ' + (err.message || err));
+    });
+  };
+
+  window.triggerRollback = function(entryId) {
+    var targetDigest = prompt('请输入要回滚的目标锁定权重 SHA-256 Digest:');
+    if (!targetDigest || !targetDigest.trim()) return;
+    api().request('/api/v1/model-clearance/registry/' + encodeURIComponent(entryId) + '/rollback', {
+      method: 'POST',
+      body: JSON.stringify({ target_digest: targetDigest.trim(), operator: 'lenovo-infra-ops', reason: 'UI Manual Rollback' }),
+    }).then(function() {
+      alert('已完成基线回滚！');
+      renderPortfolio();
+    }).catch(function(err) {
+      alert('回滚失败: ' + (err.message || err));
+    });
+  };
 
   loadDraft();
   loadSourceLibrary();

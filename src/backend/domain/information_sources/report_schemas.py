@@ -100,9 +100,48 @@ class WorldIntelReport(BaseModel):
         return v
 
 
+class OpenWeightsReport(BaseModel):
+    """Fixed structure for the open-weights ecosystem report.
+
+    Field names mirror WorldIntelReport so the shared brief builder and deck
+    renderer work unchanged; only the tail section carries admission semantics.
+    """
+
+    channel: Literal["open_weights"] = "open_weights"
+    what_happened: LabeledClaim
+    timeline: List[LabeledClaim] = Field(..., min_length=1)
+    drivers: List[LabeledClaim] = Field(..., min_length=1)
+    data_trends: List[LabeledClaim] = Field(..., min_length=1)
+    views_and_counterpoints: List[LabeledClaim] = Field(..., min_length=1)
+    scenarios: List[ScenarioNode] = Field(..., min_length=3, max_length=3)
+    license_watch: List[LabeledClaim] = Field(..., min_length=1)
+    admission_impact: List[LabeledClaim] = Field(..., min_length=1)
+    citations: List[Citation] = Field(..., min_length=1)
+    analysis: Dict[str, Any] = Field(default_factory=dict)
+    data_cutoff: str = Field(..., min_length=1)
+    run_id: str = Field(..., min_length=1)
+    disclaimer: str = Field(
+        default="本内容仅供内部治理参考，不构成法律或采购建议。许可证结论须以原文为准。"
+    )
+
+    @field_validator("scenarios")
+    @classmethod
+    def _scenario_names(cls, v: List[ScenarioNode]) -> List[ScenarioNode]:
+        names = {s.name for s in v}
+        required = {"optimistic", "base", "pessimistic"}
+        if names != required:
+            raise ValueError(f"scenarios must include exactly {required}")
+        for s in v:
+            if not s.trigger_conditions:
+                raise ValueError("each scenario requires trigger_conditions")
+        return v
+
+
 def validate_report(channel: str, payload: dict):
     if channel == "ai_news_60s":
         return AiNews60sReport.model_validate(payload)
     if channel == "dufu_world_intel":
         return WorldIntelReport.model_validate(payload)
+    if channel == "open_weights":
+        return OpenWeightsReport.model_validate(payload)
     raise ValueError(f"Unknown report channel: {channel}")

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Model Entry Clearance — AI 模型准入</title>
+  <title>Lenovo AI Model Clearance — 可管可证准入控制台</title>
   <link rel="stylesheet" href="/css/variables.css">
   <link rel="stylesheet" href="/css/taste-light.css">
   <style>
@@ -197,7 +197,9 @@
     .judgment-matrix th, .judgment-matrix td { text-align:left; padding:8px 7px; border-bottom:1px solid #1d3652; color:#dbe7f5; vertical-align:top; }
     .judgment-matrix th { color:#8de4d2; font-weight:700; }
     .judgment-dir { font-weight:800; }
-    .judgment-dir.up { color:#34d399; } .judgment-dir.down { color:#f87171; } .judgment-dir.flat { color:#fbbf24; } .judgment-dir.unknown { color:#94a3b8; }
+    .judgment-dir.pass { color:#34d399; } .judgment-dir.fail { color:#f87171; } .judgment-dir.needs_info { color:#fbbf24; } .judgment-dir.unknown { color:#94a3b8; }
+    .judgment-gate { display:inline-block; min-width:22px; padding:1px 5px; margin-right:5px; border-radius:5px; background:#1a2f48; color:#8de4d2; font:800 9px/1.5 ui-monospace,monospace; }
+    .judgment-blocker { margin-left:5px; padding:1px 5px; border-radius:99px; background:#3b1d1d; color:#fca5a5; font-size:8px; font-weight:800; }
     .judgment-state { font-size:9px; padding:2px 6px; border-radius:99px; background:#1e293b; color:#cbd5e1; }
     .judgment-state.missing { color:#fbbf24; } .judgment-state.conflict { color:#f87171; }
     .research-note { color:#fbbf24; font-size:10px; margin:0 0 8px; }
@@ -213,7 +215,7 @@
     .event .meta { color:#64748b; font-size:11px; }
     pre { background:#0f172a; color:#e2e8f0; padding:10px; border-radius:8px; font-size:11px; overflow:auto; max-height:200px; }
     .stat { font-size:13px; margin:4px 0; }
-    .ticker-presets { display:flex; gap:5px; flex-wrap:wrap; margin:6px 0 4px; } .ticker-presets button { border:1px solid #cbd5e1; background:#fff; color:#0f766e; border-radius:999px; padding:4px 7px; cursor:pointer; font:10px ui-monospace,monospace; } .ticker-presets button:hover { border-color:#0f766e; background:#ecfdf5; }
+    .model-presets { display:flex; gap:5px; flex-wrap:wrap; margin:6px 0 4px; } .model-presets button { border:1px solid #cbd5e1; background:#fff; color:#0f766e; border-radius:999px; padding:4px 7px; cursor:pointer; font:10px ui-monospace,monospace; } .model-presets button:hover { border-color:#0f766e; background:#ecfdf5; }
     .empty { color:#94a3b8; font-size:12px; padding:12px; text-align:center; }
     .status { font-weight:600; }
     .warning-hint { color:#b45309 !important; }
@@ -249,7 +251,7 @@
             <p class="sub" style="margin:0">ModelClearance 驱动的开放权重模型准入控制与会签裁决 · Evidence-Gated Admission</p>
           </div>
           <div style="text-align:right;min-width:220px">
-            <button class="btn" id="btn-engine-start" type="button" style="font-size:14px;padding:12px 18px;margin:0">创建并启动 Engine</button>
+            <button class="btn" id="btn-engine-start" type="button" style="font-size:14px;padding:12px 18px;margin:0">创建并启动准入评审</button>
             <p class="stat muted" id="engine-start-hint" style="margin:6px 0 0;max-width:280px;margin-left:auto">首屏主操作：校验配置后一键创建并启动</p>
           </div>
         </div>
@@ -260,20 +262,24 @@
         <div class="grid">
           <aside class="card anchor-target" id="clearance-application" tabindex="-1">
             <h2>准入申请配置</h2>
-            <label>应用领域 / 赛道</label>
-            <select id="sector"><option value="ai_compute" selected>基础大模型 / 通用推理</option><option value="code_generation">代码生成 / 研发助手</option><option value="domain_finance">领域专用 / 金融合规</option><option value="multimodal">多模态 / 视觉语言</option><option value="edge_mobile">端侧轻量 / 移动部署</option><option value="embodied_ai">具身智能 / 机器人</option><option value="">自定义 / 未指定</option></select>
+            <label>应用场景 / 领域</label>
+            <select id="use_case"><option value="ai_compute" selected>基础大模型 / 通用推理</option><option value="code_generation">代码生成 / 研发助手</option><option value="domain_finance">领域专用 / 金融合规</option><option value="multimodal">多模态 / 视觉语言</option><option value="edge_mobile">端侧轻量 / 移动部署</option><option value="embodied_ai">具身智能 / 机器人</option><option value="">自定义 / 未指定</option></select>
             <label>模型 ID / 标识 (model_id)</label>
-            <input id="ticker" value="meta-llama/Llama-3.1-8B-Instruct" maxlength="64" list="ticker-presets" />
-            <datalist id="ticker-presets"><option value="meta-llama/Llama-3.1-8B-Instruct">Llama 3.1 8B</option><option value="Qwen/Qwen2.5-7B-Instruct">Qwen 2.5 7B</option><option value="deepseek-ai/DeepSeek-V3">DeepSeek V3</option><option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B</option><option value="google/gemma-2-9b-it">Gemma 2 9B</option><option value="microsoft/Phi-3.5-mini-instruct">Phi 3.5 mini</option></datalist>
-            <div class="ticker-presets" aria-label="常用模型"><button type="button" data-ticker="meta-llama/Llama-3.1-8B-Instruct">Llama3.1</button><button type="button" data-ticker="Qwen/Qwen2.5-7B-Instruct">Qwen2.5</button><button type="button" data-ticker="deepseek-ai/DeepSeek-V3">DeepSeek</button><button type="button" data-ticker="mistralai/Mistral-7B-Instruct-v0.3">Mistral</button></div>
+            <input id="model_id" value="meta-llama/Llama-3.1-8B-Instruct" maxlength="128" list="model-presets" />
+            <datalist id="model-presets"><option value="meta-llama/Llama-3.1-8B-Instruct">Llama 3.1 8B</option><option value="Qwen/Qwen2.5-7B-Instruct">Qwen 2.5 7B</option><option value="deepseek-ai/DeepSeek-V3">DeepSeek V3</option><option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B</option><option value="google/gemma-2-9b-it">Gemma 2 9B</option><option value="microsoft/Phi-3.5-mini-instruct">Phi 3.5 mini</option></datalist>
+            <div class="model-presets" aria-label="常用模型"><button type="button" data-model="meta-llama/Llama-3.1-8B-Instruct">Llama3.1</button><button type="button" data-model="Qwen/Qwen2.5-7B-Instruct">Qwen2.5</button><button type="button" data-model="deepseek-ai/DeepSeek-V3">DeepSeek</button><button type="button" data-model="mistralai/Mistral-7B-Instruct-v0.3">Mistral</button></div>
+            <label>不可变版本 / Revision (tag/commit)</label>
+            <input id="revision" value="v1.0" maxlength="64" placeholder="禁止 main/latest" />
+            <label>权重仓库 URI / Path (weights_uri)</label>
+            <input id="weights_uri" value="https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct" maxlength="256" placeholder="https://..." />
             <label>准入基准日期 (as_of / cutoff)</label>
-            <input id="trade_date" type="date" />
+            <input id="as_of" type="date" />
             <label>预估并发量 (req/min)</label>
-            <input id="cash" type="number" value="100000" min="1000" />
-            <label>合规辩论轮数</label>
-            <input id="debate" type="number" value="1" min="0" max="5" />
-            <label>风险审核轮数</label>
-            <input id="risk" type="number" value="1" min="0" max="5" />
+            <input id="target_qpm" type="number" value="1000" min="1" />
+            <label>合规评审轮数</label>
+            <input id="review_rounds" type="number" value="1" min="0" max="5" />
+            <label>红队审核轮数</label>
+            <input id="redteam_rounds" type="number" value="1" min="0" max="5" />
             <label>评审模式</label>
             <select id="mode">
               <option value="fixture" selected>离线 fixture（推荐）</option>
@@ -299,7 +305,7 @@
                 <div class="part-card" draggable="true" data-id="team:dufu_world_intel" data-name="独夫之心世界趋势团队" data-kind="team"><span class="part-type">AGENT TEAM</span><strong>独夫之心世界趋势</strong><small>世界趋势、数据分析、情景树</small></div>
               </div>
               <div class="engine-road" id="clearance-evidence" tabindex="-1">
-                <div class="road-label"><span>登记 G0 → 来源 G1 → 供应链 G2 → 许可证 G3 → 资源 G4 → 安全行为 G5 → 会签 G6</span><span class="scroll-hint" id="road-scroll-hint">左右滑动查看已装配模块</span></div>
+                <div class="road-label"><span>登记 G0 → 完整性 G1 → 供应链 G2 → 许可证 G3 → 资源 G4 → 安全行为 G5 → 会签 G6</span><span class="scroll-hint" id="road-scroll-hint">左右滑动查看已装配模块</span></div>
                 <div class="assembly-viewport"><div class="road-shell drop-zone" id="source-drop" aria-label="准入控制台横向主干道">
                   <div class="road-core" data-road-core="ingress"><b>证据入口</b><small>Sources / Scanners<br>as_of cutoff</small></div>
                   <span class="road-arrow" aria-hidden="true">→</span>
@@ -323,7 +329,7 @@
               <div id="engine-dashboard" style="display:contents"></div>
               <div class="dashboard-head"><div><h2>Clearance Live Journey</h2><p>准入流程启动后由事件流驱动门禁、规划、资源需求与准入裁决</p></div><div class="hud" id="engine-hud"><span class="pulse"></span><span id="engine-phase">待启动</span><span id="engine-progress">0%</span><span id="engine-conn" style="opacity:.75">未连接</span></div></div>
               <div class="dashboard-progress"><span id="engine-progress-bar"></span></div>
-              <div class="route-strip" id="engine-route"><span class="route-stop active" data-route="context">登记 G0</span><span class="route-line">→</span><span class="route-stop" data-route="judgment">来源 G1</span><span class="route-line">→</span><span class="route-stop" data-route="plan">供应链 G2</span><span class="route-line">→</span><span class="route-stop" data-route="risk">许可证 G3</span><span class="route-line">→</span><span class="route-stop" data-route="portfolio">会签 G6</span></div>
+              <div class="route-strip" id="engine-route"><span class="route-stop active" data-route="context">登记 G0</span><span class="route-line">→</span><span class="route-stop" data-route="judgment">完整性 G1</span><span class="route-line">→</span><span class="route-stop" data-route="plan">供应链 G2</span><span class="route-line">→</span><span class="route-stop" data-route="risk">许可证 G3</span><span class="route-line">→</span><span class="route-stop" data-route="portfolio">会签 G6</span></div>
               <div class="insight-grid">
                 <article class="insight-card" id="judgment-card"><h3>门禁结论 · 分析</h3><p>等待模型准入审查启动。</p><small>事实/分析/推断标签由事件 structured 提供 · 仅供治理参考</small></article>
                 <article class="insight-card" id="plan-card"><h3>合规路径 · 规划</h3><p>等待合规图谱规划准入路径。</p><small>standard / restricted / isolated 条件路径</small></article>
@@ -333,23 +339,23 @@
                 <article class="insight-card" id="context-card"><h3>证据上下文</h3><p>等待信息源团队和历史文档装载。</p><small>严格遵守 as_of 截止时间</small></article>
               </div>
               <section class="judgment-panel" id="judgment-dimensions-panel" aria-label="多维准入判断">
-                <p class="research-note">模型准入评级矩阵 · 仅供内部治理参考 · 仅使用 as_of 之前证据</p>
+                <p class="research-note">模型准入门禁矩阵 · 仅供内部治理参考 · 仅使用 as_of 之前证据 · Blocker 维度失败即整体阻断</p>
                 <div class="judgment-summary">
                   <div class="judgment-scorecard" id="overall-judgment-card">
-                    <h3>评级摘要 · overall_judgment</h3>
+                    <h3>准入裁决摘要 · clearance_verdict</h3>
                     <div class="score" id="overall-score">—</div>
-                    <div class="meta" id="overall-meta">等待分析事件…</div>
+                    <div class="meta" id="overall-meta">等待门禁评估事件…</div>
                   </div>
                   <div class="judgment-signals">
-                    <div><h3 style="margin:0 0 6px;color:#8de4d2;font-size:11px">合规项</h3><ul id="judgment-bull-signals"><li class="muted">—</li></ul></div>
-                    <div><h3 style="margin:0 0 6px;color:#8de4d2;font-size:11px">风险项</h3><ul id="judgment-bear-signals"><li class="muted">—</li></ul></div>
+                    <div><h3 style="margin:0 0 6px;color:#8de4d2;font-size:11px">已达标门禁</h3><ul id="judgment-pass-signals"><li class="muted">—</li></ul></div>
+                    <div><h3 style="margin:0 0 6px;color:#8de4d2;font-size:11px">待补证 / 阻断项</h3><ul id="judgment-risk-signals"><li class="muted">—</li></ul></div>
                   </div>
                 </div>
-                <div class="judgment-tabs" role="tablist" aria-label="判断维度分组" id="judgment-tabs"></div>
+                <div class="judgment-tabs" role="tablist" aria-label="门禁维度分组" id="judgment-tabs"></div>
                 <div class="judgment-table-wrap">
                   <table class="judgment-matrix" id="judgment-matrix">
-                    <thead><tr><th>维度</th><th>分数</th><th>方向</th><th>置信</th><th>证据</th><th>as_of</th><th>状态</th><th>理由</th></tr></thead>
-                    <tbody id="judgment-matrix-body"><tr><td colspan="8" style="color:#91a9c3">启动 Engine 后填充多维矩阵</td></tr></tbody>
+                    <thead><tr><th>门禁维度</th><th>达标分</th><th>判定</th><th>置信</th><th>证据</th><th>as_of</th><th>状态</th><th>判定依据</th></tr></thead>
+                    <tbody id="judgment-matrix-body"><tr><td colspan="8" style="color:#91a9c3">启动准入评审后填充门禁矩阵</td></tr></tbody>
                   </table>
                 </div>
               </section>

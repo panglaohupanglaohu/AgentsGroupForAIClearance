@@ -3,6 +3,12 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 
+- 2026-08-20T03:15:00Z | 修复 ai-model-entry-clearance.js 尾部重复代码导致的 Vite 语法解析错误 | src/frontend/js/ai-model-entry-clearance.js, .wolf/buglog.json | 清理 IIFE 闭包后的多余重复代码；node --check 与 28 项前端单元测试通过 | ~1k |
+- 2026-08-20T03:05:00Z | 完成 P10（TA01–TA09）控制台与准入引擎真实对接与全面验证 | src/frontend/*, src/backend/domain/api_routes.py, TODOS.md, .wolf/* | 表单字段与校验正则全面正名（model_id / revision / as_of / target_qpm 等）；彻底断开并删除遗留 investment_simulation 目录与路由；启动/轮询/会签全面直连 /api/v1/model-clearance/applications 与 submit；门禁矩阵吃真实 GateVerdict 与 evidence；新增 clearance-cockpit-wiring.test.js，全套 12 后端测试、Phase 1 出口验证与 28 项前端单元测试 100% 通过 | ~4k |
+- 2026-08-20T02:10:00Z | 核实控制台仍连旧模拟引擎并写入 P10 计划 | PLAN.md, TODOS.md, .wolf/anatomy.md | 核实三处硬证据：(1) engine-state.js 的 `^[A-Za-z0-9.]{1,12}$` 拒绝页面自己的默认值 meta-llama/Llama-3.1-8B-Instruct，故必弹「请填写合法 Ticker」；(2) 控制台 create/start/poll/restore 仍打 /api/v1/investment-simulations；(3) 其 orchestrator import 的 integrations.tradingagents.graph_adapter 在仓库中不存在，链路事实上是死的。PLAN 增 §11 断点表与目标形态，TODOS 增 P10 TA01–TA09 | ~3k |
+- 2026-08-20T00:15:00Z | 落地 P9 全部 10 项 Lenovo 直管与运营控制能力 | config/clearance_policy.yaml, src/backend/domain/model_clearance/*, src/frontend/*, scripts/*, tests/*, TODOS.md | 策略降来源依赖(origin_signal_only)；清单责任矩阵字段(owner/SLA/refs/audit)；API 增加 Kill-Switch 与 Rollback 双闸；新增每周抽样审计脚本；新增 P9 单测与 Phase 1 控管优先出口脚本；全套 12 测试与前端单测 100% 绿 | ~4k |
+- 2026-08-20T00:00:00Z | PLAN/TODOS 战略改写：来源降权，Lenovo 直管优先 | PLAN.md, TODOS.md, .wolf/cerebrum.md, .wolf/anatomy.md | 将准入逻辑从“模型来自哪里”转为“Lenovo 可直接管理和验证”：新增控管优先原则、P9 运营补强任务（owner/kill-switch/rollback/SLA）、更新 Phase 1 出口条件并去除 TODOS 重复验收段 | ~2k |
+
 - 2026-08-15T07:55:00Z | 议事广场国际化并修复页面无限加载 | src/frontend/plaza.html, src/frontend/js/plaza.js | 接入共享 i18n 与顶部语言切换；补广场静态/动态中英词条；修复 MutationObserver 调 applyAll 后因语言按钮 textContent 重写而自触发的主线程无限循环。node --check、编辑器诊断、Vite 资源 200、浏览器 401 自动跳登录页均通过 | ~3k |
 
 | 08:45 | 审计任务页面 Build System/AWS Ops 流程并产出专用 plan/todos | docs/任务页面Build与AWS运维流程优化plan.md, docs/任务页面Build与AWS运维流程优化todos.md | 确认 AWS 中文 role 未映射到 workflow、execution_mode 未进请求模型、启动失败不回滚、独立 tasks.html 未兼容分页；后端基线因 .venv 缺 pytest 未执行 | ~4k |

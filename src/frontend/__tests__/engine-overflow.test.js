@@ -31,8 +31,8 @@ describe('Engine assembly overflow (P11)', () => {
       'source-selected',
       'source-library',
       'module-library',
-      'sector',
-      'ticker',
+      'use_case',
+      'model_id',
     ].forEach((id) => expect(html).toContain(`id="${id}"`));
     expect(html).toContain('draggable="true"');
   });

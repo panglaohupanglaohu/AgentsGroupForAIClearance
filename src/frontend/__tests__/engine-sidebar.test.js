@@ -4,12 +4,14 @@ import { describe, expect, it } from 'vitest';
 import vm from 'node:vm';
 
 const PRESERVED = [
-  'sector',
-  'ticker',
-  'trade_date',
-  'cash',
-  'debate',
-  'risk',
+  'use_case',
+  'model_id',
+  'revision',
+  'weights_uri',
+  'as_of',
+  'target_qpm',
+  'review_rounds',
+  'redteam_rounds',
   'mode',
   'btn-create',
   'btn-start',
@@ -81,7 +83,7 @@ describe('Engine research sidebar (P10)', () => {
     expect(html).toContain('engine-sidebar.js');
     expect(html).toContain('id="engine-sidebar"');
     expect(html).toContain('id="btn-engine-start"');
-    expect(html).toContain('创建并启动 Engine');
+    expect(html).toContain('创建并启动准入评审');
   });
 
   it('sidebar module exposes items, storage key, and badge fallback', () => {

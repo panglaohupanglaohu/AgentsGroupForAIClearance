@@ -11,7 +11,7 @@ from typing import Any, List, Optional
 
 from ..models import FetchBatch, FetchItem, HealthResult, SourceConfig, SourceManifest
 from ..ssrf import SSRFBlockedError
-from .base import BaseConnector
+from .base import BaseConnector, describe_exception
 
 _TAG_RE = re.compile(r"<[^>]+>")
 
@@ -74,7 +74,7 @@ class WebConnector(BaseConnector):
                 latency_ms=round((time.perf_counter() - t0) * 1000, 1),
             )
         except Exception as exc:
-            return HealthResult(ok=False, message=str(exc))
+            return HealthResult(ok=False, message=describe_exception(exc))
 
     async def fetch(
         self,
@@ -138,7 +138,7 @@ class JsonApiConnector(BaseConnector):
                 latency_ms=round((time.perf_counter() - t0) * 1000, 1),
             )
         except Exception as exc:
-            return HealthResult(ok=False, message=str(exc))
+            return HealthResult(ok=False, message=describe_exception(exc))
 
     async def fetch(
         self,

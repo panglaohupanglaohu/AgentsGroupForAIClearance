@@ -19,6 +19,7 @@ config/.dev_admin_password
 config/users.json
 config/tokens.json
 config/settings.json
+src/frontend/.vitest-report.json
 
 # Runtime-generated state. Keep curated fixtures explicitly if needed.
 storage/*

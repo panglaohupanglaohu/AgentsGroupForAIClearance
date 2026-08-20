@@ -27,6 +27,14 @@ class ApprovedRegistryEntry:
     approved_at: str
     reassessment_due: str
     status: str = "active"  # active | reassessing | revoked
+    service_owner: str = "ai-platform-ops@lenovo.com"
+    security_owner: str = "ai-sec-governance@lenovo.com"
+    oncall_rotation: str = "lenovo-ai-infra-l2"
+    kill_switch_ref: str = "ops://clearance/kill-switch"
+    rollback_runbook_ref: str = "runbook://clearance/rollback-baseline"
+    admission_sla_tier: str = "tier-1-critical"
+    digest_history: List[Dict[str, Any]] = field(default_factory=list)
+    operations_audit_log: List[Dict[str, Any]] = field(default_factory=list)
     attestations: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -52,7 +60,20 @@ class ModelRegistryStore:
     def _entry_path(self, entry_id: str) -> Path:
         return self.base_dir / f"{entry_id}.json"
 
-    def register(self, app: ModelApplication, runtime_profile: str, scope: List[str], conditions: List[str], expires_at: str) -> ApprovedRegistryEntry:
+    def register(
+        self,
+        app: ModelApplication,
+        runtime_profile: str,
+        scope: List[str],
+        conditions: List[str],
+        expires_at: str,
+        service_owner: str = "ai-platform-ops@lenovo.com",
+        security_owner: str = "ai-sec-governance@lenovo.com",
+        oncall_rotation: str = "lenovo-ai-infra-l2",
+        kill_switch_ref: str = "ops://clearance/kill-switch",
+        rollback_runbook_ref: str = "runbook://clearance/rollback-baseline",
+        admission_sla_tier: str = "tier-1-critical",
+    ) -> ApprovedRegistryEntry:
         # 1. Issue signed attestations for all gate verdicts
         attestations = [issue_gate_attestation(app, v) for v in app.verdicts]
 
@@ -65,11 +86,13 @@ class ModelRegistryStore:
             if e.payload.get("root_digest"):
                 locked_digest = e.payload["root_digest"]
 
+        actual_locked = locked_digest or "sha256-verified-weights"
+
         entry = ApprovedRegistryEntry(
             entry_id=f"reg-{app.application_id}",
             model_id=app.identity.model_id,
             revision=app.identity.revision,
-            locked_digest=locked_digest or "sha256-verified-weights",
+            locked_digest=actual_locked,
             decision_ref=f"attestation://{app.application_id}",
             scope=scope,
             conditions=conditions,
@@ -77,6 +100,18 @@ class ModelRegistryStore:
             approved_at=utc_now_iso(),
             reassessment_due=expires_at,
             status="active",
+            service_owner=service_owner,
+            security_owner=security_owner,
+            oncall_rotation=oncall_rotation,
+            kill_switch_ref=kill_switch_ref,
+            rollback_runbook_ref=rollback_runbook_ref,
+            admission_sla_tier=admission_sla_tier,
+            digest_history=[{"digest": actual_locked, "set_at": utc_now_iso(), "initial": True}],
+            operations_audit_log=[{
+                "action": "registered",
+                "operator": "clearance-adjudicator",
+                "timestamp": utc_now_iso(),
+            }],
             attestations=attestations,
         )
 
@@ -120,6 +155,60 @@ class ModelRegistryStore:
         if not entry:
             return None
         entry.status = "revoked"
+        entry.operations_audit_log.append({
+            "action": "revoke",
+            "operator": "administrator",
+            "reason": reason or "Administrative revocation",
+            "timestamp": utc_now_iso(),
+        })
+        path = self._entry_path(entry_id)
+        _atomic_write(path, json.dumps(entry.to_dict(), ensure_ascii=False, indent=2))
+        return entry
+
+    def emergency_revoke(self, entry_id: str, operator: str = "lenovo-secops", reason: str = "") -> Optional[ApprovedRegistryEntry]:
+        """T903: Fast emergency kill-switch revocation with signed audit trail."""
+        entry = self.get(entry_id)
+        if not entry:
+            return None
+        entry.status = "revoked"
+        entry.operations_audit_log.append({
+            "action": "emergency_revoke",
+            "operator": operator,
+            "reason": reason or "Emergency kill-switch triggered",
+            "timestamp": utc_now_iso(),
+        })
+        path = self._entry_path(entry_id)
+        _atomic_write(path, json.dumps(entry.to_dict(), ensure_ascii=False, indent=2))
+        return entry
+
+    def rollback_to_last_known_good(
+        self,
+        entry_id: str,
+        target_digest: str,
+        operator: str = "lenovo-infra-ops",
+        reason: str = "",
+    ) -> Optional[ApprovedRegistryEntry]:
+        """T903: Rollback model locked digest to a last-known-good verified baseline."""
+        entry = self.get(entry_id)
+        if not entry:
+            return None
+        prev_digest = entry.locked_digest
+        entry.digest_history.append({
+            "from_digest": prev_digest,
+            "to_digest": target_digest,
+            "rolled_back_at": utc_now_iso(),
+            "operator": operator,
+            "reason": reason or "Rollback to verified baseline digest",
+        })
+        entry.locked_digest = target_digest
+        entry.status = "active"
+        entry.operations_audit_log.append({
+            "action": "rollback",
+            "operator": operator,
+            "prev_digest": prev_digest,
+            "target_digest": target_digest,
+            "timestamp": utc_now_iso(),
+        })
         path = self._entry_path(entry_id)
         _atomic_write(path, json.dumps(entry.to_dict(), ensure_ascii=False, indent=2))
         return entry

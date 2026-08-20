@@ -33,7 +33,7 @@ def _atomic_write(path: Path, data: str) -> None:
 @dataclass
 class InformationDocument:
     document_id: str
-    channel: str  # ai_news_60s | dufu_world_intel
+    channel: str  # ai_news_60s | dufu_world_intel | open_weights
     version: int
     title: str
     run_id: str
@@ -190,7 +190,7 @@ class DocumentStore:
     ) -> List[InformationDocument]:
         """Return published docs with as_of <= before (no future leakage)."""
         out: List[InformationDocument] = []
-        for ch in channels or ["ai_news_60s", "dufu_world_intel"]:
+        for ch in channels or ["ai_news_60s", "dufu_world_intel", "open_weights"]:
             for doc in self.list_documents(ch, before=before, limit=limit):
                 if doc.status == "published" and doc.as_of <= before:
                     out.append(doc)

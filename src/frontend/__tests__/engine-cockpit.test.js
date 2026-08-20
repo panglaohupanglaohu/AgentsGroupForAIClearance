@@ -20,7 +20,7 @@ describe('Engine Live Cockpit (T801/T802/T832/T861)', () => {
       'utf8',
     );
     expect(html).toContain('id="btn-engine-start"');
-    expect(html).toContain('创建并启动 Engine');
+    expect(html).toContain('创建并启动准入评审');
     expect(html).toContain('engine-state.js');
     expect(html).toContain('engine-reducer.js');
     expect(html).toContain('仅供内部治理参考');
@@ -47,14 +47,16 @@ describe('Engine Live Cockpit (T801/T802/T832/T861)', () => {
 
   it('deriveStartState covers five run statuses', () => {
     const s = loadScript('src/frontend/js/engine-state.js');
-    const form = { ticker: 'NVDA', trade_date: '2026-07-01', initial_cash: 10000 };
+    const form = { model_id: 'meta-llama/Llama-3.1-8B-Instruct', revision: 'v1.0', as_of: '2026-07-01', target_qpm: 10000 };
     const ES = s.window.EngineState || s.EngineState;
     expect(ES.deriveStartState(form, null).action).toBe('create_start');
-    expect(ES.deriveStartState(form, { run_id: 'r1', status: 'queued' }).label).toContain('继续');
+    expect(ES.deriveStartState(form, { run_id: 'r1', status: 'queued' }).label).toContain('准入');
     expect(ES.deriveStartState(form, { run_id: 'r1', status: 'running' }).disabled).toBe(true);
     expect(ES.deriveStartState(form, { run_id: 'r1', status: 'completed' }).action).toBe('rerun');
     expect(ES.deriveStartState(form, { run_id: 'r1', status: 'failed' }).action).toBe('retry');
-    expect(ES.validateEngineForm({ ticker: '', trade_date: '', initial_cash: 1 }).length).toBeGreaterThan(0);
+    expect(ES.validateEngineForm({ model_id: '', as_of: '', target_qpm: 1 }).length).toBeGreaterThan(0);
+    expect(ES.validateEngineForm({ model_id: 'meta-llama/Llama-3.1-8B-Instruct', revision: 'main', as_of: '2026-08-20' })).toContain('必须锁定不可变 revision，禁止 main/latest');
+    expect(ES.validateEngineForm(form).length).toBe(0);
   });
 
   it('reducer dedups seq and maps structured phases', () => {

@@ -1,7 +1,7 @@
 /** ModelClearance data intelligence workbench: sources, trace, reports and schedules. */
 (function () {
   'use strict';
-  var state = { sources: [], schedules: [], latest: {}, directory: { url: '', candidates: [] } };
+  var state = { sources: [], schedules: [], latest: {}, directory: { url: '', candidates: [] }, openweights: [] };
   var teamState = { ai_news_60s: { agents: [], running: false, liveTimer: null }, dufu_world_intel: { agents: [], running: false, liveTimer: null } };
   var teamMeta = {
     ai_news_60s: {
@@ -46,6 +46,7 @@
       loadLatestDocs();
       loadBriefs(name === 'world' ? 'dufu_world_intel' : 'ai_news_60s');
     }
+    if (name === 'openweights') loadOpenWeights();
     if (name === 'docs') loadHistory();
   }
   document.querySelectorAll('.tab').forEach(function (tab) { tab.addEventListener('click', function () { switchTab(tab.dataset.tab); }); });
@@ -314,18 +315,111 @@
   function resetSourceForm() { $('source-form').reset(); $('source-options').value = '{}'; $('source-fixture-items').value = '[{"title":"Fixture research signal","url":"https://example.com/fixture","content":"offline fixture content","published_at":"2026-08-01T00:00:00Z"}]'; syncSourceKind(); }
 
   function directoryMessage(text, role) { var root = $('directory-chat-messages'); if (!root) return; var node = document.createElement('div'); node.className = 'chat-message ' + (role || 'assistant'); node.textContent = text; root.appendChild(node); root.scrollTop = root.scrollHeight; }
+
+  function resetDirectoryChat() {
+    var root = $('directory-chat-messages');
+    if (root) {
+      root.innerHTML = '<div class="chat-message assistant">贴一个 GitHub RSS 列表、OPML 或目录页，我会先解析、去重并校验，再让你确认批量添加。</div>';
+    }
+    if ($('directory-chat-input')) $('directory-chat-input').value = '';
+    if ($('directory-preview')) {
+      $('directory-preview').hidden = true;
+      $('directory-preview').innerHTML = '';
+    }
+    if ($('btn-directory-select-all')) $('btn-directory-select-all').hidden = true;
+    if ($('btn-directory-commit')) $('btn-directory-commit').hidden = true;
+    state.directory = { url: '', candidates: [] };
+  }
+
   function renderDirectoryPreview(data) {
-    var root = $('directory-preview'), candidates = data.candidates || []; state.directory.candidates = candidates; state.directory.url = data.directory_url || '';
-    root.hidden = false; root.innerHTML = '<div class="form-note" style="margin-bottom:6px">解析到 ' + candidates.length + ' 条候选 RSS；已勾选的条目才会写入来源库。</div>' + (candidates.length ? candidates.map(function (item, index) { var status = item.status === 'ok' ? '可用' : item.status === 'failed' ? '失败' : '待校验'; return '<label class="directory-row"><input class="directory-check" type="checkbox" data-index="' + index + '" ' + (item.status !== 'failed' ? 'checked' : '') + '><span><b>' + esc(item.name) + '</b><small>' + esc(item.url) + '</small></span><span class="directory-status ' + (item.status === 'failed' ? 'failed' : '') + '">' + status + '</span></label>'; }).join('') : '<div class="muted">没有解析到可导入的 RSS 链接。</div>');
-    $('btn-directory-select-all').hidden = !candidates.length; $('btn-directory-commit').hidden = !candidates.length;
+    var root = $('directory-preview');
+    if (!root) return;
+    var candidates = (data && Array.isArray(data.candidates)) ? data.candidates : [];
+    state.directory.candidates = candidates;
+    state.directory.url = (data && data.directory_url) || '';
+    root.hidden = false;
+    root.innerHTML = '<div class="form-note" style="margin-bottom:6px">解析到 ' + candidates.length + ' 条候选 RSS；已勾选的条目才会写入来源库。</div>' +
+      (candidates.length ? candidates.map(function (item, index) {
+        var status = item.status === 'ok' ? '可用' : item.status === 'failed' ? '失败' : '待校验';
+        return '<label class="directory-row"><input class="directory-check" type="checkbox" data-index="' + index + '" ' + (item.status !== 'failed' ? 'checked' : '') + '><span><b>' + esc(item.name) + '</b><small>' + esc(item.url) + '</small></span><span class="directory-status ' + (item.status === 'failed' ? 'failed' : '') + '">' + status + '</span></label>';
+      }).join('') : '<div class="muted">没有解析到可导入的 RSS 链接。</div>');
+    if ($('btn-directory-select-all')) $('btn-directory-select-all').hidden = !candidates.length;
+    if ($('btn-directory-commit')) $('btn-directory-commit').hidden = !candidates.length;
   }
+
   async function parseDirectoryChat(event) {
-    event.preventDefault(); var text = $('directory-chat-input').value.trim(), match = text.match(/https?:\/\/[^\s]+/i); if (!match) { directoryMessage('请在消息中提供一个 http(s) URL，我才能抓取并解析目录。', 'assistant'); return; }
-    var url = match[0].replace(/[),.;]+$/, ''); directoryMessage(text, 'user'); directoryMessage('正在抓取目录、解析 RSS 链接并执行安全校验…', 'assistant');
-    try { var data = await request('/api/v1/information-sources/import-directory/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: url, max_items: 200, check_health: $('directory-check-health').checked }) }); renderDirectoryPreview(data); directoryMessage('解析完成：请检查候选列表，确认后批量添加。', 'assistant'); } catch (e) { directoryMessage('解析失败：' + (e.message || e), 'assistant'); }
+    event.preventDefault();
+    var inputEl = $('directory-chat-input');
+    var text = (inputEl && inputEl.value ? inputEl.value : '').trim();
+    var match = text.match(/https?:\/\/[^\s]+/i);
+    if (!match) {
+      directoryMessage('请在消息中提供一个 http(s) URL，我才能抓取并解析目录。', 'assistant');
+      return;
+    }
+    var url = match[0].replace(/[),.;]+$/, '');
+    directoryMessage(text, 'user');
+    directoryMessage('正在抓取目录、解析 RSS 链接并执行安全校验…', 'assistant');
+    try {
+      var data = await request('/api/v1/information-sources/import-directory/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url, max_items: 200, check_health: $('directory-check-health') ? $('directory-check-health').checked : true })
+      });
+      if (!data) {
+        var lastErr = (client()._lastError && client()._lastError.message) || client()._lastViewError || '网络请求异常或无法抓取目标目录';
+        throw new Error(lastErr);
+      }
+      renderDirectoryPreview(data);
+      if (data.candidates && data.candidates.length) {
+        directoryMessage('解析完成：成功提取 ' + data.candidates.length + ' 条候选 RSS。请在下方预览列表中勾选需要的项，然后点击【确认添加选中 RSS】将其入库。', 'assistant');
+      } else {
+        directoryMessage('解析完成，但未能从该页面提取到可用的 RSS / OPML 链接。', 'assistant');
+      }
+    } catch (e) {
+      var errText = e.message || String(e);
+      directoryMessage('解析失败：' + errText + '。（若需重试，可修改链接或点击右上角【开启新对话】）', 'assistant');
+    }
   }
-  function selectAllDirectory() { var boxes = document.querySelectorAll('.directory-check'), all = Array.prototype.every.call(boxes, function (box) { return box.checked; }); boxes.forEach(function (box) { box.checked = !all; }); }
-  async function commitDirectory() { var items = Array.prototype.slice.call(document.querySelectorAll('.directory-check:checked')).map(function (box) { return state.directory.candidates[Number(box.dataset.index)]; }); if (!items.length) { directoryMessage('请至少选择一条 RSS。', 'assistant'); return; } var button = $('btn-directory-commit'); button.disabled = true; try { var result = await request('/api/v1/information-sources/import-directory/commit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ directory_url: state.directory.url, profile: $('directory-profile').value, items: items }) }); directoryMessage('已添加 ' + result.count + ' 条 RSS；跳过 ' + (result.skipped || []).length + ' 条重复来源。', 'assistant'); await loadSources(); } catch (e) { directoryMessage('批量添加失败：' + (e.message || e), 'assistant'); } finally { button.disabled = false; } }
+
+  function selectAllDirectory() {
+    var boxes = document.querySelectorAll('.directory-check');
+    var all = Array.prototype.every.call(boxes, function (box) { return box.checked; });
+    boxes.forEach(function (box) { box.checked = !all; });
+  }
+
+  async function commitDirectory() {
+    var items = Array.prototype.slice.call(document.querySelectorAll('.directory-check:checked')).map(function (box) {
+      return state.directory.candidates[Number(box.dataset.index)];
+    }).filter(Boolean);
+    if (!items.length) {
+      directoryMessage('请至少选择一条 RSS。', 'assistant');
+      return;
+    }
+    var button = $('btn-directory-commit');
+    if (button) button.disabled = true;
+    try {
+      var result = await request('/api/v1/information-sources/import-directory/commit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          directory_url: state.directory.url,
+          profile: $('directory-profile') ? $('directory-profile').value : 'both',
+          items: items
+        })
+      });
+      if (!result) {
+        var lastErr = (client()._lastError && client()._lastError.message) || '批量添加请求失败';
+        throw new Error(lastErr);
+      }
+      directoryMessage('已成功添加 ' + result.count + ' 条 RSS 来源！跳过 ' + ((result.skipped || []).length) + ' 条重复项。已自动刷新信息源列表并接入采集流水线。', 'assistant');
+      await loadSources();
+      await loadSchedules();
+    } catch (e) {
+      directoryMessage('批量添加失败：' + (e.message || e), 'assistant');
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
 
   async function healthAll() {
     var log = $('health-log'); log.textContent = '并发检测中…'; var lines = [];
@@ -657,18 +751,112 @@
     await loadBriefs();
   }
 
+  async function loadOpenWeights() {
+    var root = $('openweights-grid');
+    if (root) root.innerHTML = '<div class="muted" style="padding:24px;grid-column:1/-1">正在加载开放权重模型知识库…</div>';
+    try {
+      var res = await request('/api/v1/model-clearance/licenses');
+      state.openweights = (res && res.models) || [];
+      populateVendorFilter();
+      renderOpenWeights();
+    } catch (e) {
+      if (root) root.innerHTML = '<div style="padding:20px;color:#dc2626;grid-column:1/-1">加载开放权重模型库失败：' + esc(e.message || e) + '</div>';
+    }
+  }
+
+  function populateVendorFilter() {
+    var sel = $('ow-filter-vendor');
+    if (!sel) return;
+    var current = sel.value;
+    var list = state.openweights || [];
+    var vendorSet = {};
+    list.forEach(function (m) { if (m.vendor) vendorSet[m.vendor] = true; });
+    var vendors = Object.keys(vendorSet).sort();
+    sel.innerHTML = '<option value="">全部厂商/机构</option>' + vendors.map(function (v) {
+      return '<option value="' + esc(v) + '"' + (v === current ? ' selected' : '') + '>' + esc(v) + '</option>';
+    }).join('');
+  }
+
+  function renderOpenWeights() {
+    var root = $('openweights-grid');
+    if (!root) return;
+    var search = ($('ow-filter-search') ? $('ow-filter-search').value : '').trim().toLowerCase();
+    var licFilter = $('ow-filter-license') ? $('ow-filter-license').value : '';
+    var vendorFilter = $('ow-filter-vendor') ? $('ow-filter-vendor').value : '';
+
+    var all = state.openweights || [];
+    var total = all.length;
+    var commercial = all.filter(function (m) { return m.license_class === 'commercial_ok'; }).length;
+    var conditional = all.filter(function (m) { return m.license_class === 'conditional'; }).length;
+    var restricted = all.filter(function (m) { return m.license_class === 'restricted'; }).length;
+
+    if ($('ow-kpi-total')) $('ow-kpi-total').textContent = total || '—';
+    if ($('ow-kpi-commercial')) $('ow-kpi-commercial').textContent = commercial;
+    if ($('ow-kpi-conditional')) $('ow-kpi-conditional').textContent = conditional;
+    if ($('ow-kpi-restricted')) $('ow-kpi-restricted').textContent = restricted;
+
+    var filtered = all.filter(function (m) {
+      if (licFilter && m.license_class !== licFilter) return false;
+      if (vendorFilter && m.vendor !== vendorFilter) return false;
+      if (search) {
+        var str = ((m.display_name || '') + ' ' + (m.model_id || '') + ' ' + (m.vendor || '') + ' ' + (m.license_id || '')).toLowerCase();
+        if (str.indexOf(search) === -1) return false;
+      }
+      return true;
+    });
+
+    if (!filtered.length) {
+      root.innerHTML = '<div class="muted" style="padding:24px;grid-column:1/-1">未找到匹配的开放权重模型。</div>';
+      return;
+    }
+
+    root.innerHTML = filtered.map(function (m) {
+      var licCls = m.license_class || 'conditional';
+      var conditions = Array.isArray(m.license_conditions) ? m.license_conditions : [];
+      var paramsText = m.params_b ? m.params_b + 'B 参数' : 'MoE / 多模态';
+      var clearanceUrl = '/ai-model-entry-clearance.html?model_id=' + encodeURIComponent(m.model_id);
+
+      return '<article class="ow-card">' +
+        '<div class="ow-card-head">' +
+          '<div>' +
+            '<h3 class="ow-card-title">' + esc(m.display_name || m.model_id) + '</h3>' +
+            '<div class="ow-card-meta">' + esc(m.vendor || '开源社区') + ' · ' + esc(m.vendor_country || 'Global') + ' · <code>' + esc(m.model_id) + '</code></div>' +
+          '</div>' +
+          '<span class="ow-badge ' + licCls + '">' + esc(m.license_id || licCls) + '</span>' +
+        '</div>' +
+        '<div style="font-size:11px;color:#475569;display:flex;gap:12px;flex-wrap:wrap">' +
+          '<span>规模：<b>' + esc(paramsText) + '</b></span>' +
+          '<span>格式：<b>' + esc(m.weights_format || 'safetensors') + '</b></span>' +
+          (m.open_weights_signatory ? '<span style="color:#0f766e;font-weight:700">✓ Open Weights Letter 签署方</span>' : '') +
+        '</div>' +
+        (conditions.length ? '<div class="ow-tags">' + conditions.map(function (c) { return '<span class="ow-tag">' + esc(c) + '</span>'; }).join('') + '</div>' : '') +
+        '<div class="ow-actions">' +
+          '<a href="' + esc(clearanceUrl) + '" class="btn" style="background:#0f766e;color:#fff">🛡️ 发起准入评审</a>' +
+          (m.license_url ? '<a href="' + esc(m.license_url) + '" target="_blank" rel="noopener noreferrer" class="btn ghost" style="padding:4px 6px">📄 许可证</a>' : '') +
+          (m.weights_url ? '<a href="' + esc(m.weights_url) + '" target="_blank" rel="noopener noreferrer" class="btn ghost" style="padding:4px 6px">📦 权重库</a>' : '') +
+        '</div>' +
+      '</article>';
+    }).join('');
+  }
+
   async function loadHistory() { var channel = $('docs-channel').value; try { var data = await request('/api/v1/information-documents?limit=30' + (channel ? '&channel=' + encodeURIComponent(channel) : '')); var rows = data.documents || []; $('kpi-docs').textContent = rows.length; $('docs-body').innerHTML = rows.length ? rows.map(function (d) { return '<tr class="doc-row" data-id="' + esc(d.document_id) + '"><td>' + esc(d.channel) + '</td><td>v' + esc(d.version) + '</td><td>' + esc(d.title) + '</td><td>' + esc(d.as_of) + '</td><td><code>' + esc(d.run_id) + '</code></td><td>' + reportReaderLink(d.channel, d, '打开 ↗') + '</td></tr>'; }).join('') : '<tr><td colspan="6" class="muted">无历史文档</td></tr>'; $('docs-body').querySelectorAll('.doc-row').forEach(function (row) { row.addEventListener('click', function (event) { if (event.target.closest('.report-open')) return; var doc = rows.find(function (x) { return x.document_id === row.dataset.id; }); $('doc-preview').innerHTML = doc && doc.html ? '<iframe class="doc" sandbox title="历史报告" srcdoc="' + esc(doc.html) + '"></iframe>' : ''; }); }); } catch (e) { $('docs-body').innerHTML = '<tr><td colspan="6" style="color:#dc2626">' + esc(e.message || e) + '</td></tr>'; } }
 
   function scheduleHtml(item) { var status = item.last_status === 'success' ? '完成' : item.last_status === 'failed' ? '失败' : item.enabled ? '等待' : '暂停'; return '<div class="schedule-item"><strong>' + esc(item.name) + '</strong><div class="schedule-meta">' + esc(item.team_id) + ' · 每 ' + esc(item.interval_minutes) + ' 分钟 · ' + status + '<br>下次：' + esc(item.next_run_at || '—') + '</div><div class="schedule-actions"><button class="btn ghost schedule-run" data-id="' + esc(item.schedule_id) + '" type="button">立即运行</button><button class="btn ghost schedule-toggle" data-id="' + esc(item.schedule_id) + '" data-enabled="' + (!item.enabled) + '" type="button">' + (item.enabled ? '暂停' : '启用') + '</button><button class="btn ghost schedule-delete" data-id="' + esc(item.schedule_id) + '" type="button">删除</button></div></div>'; }
   async function loadSchedules() { try { var data = await request('/api/v1/information-schedules'); state.schedules = data.schedules || []; $('schedule-list').innerHTML = state.schedules.length ? state.schedules.map(scheduleHtml).join('') : '<div class="muted">暂无定时任务</div>'; updateKpis(); $('schedule-list').querySelectorAll('.schedule-run').forEach(function (b) { b.addEventListener('click', async function () { await request('/api/v1/information-schedules/' + b.dataset.id + '/run', { method: 'POST' }); await loadSchedules(); await loadLatestDocs(); }); }); $('schedule-list').querySelectorAll('.schedule-toggle').forEach(function (b) { b.addEventListener('click', async function () { await request('/api/v1/information-schedules/' + b.dataset.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: b.dataset.enabled === 'true' }) }); await loadSchedules(); }); }); $('schedule-list').querySelectorAll('.schedule-delete').forEach(function (b) { b.addEventListener('click', async function () { await request('/api/v1/information-schedules/' + b.dataset.id, { method: 'DELETE' }); await loadSchedules(); }); }); } catch (e) { $('schedule-list').innerHTML = '<div style="color:#dc2626">' + esc(e.message || e) + '</div>'; } }
   async function createSchedule(event) { event.preventDefault(); await request('/api/v1/information-schedules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: $('schedule-name').value, team_id: $('schedule-team').value, interval_minutes: Number($('schedule-interval').value), run_immediately: $('schedule-immediate').checked, source_ids: Array.prototype.slice.call(document.querySelectorAll('.source-check:checked')).map(function (x) { return x.value; }) }) }); $('schedule-immediate').checked = false; await loadSchedules(); }
 
-  $('btn-refresh-sources').addEventListener('click', loadSources); $('btn-save-source-selection').addEventListener('click', saveSourceSelection); $('btn-select-all-sources').addEventListener('click', toggleAllSources); $('btn-add-fixture').addEventListener('click', addFixture); $('btn-health').addEventListener('click', healthAll); $('btn-run-ai60').addEventListener('click', function () { runTeam('ai_news_60s'); }); $('btn-run-dufu').addEventListener('click', function () { runTeam('dufu_world_intel'); }); $('btn-start-ai60').addEventListener('click', function () { runTeam('ai_news_60s'); }); $('btn-start-dufu').addEventListener('click', function () { runTeam('dufu_world_intel'); }); $('btn-docs').addEventListener('click', loadHistory); $('btn-latest').addEventListener('click', loadLatestDocs); $('btn-refresh-schedules').addEventListener('click', loadSchedules); $('schedule-form').addEventListener('submit', createSchedule); $('source-kind').addEventListener('change', syncSourceKind); $('source-profile').addEventListener('change', syncSourcePreview); $('source-name').addEventListener('input', syncSourcePreview); $('source-form').addEventListener('submit', createSource); $('btn-reset-source').addEventListener('click', resetSourceForm); $('directory-chat-form').addEventListener('submit', parseDirectoryChat); $('btn-directory-select-all').addEventListener('click', selectAllDirectory); $('btn-directory-commit').addEventListener('click', commitDirectory); document.querySelectorAll('.preview-tab').forEach(function (tab) { tab.addEventListener('click', function () { document.querySelectorAll('.preview-tab').forEach(function (x) { x.classList.toggle('active', x === tab); }); document.querySelectorAll('.preview-panel').forEach(function (panel) { panel.classList.toggle('active', panel.id === 'preview-' + tab.dataset.preview); }); }); });
+  if ($('btn-refresh-openweights')) $('btn-refresh-openweights').addEventListener('click', loadOpenWeights);
+  if ($('ow-filter-search')) $('ow-filter-search').addEventListener('input', renderOpenWeights);
+  if ($('ow-filter-license')) $('ow-filter-license').addEventListener('change', renderOpenWeights);
+  if ($('ow-filter-vendor')) $('ow-filter-vendor').addEventListener('change', renderOpenWeights);
+
+  $('btn-refresh-sources').addEventListener('click', loadSources); $('btn-save-source-selection').addEventListener('click', saveSourceSelection); $('btn-select-all-sources').addEventListener('click', toggleAllSources); $('btn-add-fixture').addEventListener('click', addFixture); $('btn-health').addEventListener('click', healthAll); $('btn-run-ai60').addEventListener('click', function () { runTeam('ai_news_60s'); }); $('btn-run-dufu').addEventListener('click', function () { runTeam('dufu_world_intel'); }); $('btn-start-ai60').addEventListener('click', function () { runTeam('ai_news_60s'); }); $('btn-start-dufu').addEventListener('click', function () { runTeam('dufu_world_intel'); }); $('btn-docs').addEventListener('click', loadHistory); $('btn-latest').addEventListener('click', loadLatestDocs); $('btn-refresh-schedules').addEventListener('click', loadSchedules); $('schedule-form').addEventListener('submit', createSchedule); $('source-kind').addEventListener('change', syncSourceKind); $('source-profile').addEventListener('change', syncSourcePreview); $('source-name').addEventListener('input', syncSourcePreview); $('source-form').addEventListener('submit', createSource); $('btn-reset-source').addEventListener('click', resetSourceForm); $('directory-chat-form').addEventListener('submit', parseDirectoryChat); if ($('btn-directory-reset')) $('btn-directory-reset').addEventListener('click', resetDirectoryChat); document.querySelectorAll('.dir-preset-btn').forEach(function (btn) { btn.addEventListener('click', function () { if ($('directory-chat-input')) { $('directory-chat-input').value = btn.dataset.url || ''; $('directory-chat-form').dispatchEvent(new Event('submit')); } }); }); $('btn-directory-select-all').addEventListener('click', selectAllDirectory); $('btn-directory-commit').addEventListener('click', commitDirectory); document.querySelectorAll('.preview-tab').forEach(function (tab) { tab.addEventListener('click', function () { document.querySelectorAll('.preview-tab').forEach(function (x) { x.classList.toggle('active', x === tab); }); document.querySelectorAll('.preview-panel').forEach(function (panel) { panel.classList.toggle('active', panel.id === 'preview-' + tab.dataset.preview); }); }); });
   syncSourceKind();
   renderInfoBoxes('ai_news_60s'); renderInfoBoxes('dufu_world_intel'); renderAgentRow('ai_news_60s'); renderAgentRow('dufu_world_intel');
   // Focus the primary information-source workspace on first paint; utility views
   // remain reachable from the right-side collection navigation.
-  switchTab('ai60');
+  var initialTab = (typeof window !== 'undefined' && window.location && window.location.search) ? (new URLSearchParams(window.location.search)).get('tab') || 'ai60' : 'ai60';
+  switchTab(initialTab);
   loadTeamAgents('ai_news_60s'); loadTeamAgents('dufu_world_intel'); loadSources(); loadSchedules(); loadLatestDocs(); loadBriefs();
   // Reports are scheduled at a 30-minute cadence; a 20-second poll made the
   // iframe jump while users were reading a long report.

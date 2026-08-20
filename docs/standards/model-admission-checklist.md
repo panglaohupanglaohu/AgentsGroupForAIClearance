@@ -99,6 +99,25 @@ predicate type `https://model_signing/signature/v1.0`；支持 Sigstore / 公钥
 
 ---
 
+## 受控准入模板：来源不完整/上游无签名模型 (`origin_uncertain_controlled_admission`)
+
+> **适用场景**：上游开源社区未提供厂商 Sigstore 签名或来源厂商背景信息不完备，但业务团队具备明确的内部使用需求。
+> **核心原则**：不因来源信息不完全而一刀切拒绝，而是通过 **Lenovo 技术与运营直接控制**（Platform Endorsement + 锁定 Digest + 强制 Restricted Profile + 缩短复评周期 + 明确责任人）实现受控准入。
+
+| 控制项 | 要求 | 验证方式 |
+| --- | --- | --- |
+| **权重完整性** | 平台下载首次计算并锁定 SHA-256 Manifest Root Digest | G1-PROV-03 校验 |
+| **背书签名** | 由 Lenovo 内部签名服务签发 Platform Endorsement | G1-PROV-05 验签 |
+| **序列化安全** | 仅允许 `.safetensors` 或 `.gguf`，禁止任何 pickle/bin 权重 | G2-BOM-02 扫描 |
+| **运行时隔离** | 强制采用 `restricted` 运行时 Profile（只读根、Deny-All 出站、非 root、丢弃所有 Capability） | G4/G6 绑定 |
+| **责任链完备** | 必须指定明确的 `service_owner`、`security_owner` 及应急 On-Call 轮值 | G6 会签表单 |
+| **应急处置通道** | 必须预配置有效 `kill_switch_ref` 与 `rollback_runbook_ref` | L3 清单登记 |
+| **复评与有效期** | 准入有效期由 90 天缩短为 **30 天**，强制定期重评 | 自动调度 |
+
+**裁决结果**：`approved_with_conditions`（带条件通过），`runtime_profile = restricted`，`scope = [internal]`。
+
+---
+
 ## 会签裁决矩阵（G6）
 
 | 条件 | 结果 |
