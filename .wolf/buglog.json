@@ -1,5 +1,19 @@
 [
   {
+    "id": "bug-data-intel-schedules-null-deref",
+    "timestamp": "2026-08-21T00:20:00.000000+00:00",
+    "error_message": "Cannot read properties of null (reading 'schedules')",
+    "file": "src/frontend/js/data-intelligence.js, src/frontend/data-intelligence.html",
+    "root_cause": "loadSchedules 在请求未登录或网络异常返回 null 时未做空值判断直接访问 data.schedules 抛出 TypeError；且定时任务与信息源表单缺少开放权重资源选项",
+    "fix": "loadSchedules 与 createSchedule 增加严格空值保护与异常捕获提示；data-intelligence.html 中补全 open_weights 下拉选项；curated 团队存储入库",
+    "tags": [
+      "frontend",
+      "data-intelligence",
+      "schedules",
+      "null-dereference"
+    ]
+  },
+  {
     "id": "bug-vite-import-analysis-duplicate-tail",
     "timestamp": "2026-08-20T03:15:00.000000+00:00",
     "error_message": "[plugin:vite:import-analysis] Failed to parse source for import analysis because the content contains invalid JS syntax. D:/AgentsGroup2026/src/frontend/js/ai-model-entry-clearance.js:987:0",

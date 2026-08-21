@@ -3,6 +3,7 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 
+- 2026-08-21T00:25:00Z | 团队与定时任务配置入库并修复空安全缺陷 | storage/teams/teams.json, src/frontend/*, .gitignore, .wolf/* | 开放权重资源团队纳入 teams.json 并在 .gitignore 显式放行；修复 loadSchedules 与 createSchedule 在网络或 401 场景下直接访问 null 对象的崩溃；data-intelligence 补全各下拉中的开放权重选项；提交 commit 194480b | ~2k |
 - 2026-08-20T03:15:00Z | 修复 ai-model-entry-clearance.js 尾部重复代码导致的 Vite 语法解析错误 | src/frontend/js/ai-model-entry-clearance.js, .wolf/buglog.json | 清理 IIFE 闭包后的多余重复代码；node --check 与 28 项前端单元测试通过 | ~1k |
 - 2026-08-20T03:05:00Z | 完成 P10（TA01–TA09）控制台与准入引擎真实对接与全面验证 | src/frontend/*, src/backend/domain/api_routes.py, TODOS.md, .wolf/* | 表单字段与校验正则全面正名（model_id / revision / as_of / target_qpm 等）；彻底断开并删除遗留 investment_simulation 目录与路由；启动/轮询/会签全面直连 /api/v1/model-clearance/applications 与 submit；门禁矩阵吃真实 GateVerdict 与 evidence；新增 clearance-cockpit-wiring.test.js，全套 12 后端测试、Phase 1 出口验证与 28 项前端单元测试 100% 通过 | ~4k |
 - 2026-08-20T02:10:00Z | 核实控制台仍连旧模拟引擎并写入 P10 计划 | PLAN.md, TODOS.md, .wolf/anatomy.md | 核实三处硬证据：(1) engine-state.js 的 `^[A-Za-z0-9.]{1,12}$` 拒绝页面自己的默认值 meta-llama/Llama-3.1-8B-Instruct，故必弹「请填写合法 Ticker」；(2) 控制台 create/start/poll/restore 仍打 /api/v1/investment-simulations；(3) 其 orchestrator import 的 integrations.tradingagents.graph_adapter 在仓库中不存在，链路事实上是死的。PLAN 增 §11 断点表与目标形态，TODOS 增 P10 TA01–TA09 | ~3k |
