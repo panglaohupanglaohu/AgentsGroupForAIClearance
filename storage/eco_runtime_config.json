@@ -1,0 +1,30 @@
+{
+  "habitat": {
+    "predator_pressure": 0.02,
+    "abundance": 1.5,
+    "drift_prob": 0.1,
+    "niche_capacity": 0
+  },
+  "metabolism": {
+    "senescence_rate": 0.003
+  },
+  "learning": {
+    "genome_carry_cost": 0.08
+  },
+  "drill_economics": {
+    "skill_idle_penalty": 1.2
+  },
+  "evolution_pressure": {
+    "skill_idle_penalty": 1.2,
+    "genome_carry_cost": 0.08,
+    "min_steps_when_contract": 64,
+    "min_gens_when_contract": 4,
+    "prefer_forage_when_can_serve": 1,
+    "predator_bias_unskilled": 2,
+    "scarce_share_boost": 1.2,
+    "same_pop_share_bias": 0.7,
+    "sexual_selection_strength": 1,
+    "freq_dep_strength": 0.5,
+    "epistasis_strength": 0.2
+  }
+}

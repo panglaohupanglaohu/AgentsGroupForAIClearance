@@ -1,0 +1,880 @@
+{
+  "sources": [
+    {
+      "source_id": "fixture-ai-demo",
+      "kind": "fixture",
+      "name": "AI Demo Fixture",
+      "url": "",
+      "enabled": false,
+      "options": {
+        "items": [
+          {
+            "title": "开源模型发布（演示）",
+            "url": "https://example.com/ai/demo-1",
+            "content": "演示用：开源权重与基准更新（非真实事件）。",
+            "published_at": "2026-07-01T00:00:00+00:00"
+          },
+          {
+            "title": "企业 AI 落地调查（演示）",
+            "url": "https://example.com/ai/demo-2",
+            "content": "演示用：采用率与合规障碍摘要。",
+            "published_at": "2026-07-02T00:00:00+00:00"
+          }
+        ]
+      },
+      "secret_refs": {},
+      "language": "zh",
+      "region": "global",
+      "update_interval_seconds": 3600,
+      "license_note": "demo",
+      "robots_policy": "unknown",
+      "reputation_score": 0.8,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "fixture-world-demo",
+      "kind": "fixture",
+      "name": "World Trends Demo Fixture",
+      "url": "",
+      "enabled": false,
+      "options": {
+        "items": [
+          {
+            "title": "多边会谈进展（演示）",
+            "url": "https://example.com/world/demo-1",
+            "content": "演示用：贸易与安全议题阶段性共识。",
+            "published_at": "2026-07-01T00:00:00+00:00"
+          },
+          {
+            "title": "能源价格观察（演示）",
+            "url": "https://example.com/world/demo-2",
+            "content": "演示用：基准价格波动与制造业成本。",
+            "published_at": "2026-07-02T00:00:00+00:00"
+          }
+        ]
+      },
+      "secret_refs": {},
+      "language": "zh",
+      "region": "global",
+      "update_interval_seconds": 3600,
+      "license_note": "demo",
+      "robots_policy": "unknown",
+      "reputation_score": 0.8,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "2150eeea-d",
+      "kind": "rss",
+      "name": "the batch",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/the-batch.xml",
+      "enabled": false,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "6ab88ecd-c",
+      "kind": "fixture",
+      "name": "New Fixture Source",
+      "url": "",
+      "enabled": false,
+      "options": {
+        "items": [
+          {
+            "title": "Fixture research signal",
+            "url": "https://example.com/fixture",
+            "content": "offline fixture content"
+          }
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "7ec8f86d-e",
+      "kind": "rss",
+      "name": "Meta AI",
+      "url": "https://ai.meta.com/blog/rss/",
+      "enabled": true,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "8970eea6-8",
+      "kind": "rss",
+      "name": "Mistral AI",
+      "url": "https://mistral.ai/news/rss.xml",
+      "enabled": true,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "e653ca5b-c",
+      "kind": "rss",
+      "name": "Gemma",
+      "url": "https://deepmind.google/blog/rss.xml",
+      "enabled": true,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "d39d0618-0",
+      "kind": "rss",
+      "name": "OpenAI",
+      "url": "https://openai.com/news/rss.xml.xml",
+      "enabled": true,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "a5e60281-6",
+      "kind": "rss",
+      "name": "Qwen",
+      "url": "https://github.com/QwenLM/Qwen/releases.atom",
+      "enabled": true,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "660997b1-3",
+      "kind": "rss",
+      "name": "Llama",
+      "url": "https://github.com/meta-llama/llama3/releases.atom",
+      "enabled": true,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "d54d71b6-9",
+      "kind": "rss",
+      "name": "Mistral",
+      "url": "https://github.com/mistralai/mistral-src/releases.atom",
+      "enabled": true,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "498b8b13-9",
+      "kind": "rss",
+      "name": "GLM",
+      "url": "https://github.com/THUDM/ChatGLM3/releases.atom",
+      "enabled": true,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "06081bf0-b",
+      "kind": "rss",
+      "name": "DeepSeek",
+      "url": "https://github.com/deepseek-ai/DeepSeek/releases.atom",
+      "enabled": true,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "e66b2c75-e",
+      "kind": "rss",
+      "name": "Yi‑01ai",
+      "url": "https://github.com/01-ai/Yi/releases.atom",
+      "enabled": true,
+      "options": {
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ],
+        "output_contracts": {
+          "ai_news_60s": [
+            "headline",
+            "bullets",
+            "why_it_matters",
+            "related_companies",
+            "risks_and_counterpoints",
+            "citations"
+          ],
+          "dufu_world_intel": [
+            "what_happened",
+            "timeline",
+            "drivers",
+            "data_trends",
+            "counterpoints",
+            "scenarios",
+            "market_transmission",
+            "citations"
+          ]
+        }
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "4d1141e7-6",
+      "kind": "rss",
+      "name": "Ai2 News (Allen Institute for AI)",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/allenai-news.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "adfd0c85-8",
+      "kind": "rss",
+      "name": "AISI Blog (AI Security Institute)",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/aisi-blog.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "99d5e137-3",
+      "kind": "rss",
+      "name": "Anthropic Research",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/anthropic-research.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "c1ca8b2b-c",
+      "kind": "rss",
+      "name": "Claude Blog",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/claude-blog.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "7f660c48-5",
+      "kind": "rss",
+      "name": "Cohere Blog",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/cohere-blog.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "28bf8491-6",
+      "kind": "rss",
+      "name": "Mila News (Quebec AI Institute)",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/mila-news.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "81272f16-2",
+      "kind": "rss",
+      "name": "Mistral News",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/mistral-news.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "e3e4e19a-6",
+      "kind": "rss",
+      "name": "TLDR AI",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/tldr-ai.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "61f490f3-f",
+      "kind": "rss",
+      "name": "Turing Blog (Alan Turing Institute)",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/turing-blog.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "2360342c-f",
+      "kind": "rss",
+      "name": "Turing News (Alan Turing Institute)",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/turing-news.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "79291b10-e",
+      "kind": "rss",
+      "name": "Anthropic News",
+      "url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds/anthropic-news.xml",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://raw.githubusercontent.com/alan-turing-institute/ai-rss-feeds/refs/heads/main/feeds.opml",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    },
+    {
+      "source_id": "1293d9a2-9",
+      "kind": "rss",
+      "name": "cs.AI updates on arXiv.org",
+      "url": "https://rss.arxiv.org/rss/cs.AI",
+      "enabled": true,
+      "options": {
+        "directory_url": "https://rss.arxiv.org/rss/cs.AI",
+        "collection_profile": "both",
+        "target_teams": [
+          "ai_news_60s",
+          "dufu_world_intel"
+        ]
+      },
+      "secret_refs": {},
+      "language": "",
+      "region": "",
+      "update_interval_seconds": 3600,
+      "license_note": "",
+      "robots_policy": "unknown",
+      "reputation_score": 0.5,
+      "timeout_seconds": 15.0,
+      "max_bytes": 1000000,
+      "allowed_hosts": []
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "fc4d06b8": [
+    {
+      "version": 1,
+      "name": "Operation System Linux CentO…",
+      "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+      "instructions": "基于原文片段『Topic: Operation System Linux CentOS 7.9升级到Rocky9\nGoal: Operation System Linux CentOS 7.9升级到Rocky9\n[Round 0] 运维Leader (运维Leader, signal=supplement): CentOS 7.9 下个月就 EOL 了，安全补丁断了，合规风险很高。这次迁移到 Rocky9 不只是换个系统版本，涉及应用兼容性、架构调整和运维流程全面翻新。\n\n**第一个问题：** 各位觉得我们走“原地升级”还是“新』：\n1. 列出业务目标与验收口径\n2. 明确前置条件、依赖与不可变约束\n3. 输出「必须做 / 可选做 / 禁止做」三栏\n4. 补最小验证步骤与回滚点",
+      "category": "research",
+      "icon": "🧭",
+      "visibility": "private",
+      "lifecycle_stage": "draft",
+      "quality_score": 0.0,
+      "reason": "",
+      "metadata": {},
+      "snapshot_at": "2026-07-21T10:50:56.061341+00:00"
+    }
+  ],
+  "2b96664d": [
+    {
+      "version": 1,
+      "name": "System / Build实施路径与风险防护",
+      "description": "将议题拆成最小可交付步骤，并为每步补齐回滚条件与风险触发阈值。",
+      "instructions": "把方案拆成 3-5 个顺序步骤；每步明确输入、输出、负责人与验证动作。对高风险步骤提供熔断条件与回滚指令，避免一次性大改。",
+      "category": "automation",
+      "icon": "🛠️",
+      "visibility": "private",
+      "lifecycle_stage": "draft",
+      "quality_score": 0.0,
+      "reason": "",
+      "metadata": {},
+      "snapshot_at": "2026-07-23T09:52:22.797480+00:00"
+    }
+  ],
+  "ccc015e7": [
+    {
+      "version": 1,
+      "name": "System / Build需求拆解与约束澄清",
+      "description": "围绕当前议题提炼关键目标、边界条件和不可违反约束，形成可执行的问题定义。",
+      "instructions": "基于原文片段『## 技术概要\n围绕「K8S节点升级SOP」，先冻结当前生产基线，再比较纵向升配与横向扩节点两条路径。首要方案是由 Build System 生成可审阅、可 dry-run、可回滚的 Terraform/运维脚本，AWS 运维团队负责容量评估、变更执行、监控验收、成本治理与区域合规。最大风险是扩容后索引迁移、热点分片和跨可用区流量导致的性能抖动；因此所有动作必须有指标门禁、回滚窗口和北美 AI 项目数据驻留检查。本计划由系统在 LLM 不可用或未返回结构化计划 场景下生成，可直接派发任务并进入数字孪生演练。\n\n##』，先列业务目标与验收口径，再明确前置条件、依赖和不可变约束；输出时必须给出‘必须做/可选做/禁止做’三栏。",
+      "category": "research",
+      "icon": "🧭",
+      "visibility": "private",
+      "lifecycle_stage": "draft",
+      "quality_score": 0.0,
+      "reason": "",
+      "metadata": {},
+      "snapshot_at": "2026-07-28T02:47:58.366935+00:00"
+    }
+  ],
+  "db3bcc73": [
+    {
+      "version": 1,
+      "name": "完整 Storyline：从一条告警，到一条可信、可优化…",
+      "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+      "instructions": "基于原文片段『一、完整 Storyline：从一条告警，到一条可信、可优化、可复用的工作链\n凌晨 02:14，一条公有云告警进入运营视野。服务健康正在下降，但此时真正的问题还不是“哪个 Agent 可以马上执行修复”，而是：我们是否已经拥有足够的上下文，能够让下一步行动是正确的、被授权的，而且最终可以被验证。\n告警进入一个持续保留工作的 Workspace Channel。这里不是一个临时聊天窗口，而是这次任务的共同工作现场。已有的服务信息、历史讨论、知识文件、任务、Owner、权限范围、Agent、连接器和操作记录被带到同一个』：\n1. 列出业务目标与验收口径\n2. 明确前置条件、依赖与不可变约束\n3. 输出「必须做 / 可选做 / 禁止做」三栏\n4. 补最小验证步骤与回滚点",
+      "category": "research",
+      "icon": "🧭",
+      "visibility": "private",
+      "lifecycle_stage": "draft",
+      "quality_score": 0.0,
+      "reason": "",
+      "metadata": {},
+      "snapshot_at": "2026-07-28T09:35:03.711720+00:00"
+    }
+  ]
+}

@@ -24,6 +24,12 @@ src/frontend/.vitest-report.json
 # Runtime-generated state. Keep curated fixtures explicitly if needed.
 storage/*
 !storage/pet_config.json
+!storage/eco_runtime_config.json
+!storage/skill_versions.json
+!storage/teams/
+!storage/teams/teams.json
+!storage/information_sources/
+!storage/information_sources/*.json
 src/storage/
 src/docs/workflow_artifacts/
 src/docs/agent_handoffs/

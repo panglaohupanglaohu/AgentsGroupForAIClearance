@@ -1,0 +1,20 @@
+{
+  "schedules": [
+    {
+      "schedule_id": "880980db277b",
+      "name": "AI 60 秒每 30 分钟播报",
+      "team_id": "ai_news_60s",
+      "interval_minutes": 30,
+      "enabled": true,
+      "source_ids": [],
+      "run_immediately": false,
+      "next_run_at": "2026-08-20T16:42:25.131634+00:00",
+      "last_run_at": "2026-08-20T16:12:25.131668+00:00",
+      "last_status": "success",
+      "last_error": "",
+      "run_count": 7,
+      "created_at": "2026-08-19T15:49:14.459137+00:00",
+      "updated_at": "2026-08-20T16:12:25.133196+00:00"
+    }
+  ]
+}
