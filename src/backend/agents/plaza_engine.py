@@ -31,6 +31,9 @@ from .plaza_consensus import (
     FistToFiveVote, collect_fist_to_five, format_fist_to_five_summary,
     generate_blocking_resolution_prompt,
 )
+from .plaza_challenge_routing import (
+    MAX_PHASE_RUNS, ChallengeRouter, build_revisit_notice, phase_name, phase_number,
+)
 from .plaza_store import PlazaStore
 from .token_context import token_scope
 
@@ -669,20 +672,80 @@ class PlazaEngine:
         moderator: Optional[Participant],
         speakers: List[Participant],
     ) -> bool:
-        """按 O→R→I→D 四层推进讨论。返回 True 表示因 LLM 连续 fallback 中止。"""
+        """按 O→R→I→D 四层推进讨论。返回 True 表示因 LLM 连续 fallback 中止。
+
+        论文 Eq.(3)(4)：CHALLENGE 可把议程回退到目标阶段（Γ_k），
+        由 ChallengeRouter 记账并保证收敛。
+        """
         disc.max_rounds = _ORID_PHASE_COUNT
         fallback = [0]  # 可变计数器，跨层共享连续 fallback 次数
         capped = self._select_round_speakers(speakers, 1) if len(speakers) > _ROUND_SPEAKER_LIMIT else speakers
 
-        if await self._run_fact_finding(disc, moderator, capped, fallback):
-            return True
-        if await self._run_risk_intuition(disc, moderator, capped, fallback):
-            return True
-        if await self._run_solution_debate(disc, moderator, speakers, fallback):
-            return True
-        if await self._run_decision_commitment(disc, moderator, capped, fallback):
-            return True
+        runners = {
+            1: lambda: self._run_fact_finding(disc, moderator, capped, fallback),
+            2: lambda: self._run_risk_intuition(disc, moderator, capped, fallback),
+            3: lambda: self._run_solution_debate(disc, moderator, speakers, fallback),
+            4: lambda: self._run_decision_commitment(disc, moderator, capped, fallback),
+        }
+        roster: Dict[str, Participant] = {p.agent_id: p for p in list(speakers) + list(capped)}
+        router = ChallengeRouter()
+
+        phase = 1
+        runs = 0
+        while phase <= _ORID_PHASE_COUNT and runs < MAX_PHASE_RUNS:
+            runs += 1
+            mark = len(disc.messages)
+            if await runners[phase]():
+                self._persist_challenge_routes(disc, router)
+                return True
+
+            target = self._detect_challenge_route(disc, roster, phase, mark, router)
+            if target is None:
+                phase += 1
+                continue
+
+            hit = router.applied_routes()[-1]
+            await self._facilitator_says(
+                disc, moderator,
+                build_revisit_notice(target, hit.get("niche_ring", ""), hit.get("excerpt", "")),
+                phase_number(target),
+                metadata={"orid_phase": phase_number(target), "challenge_route": hit},
+            )
+            phase = phase_number(target)
+
+        self._persist_challenge_routes(disc, router)
         return False
+
+    def _detect_challenge_route(
+        self,
+        disc: Discussion,
+        roster: Dict[str, Participant],
+        phase: int,
+        mark: int,
+        router: "ChallengeRouter",
+    ) -> Optional[str]:
+        """扫描本阶段新增发言，取第一条可路由的 CHALLENGE。"""
+        current = phase_name(phase)
+        for msg in disc.messages[mark:]:
+            speaker = roster.get(msg.agent_id)
+            if speaker is None or msg.agent_id == disc.moderator_agent_id:
+                continue
+            signal = self.declare_signal(speaker, msg.content)
+            target = router.route(
+                current, speaker.seat_tier.value, signal.value,
+                agent_id=msg.agent_id, utterance_id=msg.id,
+            )
+            if router.routes:
+                router.routes[-1].setdefault("excerpt", (msg.content or "")[:80])
+            if target is not None:
+                return target
+        return None
+
+    @staticmethod
+    def _persist_challenge_routes(disc: Discussion, router: "ChallengeRouter") -> None:
+        """把 Γ_k 记录写进讨论元数据，供审计与前端还原。"""
+        if router.routes:
+            disc.metadata["challenge_routes"] = router.routes
 
     async def _broadcast_phase_start(
         self, disc: Discussion, phase_num: int, label: str,
@@ -753,13 +816,34 @@ class PlazaEngine:
 
     def _build_fact_finding_prompt(self, disc: Discussion, speaker: Participant) -> str:
         ctx = f"背景: {disc.description}\n" if disc.description else ""
+        eco = self._eco_evidence_context(disc, speaker)
         return (
-            f"关于「{disc.topic}」的第一层——客观事实盘点。\n{ctx}"
+            f"关于「{disc.topic}」的第一层——客观事实盘点。\n{ctx}{eco}"
             f"你是 {speaker.agent_name}（{speaker.role}）。\n\n"
             f"只做一件事：陈述一条与话题相关、客观且可验证的事实。\n"
             f"禁止：解释、判断、给建议、表达感受或倾向。\n"
             f"格式：用一句话陈述这条事实，不超过 40 字。"
         )
+
+    def _eco_evidence_context(self, disc: Discussion, speaker: Participant) -> str:
+        """论文 5.7：上一轮生态演练的差异化留存证据注入 O 阶段。"""
+        cached = disc.metadata.get("eco_evidence_context")
+        if cached is not None:
+            return cached
+        text = ""
+        try:
+            from sandbox.eco_feedback import build_next_agenda, load_evidence
+            team_id = speaker.team_id or disc.assigned_team_id
+            if team_id:
+                evidence = load_evidence(team_id)
+                agenda = build_next_agenda(evidence) if evidence else ""
+                if agenda:
+                    text = agenda + "\n"
+                    disc.metadata["eco_evidence"] = evidence
+        except Exception as e:  # pragma: no cover
+            logger.debug("eco evidence 注入跳过: %s", e)
+        disc.metadata["eco_evidence_context"] = text
+        return text
 
     # ── Phase 2 (R) — 风险与直觉 ────────────────────────────────
     async def _run_risk_intuition(

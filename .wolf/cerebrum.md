@@ -100,6 +100,20 @@
 - 任务执行（agent_team 工作流分步）的"系统配置 LLM"权威来源是 ChatHarness 的 provider 配置（由"模型与连接页"→ `update_default_provider` → `config/model_pool.json`），用 `get_chat_harness().get_provider_config()` 读（字段 provider/api_key/api_base_url/model，`resolve_base_url()` 给 base）。**不要**用 `~/.claude/settings.json` / 本地 `claude` CLI 作为任务执行 LLM 来源——那是历史写死路径，本地不可达会导致任务无限 `running`。api.py `_get_deepseek_credentials()` 已改为优先 harness 配置。
 - 任务执行三条路径：tool 角色→`_run_tool_loop`；文本角色(_TEXT_ONLY_ROLES)→`_run_openai_compatible`；其余→`_should_use_direct_api` 决定直连 vs 本地 CLI。`_run_openai_compatible` 用 urlparse(base_url) 拼 `{path}/chat/completions`，deepseek/codebuddy 的 base（有无 /v1 均可）兼容。
 
+- [2026-08-31] 合规类页面的「报告」区不能只做一行摘要索引。用户明确要求按 Open-Weight Model Assurance Standard §9 出完整审核报告：受评制品与版本、已复核证据、测试方法与结果、对比测试、重大发现与缓解、残余风险、条件/限制/例外、最终裁决，缺一不可，并要能导出。
+- [2026-08-31] 报告装配器绝不能在没有门禁裁决时调用 `adjudicate()` —— 空 verdicts 会被判成「全通过」，报告会凭空给出批准结论。必须先用 `assessed = bool(app.verdicts)` 挡住。
+
+- [2026-08-31] 生成交付型文档（报告、存证、可归档产物）时一律走 Blob 下载，不要 `window.open`：非用户手势触发的新窗口会被弹窗拦截，自动化环境里也拿不到 popup 事件。
+- [2026-08-31] 自包含 HTML 交付物不得外链字体或任何 http 资源，必须用系统字体栈——离线评审、邮件转发与归档环境都会让外链降级。此约束要有测试兜底（断言产物中不含 http/script/link）。
+
+- [2026-08-31] 让 LLM 参与合规评审时，"不影响判定"必须是结构性保证而非提示词约束：判定字段只从 GateVerdict 读，模型返回里的 result/verdict/severity 一律丢弃，并用测试锁死这条。
+- [2026-08-31] 写进合规记录的 LLM 文本必须持久化 + 署名模型 + 带时间戳。标准 §5 要求过程可重复，每次打开报告都重新问模型会让同一份记录内容漂移。
+
+- [2026-08-31] 排查 CSS 被覆盖时，不要只扫 `document.styleSheets` 就下结论——遍历写法很容易漏掉分组规则导致「查无此规则」的假象。可靠做法：改写目标规则的 style 看计算值跟不跟随，不跟随就说明胜出规则在别处。
+- [2026-08-31] `taste-light.css` 用 `html.taste-light .btn`（特异度 0,2,1）定义浅色按钮。页面若把 `.btn` 做成深底实心按钮，必须用同特异度选择器夺回文字色，裸 `.btn` 一定输。
+- [2026-08-31] 跨页跳转带参数时（如 `?model_id=`），接收页必须真的读 `location.search`。发起方带了参数不等于接收方用了，这类断链在 UI 上表现为「点过去什么都没发生」。
+- [2026-08-31] 主操作按钮要放在用户视线所在处。把视图滚到表单却把启动按钮留在页头，等于没有按钮。
+
 ## Do-Not-Repeat
 
 - [2026-07-17] 技能删除必须同时：team.skills + agent 绑定 + skill_store + registry + **萃取队列 approved 项** + skill_versions；否则 `_rehydrate_approved_skill` 启动复活。队列是 dict[item_id→item]，勿 `for item in q` 当 list。墓碑 `deleted_skill_keys` / `_skill_tombstones.json`。

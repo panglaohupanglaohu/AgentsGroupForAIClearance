@@ -10,8 +10,21 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src" / "backend"))
 
 from domain.model_clearance.gate_orchestrator import GateOrchestrator
-from domain.model_clearance.models import AppStatus, ModelApplication, ModelIdentity
+from domain.model_clearance.models import (
+    AppStatus,
+    DeploymentContext,
+    ModelApplication,
+    ModelIdentity,
+)
 from domain.model_clearance.store import ModelClearanceStore
+
+
+def compliant_deployment() -> DeploymentContext:
+    """满足 §7/§8 的合规部署形态；默认值刻意留空 intended_use，此处补齐。"""
+    return DeploymentContext(
+        intended_use="内部 ROW 研发辅助问答",
+        named_owner="platform-ai-owner",
+    )
 
 
 class TestClearanceOrchestrator(unittest.TestCase):
@@ -35,6 +48,7 @@ class TestClearanceOrchestrator(unittest.TestCase):
                 model_id="meta-llama/Llama-3.1-8B-Instruct",
                 revision="v3.1",
             ),
+            deployment=compliant_deployment(),
         )
         self.store.save(app)
 
@@ -42,18 +56,40 @@ class TestClearanceOrchestrator(unittest.TestCase):
         self.assertIn(finished.status, (AppStatus.APPROVED, AppStatus.APPROVED_COND))
         self.assertGreaterEqual(len(self.events), 5)
 
-        # Confirm evidence and verdicts persisted in store
         persisted = self.store.get("app-orchestrate-01")
         self.assertGreaterEqual(len(persisted.evidence), 5)
-        self.assertGreaterEqual(len(persisted.verdicts), 5)
+        # G0–G8 全部执行
+        self.assertEqual(len(persisted.verdicts), 9)
 
-    def test_restricted_model_early_fail_rejection(self):
+    def test_undocumented_intended_use_needs_info(self):
+        """§7.3 要求记录预期用途；留空必须挡在 needs_info，不能默默放行。"""
         app = ModelApplication(
-            application_id="app-orchestrate-restricted",
-            applicant="Engineer B",
+            application_id="app-no-usecase",
+            applicant="Engineer C",
             identity=ModelIdentity(
-                model_id="mistralai/Mistral-Large-Instruct-2407",  # License is restricted
-                revision="v2407",
+                model_id="meta-llama/Llama-3.1-8B-Instruct",
+                revision="v3.1",
+            ),
+            deployment=DeploymentContext(named_owner="owner-x"),
+        )
+        self.store.save(app)
+
+        finished = self.orchestrator.run_clearance(app)
+        self.assertEqual(finished.status, AppStatus.NEED_INFO)
+
+    def test_prohibited_deployment_blocks_at_g0(self):
+        """§3 硬红线：数据外传 PRC 必须在 G0 即刻阻断，后续门不再执行。"""
+        app = ModelApplication(
+            application_id="app-prohibited",
+            applicant="Engineer D",
+            identity=ModelIdentity(
+                model_id="meta-llama/Llama-3.1-8B-Instruct",
+                revision="v3.1",
+            ),
+            deployment=DeploymentContext(
+                intended_use="内部问答",
+                named_owner="owner-y",
+                data_egress_to_prc=True,
             ),
         )
         self.store.save(app)
@@ -61,11 +97,28 @@ class TestClearanceOrchestrator(unittest.TestCase):
         finished = self.orchestrator.run_clearance(app)
         self.assertEqual(finished.status, AppStatus.REJECTED)
 
-        # Confirm G3 was rejected and subsequent gates G4/G5 were skipped (fail-fast)
-        persisted = self.store.get("app-orchestrate-restricted")
-        gates_evaluated = [v.gate for v in persisted.verdicts]
-        self.assertIn("G3", gates_evaluated)
-        self.assertNotIn("G5", gates_evaluated)
+        gates = [v.gate for v in self.store.get("app-prohibited").verdicts]
+        self.assertEqual(gates, ["G0"])
+
+    def test_restricted_license_fails_at_legal_gate(self):
+        """许可证受限在 §7.3 法务门失败，且 §8 不再执行（fail-fast）。"""
+        app = ModelApplication(
+            application_id="app-orchestrate-restricted",
+            applicant="Engineer B",
+            identity=ModelIdentity(
+                model_id="mistralai/Mistral-Large-Instruct-2407",  # License is restricted
+                revision="v2407",
+            ),
+            deployment=compliant_deployment(),
+        )
+        self.store.save(app)
+
+        finished = self.orchestrator.run_clearance(app)
+        self.assertEqual(finished.status, AppStatus.REJECTED)
+
+        gates_evaluated = [v.gate for v in self.store.get("app-orchestrate-restricted").verdicts]
+        self.assertIn("G7", gates_evaluated)
+        self.assertNotIn("G8", gates_evaluated)
 
 
 if __name__ == "__main__":

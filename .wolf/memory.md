@@ -3,6 +3,9 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 
+- 2026-08-28T04:00:00Z | 全量落地论文对齐 P0-P2 全部 10 项机制（补齐 50 项测试，100% 验证通过） | src/backend/agents/*, src/backend/sandbox/*, src/backend/tests/*, docs/论文对齐todos.md, .wolf/* | P0-1(六门统一裁决 skill_gates.py + G_e 溯源熵), P0-2(版本竞争 version_competition.py + Student-t LCB + Cornish-Fisher), P0-3(任务界定适应度 task_bounded_fitness.py + 6因子归一化), P0-4(记忆污染筛查 memory_contamination.py + 恶意隔离), P1-5(生命周期六态 models.py + 2-of-3 去抖 skill_classifier.py), P1-6(路由硬过滤与字符 n-gram skill_router.py), P1-7(SWEI 导入五道具名门 agent_memory_migration.py), P2-8(CHALLENGE 议程路由 plaza_challenge_routing.py), P2-9(生态证据回流 eco_feedback.py), P2-10(DART-Net 门面 dartnet.py + 12-Niche 三环 plaza.py + 共识公式 plaza_consensus.py)。修复 Windows 缺 fcntl 兼容问题。全套 9 个测试套件 50 项测试全绿，npm run lint 编译检查通过 | ~12k |
+- 2026-08-28T02:30:00Z | 落地论文对齐 P2-8 CHALLENGE 议程路由 + P2-9 生态证据回流 | src/backend/agents/plaza_challenge_routing.py(新), plaza_engine.py, src/backend/sandbox/eco_feedback.py(新), eco_drill.py, src/backend/tests/test_paper_p2_routing_feedback.py(新), docs/论文对齐todos.md, .wolf/buglog.json | P2-8: `_run_orid_phases` 由 4 次顺序硬调用改为带回跳状态机，Γ_k 双重防死循环（同(from,target)对 ≤2 次 + MAX_PHASE_RUNS=10 硬上限），环复用既有 SeatTier 而非新建枚举；P2-9: 字段名按真实产物修正（final_ranking[].survival_ticks/skill_genome、gene_pool.deprecated、integration.missing_plan_skills，而非伪代码里的 agents[].survival_time/failures），落盘路径做穿越消毒，Plaza O 阶段 prompt 注入。新测试 17/17 绿；plaza/eco 相关既有测试 278/278 绿；全量 21 failed 经 git stash 基线比对确认为既有失败（与改动无关）；3 个收集错误为 Windows 缺 fcntl 的既有问题 | ~6k |
+- 2026-08-26T01:10:00Z | 深入阅读全仓代码，全面重写并优化项目 README.md | README.md, .wolf/* | 修正技术栈规模数据（389 后端文件/12.4万行 Python，19个前端页面，218个测试套件，31个路由域）；系统化梳理九大业务域、19个页面矩阵、TwinLoop/TSE/EcoDrill/TokenPrepare/拟生记忆/Ratchet/准入治理七大核心机制及权威设计文档导航 | ~3k |
 - 2026-08-21T00:25:00Z | 团队与定时任务配置入库并修复空安全缺陷 | storage/teams/teams.json, src/frontend/*, .gitignore, .wolf/* | 开放权重资源团队纳入 teams.json 并在 .gitignore 显式放行；修复 loadSchedules 与 createSchedule 在网络或 401 场景下直接访问 null 对象的崩溃；data-intelligence 补全各下拉中的开放权重选项；提交 commit 194480b | ~2k |
 - 2026-08-20T03:15:00Z | 修复 ai-model-entry-clearance.js 尾部重复代码导致的 Vite 语法解析错误 | src/frontend/js/ai-model-entry-clearance.js, .wolf/buglog.json | 清理 IIFE 闭包后的多余重复代码；node --check 与 28 项前端单元测试通过 | ~1k |
 - 2026-08-20T03:05:00Z | 完成 P10（TA01–TA09）控制台与准入引擎真实对接与全面验证 | src/frontend/*, src/backend/domain/api_routes.py, TODOS.md, .wolf/* | 表单字段与校验正则全面正名（model_id / revision / as_of / target_qpm 等）；彻底断开并删除遗留 investment_simulation 目录与路由；启动/轮询/会签全面直连 /api/v1/model-clearance/applications 与 submit；门禁矩阵吃真实 GateVerdict 与 evidence；新增 clearance-cockpit-wiring.test.js，全套 12 后端测试、Phase 1 出口验证与 28 项前端单元测试 100% 通过 | ~4k |
@@ -494,3 +497,60 @@
 - 完成 P7 持续验证 L5（30分钟基线巡检 + 每日 CVE/许可证重评 + 到期降档调度 + 月度报告）
 - 完成 P8 控制台前端与知识库自动联想对接
 - 运行 10 组后端测试套件 + Phase 1 出口条件验证：全部 100% 通过（Permissive/Conditional/Restricted 真实路径验证）。
+
+## 2026-08-31 ModelClearance §9 保障记录报告
+
+- 新增 `src/backend/domain/model_clearance/assurance_record.py`：按标准 §9 装配保障记录（受评制品 / 已复核证据 / 测试方法与结果 / 对比与外部情报 / 发现与缓解 / 残余风险 / 条件限制例外 / 最终裁决，另附 §10 许可用途与 §11 治理归属）。
+- 新增 `GATE_CRITERIA`：G0-G8 各门对应标准正文的评估要点，报告能回答「这道门照着标准哪几条在看」。
+- 新增端点 `GET /api/v1/model-clearance/applications/{app_id}/assurance-record`。
+- 前端 `renderReportIndex` 重写为拉取 §9 记录并渲染 8 个章节 + 逐门 details 展开 + JSON 导出；轮询期间以 `application_id|updated_at|status` 为缓存键，避免每 500ms 打一次后端。
+- 新增 `tests/test_clearance_assurance_record.py`（6 项）；clearance 套件 57 passed。
+- 端到端验证：customer_facing 且未完成附加评估 → G7-USE-01 blocker → not_approved；报告 8 个 block、9 道门全部渲染。
+
+## 2026-08-31 独立保障记录交付文档（tasteskill）
+
+- 新增 `src/frontend/js/assurance-report-doc.js`：把 §9 记录渲染成单文件、可离线打开、可打印的独立 HTML 交付物。
+- Design read：受监管保障文档 / 评审与法务小组 / trust-first / 档案式排版，三档 `VARIANCE 3 · MOTION 1 · DENSITY 5`。
+- 已锁定三条系统规则：圆角一律 0；唯一强调色 archive navy 只用于结构件，pass/fail/needs_info 是功能令牌不作装饰；字体走系统栈（交付物不得外链字体，否则离线与归档环境降级）。
+- 控制台报告区新增「下载独立报告页 HTML」按钮；window.open 会被弹窗拦截，改为 Blob 下载。
+- 新增 `src/frontend/__tests__/assurance-report-doc.test.js`（5 项）：自包含（无 http / script / link）、10 个章节齐全、9 格门禁条带、外部标签转义、无裁决时不得出现批准字样。
+- 浏览器实测：产出 25.8KB 单文件，`selfContained=true`，含 §11 三方签署块。
+
+## 2026-08-31 Blocker 检查项的 LLM 分析与建议
+
+- 新增 `src/backend/domain/model_clearance/blocker_advisor.py`：为每道已评估门禁的阻断项生成分析 / 建议 / 不处理的风险，每道门一次调用、`asyncio.gather` 并发。
+- 结构性红线：调用方只读 analysis / recommendation / risk_if_ignored 三个字符串，`result` 取自 GateVerdict 而非模型输出，不存在让 LLM 影响裁决的代码路径。产出 `advisory=True` 并署名 provider/model。
+- 新增 `BlockerAdvisory` 模型并持久化到 `ModelApplication.blocker_advisories`——标准 §5 要求可重复，报告每次渲染读同一份文本，不重新问模型。
+- 新增端点 `POST /api/v1/model-clearance/applications/{id}/blocker-advisories`；未起评时返回 409。
+- 报告两处渲染：控制台 `#reports` 的检查项行内 `.adv` 块，独立报告页表格内 `.adv-row` 整行，均带「不参与门禁规则求值」免责语。
+- 测试：后端 `tests/test_clearance_blocker_advisor.py` 7 项（含"模型给出 verdict 字段必须被丢弃"与"上游失败必须留痕"），clearance 套件 64 passed；前端 12 passed。
+- 真实 LLM 端到端：16 条全部生成、0 错误、37 秒，generated_by=`openai/qwen-36`，内容确实引用了 `prohibited_clear` / `data_egress_to_prc` 等真实证据字段。
+
+## 2026-08-31 从开放权重资源直达准入评审（带入 / 可见 / 可点）
+
+- 根因：`open-weights-models.js` 一直带着 `?model_id=` 跳转，但准入控制台从不读 `location.search`，点过去等于打开一张空表单。
+- 控制台新增 `readIncoming` / `applyIncoming` / `renderIntakeNotice`：带入 model_id + revision + weights_uri，实时列出还差哪些标准必填项（§7.3 intended_use、§8/§11 named_owner）。
+- 带入模型时不再 `restore()` 上一份申请，否则页面显示的是另一个模型的评审过程。
+- 浮动标签防线：带过来的 revision 命中 main/latest/master/head 一律不填，逼评审人指定不可变版本（§6.1 / G1-PROV-02）。
+- 发起方改用 `buildClearanceHref(m)`，卡片与弹窗两个入口共用，顺带带上 `latest_version` 与 `weights_url`。
+- run 按钮问题：`#btn-engine-start` 在页头，带入模型时视图停在下方表单卡片，按钮被滚出视野。解法是把「启动准入评审」按钮直接放进提示条，启动后滚到时间线。
+- 顺手修掉一个静默失败：`createApplication` / `submitApplication` 拿到 null 不再直接清空控制台，改为回填错误原因并提示。
+- 端到端：DeepSeek-V3 走完 9 道门禁，时间线逐条出结果，报告 8 个 block，裁决 Approved。
+
+## 2026-08-31 按钮文字对比度（taste-light 特异度冲突）
+
+- 现象：报告区按钮文字灰暗不可读，实测 `#4B5568` 压 `#0f172a`，对比度 2.38:1。
+- 误判过程：先当成 `:disabled` 默认样式，加了 `.btn:disabled` 无效；扫描 `document.styleSheets` 的写法有 bug，一度得出「没有任何规则匹配」的错误结论。
+- 真因：`taste-light.css` 的 `html.taste-light .btn, ... .btn-sm { color: var(--tg-ink-2) }` 特异度 (0,2,1) 压过页面裸 `.btn` (0,1,0)，无需 !important。主题假定 .btn 是浅色按钮，本页却是深底实心按钮。
+- 解法：页面内联 `<style>` 在 taste-light.css 之后加载，用同特异度 `html.taste-light .btn` 夺回。修复后 17.85:1。
+
+## 2026-09-01 准入门禁流水线步骤与执行智能体可视化展示
+
+- 在准入流水线 9 道门禁泳道（G0-G8）的卡片头部增加了明确的「步骤序号」与「状态徽标」：
+  - `步骤 #1` ~ `步骤 #9`，对应 standard 章节顺序。
+  - 状态标签支持 `待执行`、`执行中...`、`通过 ✓`、`未通过 ✗`、`待补证 ?`、`未执行`。
+- 在每个门禁泳道标题下方展示专属的负责智能体卡片与当前执行动态：
+  - 例如 `🤖 基础设施架构师 [mc_infra]`、`🤖 供应链与制品完整性工程师 [mc_supply]`、`🤖 AI模型安全审核人 [mc_security]`、`🤖 红队与威胁情报分析师 [mc_redteam]`、`🤖 AI模型法务审核人 [mc_legal]`、`🤖 持续保障与运营负责人 [mc_operations]`。
+  - 动态执行状态文字：`mc_infra 取证完成 (1项)`、`mc_legal 待补: G7-USE-02`、`🤖 mc_infra 正在审核...`、`mc_infra 待命`。
+- 泳道边框支持运行中发光（`is-running`）、通过绿框（`is-pass`）、失败红框（`is-fail`）、待补证黄框（`is-needs_info`）的状态变色。
+- 新增/更新单元测试，前端 44 项 tests、后端 64 项 clearance tests 全部通过，实机浏览器端到端截图验证通过。

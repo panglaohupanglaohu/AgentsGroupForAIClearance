@@ -8,7 +8,6 @@ schema: ag.memory.export/v2
 from __future__ import annotations
 
 import copy
-import fcntl
 import hashlib
 import json
 import re
@@ -18,6 +17,11 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # Windows compatibility fallback
 
 from .agent_memory_core import (
     MEMORY_SCHEMA,
@@ -301,6 +305,91 @@ def validate_export_v2(bundle: Any, *, allow_legacy_v1: bool = True) -> Validati
     return report
 
 
+# ── SWEI 导入五道具名门 (论文 Eq.(25)) ────────────────────────────
+
+IMPORT_GATES: Sequence[str] = ("scope", "schema", "integrity", "provenance", "conflict")
+
+
+def evaluate_import_gates(
+    bundle: Dict[str, Any],
+    will: Optional[Dict[str, Any]] = None,
+    target_state: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    r"""论文 Eq.(25) g_imp = \bigwedge_{v \in V_imp} g_v 五道具名门.
+
+    1. scope: 包内层是否都在 Will/目标授权范围内
+    2. schema: validate_export_v2 格式校验
+    3. integrity: manifest 哈希与逐层内容哈希一致
+    4. provenance: 目标受益人身份与 Will 声明一致
+    5. conflict: 冲突策略属于合法策略集合
+    """
+    will_dict = will or {}
+    gates: Dict[str, Any] = {}
+
+    # 1. g_scope
+    allowed = set(will_dict.get("layers") or KNOWN_LAYERS)
+    bundle_layers = set((bundle.get("layers") or {}).keys())
+    scope_ok = (bundle_layers <= allowed) if bundle_layers else True
+    gates["scope"] = {
+        "ok": scope_ok,
+        "allowed_layers": sorted(allowed),
+        "actual_layers": sorted(bundle_layers),
+        "extra_layers": sorted(bundle_layers - allowed),
+    }
+
+    # 2. g_schema
+    rep = validate_export_v2(bundle, allow_legacy_v1=True)
+    gates["schema"] = {
+        "ok": rep.ok,
+        "validation_strength": rep.validation_strength,
+        "errors": list(rep.errors),
+    }
+
+    # 3. g_integrity
+    ch = (bundle.get("content_hashes") if isinstance(bundle, dict) else {}) or {}
+    claimed_m_hash = (ch.get("manifest_sha256") if isinstance(ch, dict) else "") or ""
+    expected_m_hash = recompute_manifest_hash(bundle) if isinstance(bundle, dict) else ""
+    integrity_ok = rep.ok and (claimed_m_hash == expected_m_hash)
+    gates["integrity"] = {
+        "ok": integrity_ok,
+        "manifest_hash_match": claimed_m_hash == expected_m_hash,
+        "layer_counts": count_each_layer(bundle.get("layers") or {}) if isinstance(bundle.get("layers"), dict) else {},
+    }
+
+    # 4. g_provenance
+    beneficiary_claimed = will_dict.get("beneficiary")
+    target_agent = (target_state or {}).get("agent_id") if target_state else None
+    if beneficiary_claimed and target_agent:
+        prov_ok = (beneficiary_claimed == target_agent)
+    else:
+        prov_ok = True
+    gates["provenance"] = {
+        "ok": prov_ok,
+        "beneficiary_claimed": beneficiary_claimed,
+        "target_agent": target_agent,
+    }
+
+    # 5. g_conflict
+    strat = will_dict.get("strategy")
+    if isinstance(strat, dict):
+        conflict_ok = all(s in STRATEGIES for s in strat.values())
+    elif isinstance(strat, str):
+        conflict_ok = strat in STRATEGIES
+    else:
+        conflict_ok = True
+    gates["conflict"] = {
+        "ok": conflict_ok,
+        "strategy": strat,
+    }
+
+    all_ok = all(g.get("ok", False) for g in gates.values())
+    return {
+        "ok": all_ok,
+        "gates": gates,
+        "failed_gates": [name for name, g in gates.items() if not g.get("ok")],
+    }
+
+
 # ── Snapshots / transactions ────────────────────────────────────
 
 
@@ -516,12 +605,15 @@ def target_transaction_lock(store: AgentMemoryStore, team_id: str, agent_id: str
     lock_dir.mkdir(parents=True, exist_ok=True)
     lock_path = lock_dir / f"{safe_team}__{safe_agent}.lock"
     with thread_lock:
-        with lock_path.open("a+", encoding="utf-8") as lock_file:
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        if fcntl is not None:
+            with lock_path.open("a+", encoding="utf-8") as lock_file:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                try:
+                    yield
+                finally:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        else:
+            yield
 
 
 def write_tx_record(store: AgentMemoryStore, tx_id: str, payload: Dict[str, Any]) -> None:
@@ -672,6 +764,24 @@ def _import_transaction_unlocked(
             target_agent=agent_id,
             keep_origin_fields=True,
         )
+
+        # 论文 Section 7.14 记忆污染筛查：导入前隔离恶意/高危记录
+        from .memory_contamination import screen_records
+        quarantine_info: Dict[str, Any] = {}
+        for lname, ldata in list(layers_in.items()):
+            if isinstance(ldata, list) and ldata:
+                s_res = screen_records(ldata)
+                if s_res.flagged:
+                    flagged_set = set(s_res.flagged)
+                    layers_in[lname] = [
+                        r for r in ldata
+                        if str(r.get("id") or r.get("record_id") or "") not in flagged_set
+                    ]
+                    quarantine_info[lname] = {
+                        "quarantined": len(s_res.flagged),
+                        "flagged_ids": s_res.flagged,
+                        "reasons": s_res.reasons,
+                    }
 
         if strategy == "selective":
             if not selected_layers:

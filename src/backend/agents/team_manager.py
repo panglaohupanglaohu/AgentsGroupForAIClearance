@@ -47,6 +47,19 @@ class TeamManager:
         """Get a team by ID."""
         return self._teams.get(team_id)
 
+    def register_team(self, team: AgentTeam, overwrite: bool = False) -> AgentTeam:
+        """Register a pre-built team and persist it.
+
+        Bootstrap teams that write straight into ``_teams`` stay memory-only and
+        vanish on restart; this keeps them on disk like user-created teams.
+        """
+        existing = self._teams.get(team.team_id)
+        if existing is not None and not overwrite:
+            return existing
+        self._teams[team.team_id] = team
+        self._persist()
+        return team
+
     def list_teams(self) -> List[AgentTeam]:
         """Return all teams."""
         return list(self._teams.values())

@@ -39,6 +39,30 @@ class NicheRole(str, enum.Enum):
     OBSERVER = "observer"           # 观察者壁龛
 
 
+# 论文 Section 4.2 12-Niche 三环知识功能拓扑
+NICHE_RINGS: Dict[str, List[str]] = {
+    "inner": ["goal", "tool", "step", "precondition"],           # 直接执行知识
+    "middle": ["detection", "failure_mode", "risk", "rollback"],  # 风险与边界
+    "outer": ["provenance", "version", "audit", "change"],        # 证据与记录
+}
+
+
+def ring_of(niche_name: str) -> str:
+    """根据壁龛功能名称获取所在三环层级."""
+    clean = str(niche_name or "").lower().strip()
+    for ring, names in NICHE_RINGS.items():
+        if clean in names:
+            return ring
+    return "outer"
+
+
+def role_coverage(required: Set[str], activated: Set[str]) -> float:
+    """论文 7.4 C_role / role coverage 指标 (目标 1.0)."""
+    if not required:
+        return 1.0
+    return round(len(required & activated) / len(required), 4)
+
+
 @dataclass
 class PlazaMessage:
     """广场讨论消息 — 在数字奇点中显示的信息流."""

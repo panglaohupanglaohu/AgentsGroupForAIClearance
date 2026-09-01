@@ -11,7 +11,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src" / "backend"))
 
 from domain.model_clearance.adjudicate import adjudicate
 from domain.model_clearance.gate_orchestrator import GateOrchestrator
-from domain.model_clearance.models import AppStatus, ModelApplication, ModelIdentity
+from domain.model_clearance.models import (
+    AppStatus,
+    DeploymentContext,
+    ModelApplication,
+    ModelIdentity,
+)
 from domain.model_clearance.registry import ModelRegistryStore
 from domain.model_clearance.store import ModelClearanceStore
 
@@ -27,7 +32,7 @@ class TestClearanceE2E(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_e2e_approval_and_cryptographic_verification(self):
-        # 1. Create Application
+        # 1. Create Application（§7/§8 要求的部署上下文必须随申请提交）
         app = ModelApplication(
             application_id="app-e2e-llama",
             applicant="Platform AI SecOps",
@@ -35,6 +40,10 @@ class TestClearanceE2E(unittest.TestCase):
                 model_id="meta-llama/Llama-3.1-8B-Instruct",
                 revision="v3.1",
                 expected_signer_identity="meta@verified.org",
+            ),
+            deployment=DeploymentContext(
+                intended_use="内部 ROW 研发辅助问答",
+                named_owner="platform-ai-secops",
             ),
         )
         self.app_store.save(app)

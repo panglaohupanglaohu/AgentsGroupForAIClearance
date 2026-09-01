@@ -446,6 +446,63 @@ function bootOffice() {
     return btn;
   }
 
+  // ── 宠物隐藏按钮（吱吱/小虎）：与猫静音按钮同款风格，localStorage 持久化 ──
+  const _PETS_HIDDEN_LS = 'ag-office-pets-hidden';
+  let _petsHidden = false;
+  try { _petsHidden = localStorage.getItem(_PETS_HIDDEN_LS) === '1'; } catch (e) { _petsHidden = false; }
+  let _petsHideBtn = null;
+
+  function setPetsVisible(visible, { persist = true } = {}) {
+    _petsHidden = !visible;
+    if (persist) {
+      try { localStorage.setItem(_PETS_HIDDEN_LS, _petsHidden ? '1' : '0'); } catch (e) { /* ignore */ }
+    }
+    if (_petsHidden) stopCatAudio();
+    sceneApi.setPetsVisible(visible);
+    if (_petsHideBtn) {
+      _petsHideBtn.textContent = _petsHidden ? '🐱 🐭 已隐藏' : '🐱 🐭';
+      _petsHideBtn.title = _petsHidden
+        ? '吱吱与小虎已隐藏 — 点击恢复显示'
+        : '隐藏吱吱与小虎';
+      _petsHideBtn.setAttribute('aria-pressed', _petsHidden ? 'true' : 'false');
+      _petsHideBtn.style.opacity = _petsHidden ? '0.72' : '1';
+      _petsHideBtn.style.borderColor = _petsHidden ? 'rgba(245,158,11,.55)' : 'rgba(232,160,32,.55)';
+    }
+    return visible;
+  }
+
+  function togglePetsVisibility() {
+    return setPetsVisible(_petsHidden); // 传"当前是否隐藏"，取反即得到新状态
+  }
+
+  function mountPetsVisibilityButton() {
+    if (_petsHideBtn && _petsHideBtn.isConnected) return _petsHideBtn;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'office-pets-toggle-btn';
+    btn.setAttribute('aria-label', '隐藏吱吱与小虎');
+    // 贴在猫静音按钮上方，不挡任务 HUD 与旧版切换按钮
+    btn.style.cssText = [
+      'position:absolute', 'bottom:88px', 'right:12px', 'z-index:22',
+      'padding:6px 10px', 'border-radius:8px',
+      'border:1px solid rgba(232,160,32,.55)',
+      'background:rgba(15,14,13,0.82)', 'color:#f8fafc',
+      'font:600 12px/1.2 sans-serif', 'cursor:pointer',
+      'backdrop-filter:blur(8px)', 'box-shadow:0 2px 12px rgba(0,0,0,.28)',
+      'pointer-events:auto', 'user-select:none',
+    ].join(';');
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePetsVisibility();
+    };
+    if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
+    container.appendChild(btn);
+    _petsHideBtn = btn;
+    setPetsVisible(!_petsHidden, { persist: false }); // 同步 UI 与场景，不重写 LS
+    return btn;
+  }
+
   // 预加载 voices（Chrome 异步加载，首次 getVoices() 返回空）
   if (window.speechSynthesis) {
     speechSynthesis.getVoices();
@@ -464,8 +521,8 @@ function bootOffice() {
   })();
 
   function catSpeak(text, voiceCfg) {
-    if (_catMuted) {
-      console.log('[catSpeak] muted, skip');
+    if (_catMuted || _petsHidden) {
+      console.log('[catSpeak] muted or pets hidden, skip');
       return;
     }
     const vc = voiceCfg || _petVoiceConfig;
@@ -630,12 +687,15 @@ function bootOffice() {
     isCatMuted: () => _catMuted,
     setCatMuted,
     toggleCatMute,
+    setPetsVisible,
+    isPetsHidden: () => _petsHidden,
     stopCatAudio,
     trackReward,
     _speakerId: null,
   };
 
   mountCatMuteButton();
+  mountPetsVisibilityButton();
 
   // 初次进入即渲染办公室
   window._dt3dBuildRoom(window._currentRoomId && window._currentRoomId !== 'rest-area'

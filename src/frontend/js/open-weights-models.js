@@ -290,6 +290,15 @@
     }).join('');
   }
 
+  /** 把注册表里已知的制品信息一起带给准入控制台，少让评审人手抄。 */
+  function buildClearanceHref(m) {
+    var q = ['model_id=' + encodeURIComponent(m.model_id)];
+    if (m.latest_version) q.push('revision=' + encodeURIComponent(m.latest_version));
+    var uri = m.weights_url || m.source_url;
+    if (uri) q.push('weights_uri=' + encodeURIComponent(uri));
+    return '/ai-model-entry-clearance.html?' + q.join('&');
+  }
+
   function renderMatrix() {
     var root = $('model-matrix-grid');
     if (!root) return;
@@ -327,7 +336,7 @@
       var hw = estimateHardware(m.params_b);
       var paramsText = m.params_b ? m.params_b + 'B 参数' : 'MoE / 多模态';
       var take = getAi60Take(m);
-      var clearanceHref = '/ai-model-entry-clearance.html?model_id=' + encodeURIComponent(m.model_id);
+      var clearanceHref = buildClearanceHref(m);
 
       return '<article class="model-card">' +
         '<div class="model-card-header">' +
@@ -383,7 +392,7 @@
 
     $('modal-model-title').textContent = (m.display_name || m.model_id) + ' · 60秒规格与 Lenovo 直管';
     $('modal-model-id').textContent = m.model_id + ' (' + (m.vendor || '开源社区') + ')';
-    $('btn-modal-clearance-link').href = '/ai-model-entry-clearance.html?model_id=' + encodeURIComponent(m.model_id);
+    $('btn-modal-clearance-link').href = buildClearanceHref(m);
 
     var body = $('modal-model-body');
     body.innerHTML =

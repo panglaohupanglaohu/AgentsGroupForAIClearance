@@ -2672,5 +2672,36 @@
       "team-config",
       "fairness"
     ]
+  },
+  {
+    "id": "bug-157",
+    "timestamp": "2026-08-28T04:00:56.703Z",
+    "error_message": "docs/论文对齐todos.md 签名校验 FAIL：第一行不是合法签名块（内容目视正常）",
+    "file": "docs/论文对齐todos.md",
+    "root_cause": "PowerShell 5.1 的 Set-Content -Encoding UTF8 会写入 UTF-8 BOM；BOM 排在 <!-- docs-signoff 之前，导致 check-docs-signoff.cjs 的首行正则不匹配。",
+    "fix": "改用 [IO.File]::WriteAllText(path, text, (New-Object Text.UTF8Encoding $false)) 写无 BOM UTF-8。校验从 47OK/36FAIL 回到 48OK/35FAIL 基线。",
+    "tags": [
+      "powershell",
+      "encoding",
+      "bom",
+      "docs-signoff",
+      "windows"
+    ]
+  },
+  {
+    "id": "bug-158",
+    "timestamp": "2026-08-28T04:00:56.703Z",
+    "error_message": "pip install -e \".[dev]\" 失败：ProxyError Cannot connect to proxy / WinError 10061",
+    "file": "pyproject.toml",
+    "root_cause": ".venv 中既无 numpy 也无 pytest（numpy 甚至不在 pyproject dependencies，但 agents/tse 下 12 个模块硬 import numpy，无降级分支）；同时环境残留 HTTP(S)_PROXY 指向不可达代理。",
+    "fix": "清空 HTTP_PROXY/HTTPS_PROXY 后用清华源安装 numpy pytest pytest-asyncio。注意 run-python.cjs 选的是 .venv 而非系统 Python，装错解释器等于没装。",
+    "tags": [
+      "pip",
+      "proxy",
+      "venv",
+      "numpy",
+      "pytest",
+      "windows"
+    ]
   }
 ]

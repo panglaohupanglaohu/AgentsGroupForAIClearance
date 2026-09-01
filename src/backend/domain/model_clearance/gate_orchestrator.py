@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
-"""T303 / T306 — Gate Orchestrator with Fail-Fast execution and Event stream."""
+"""门禁编排器 — 按 Lenovo Open-Weight Model Assurance Standard 执行 G0–G8 并产出裁决.
+
+与旧版的差异：
+  1. 门禁顺序与内容由 standard.py 定义，不再散落在代码里；
+  2. G0(§3) 是硬阻断，命中即不批准，其它门的结果不能覆盖；
+  3. §7/§8 的门需要部署上下文，由本编排器注入扫描器；
+  4. 时间线事件由门禁目录数据驱动生成，新增门禁无需再改事件代码。
+"""
 
 from __future__ import annotations
 
@@ -7,13 +14,15 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .adjudicate import adjudicate
 from .agent_review import simulate_or_call_agent_review
+from .contributions import resolve_contributions
 from .models import AppStatus, Evidence, GateVerdict, ModelApplication, utc_now_iso
 from .policy_evaluator import evaluate_gate, load_policy
 from .scanners import platform_endorse, scanners_for
+from .standard import GATE_BY_ID, GATE_ORDER, GATE_PHASE, HARD_BLOCK_GATES
 from .store import ModelClearanceStore, get_clearance_store
 
-GATE_ORDER = ["G1", "G2", "G3", "G4", "G5"]
-AGENT_GATES = {"G3", "G4", "G5"}
+# 需要专家智能体复核的门：行为评估、红队、法务、持续保障
+AGENT_GATES = {"G3", "G4", "G7", "G8"}
 
 
 class GateOrchestrator:
@@ -45,41 +54,59 @@ class GateOrchestrator:
         self.store.save(app)
         self._emit("clearance_started", app.application_id, {"status": app.status.value})
 
+        context = app.deployment.to_dict()
+
         for gate in GATE_ORDER:
-            self._emit("gate_started", app.application_id, {"gate": gate})
+            meta = GATE_BY_ID.get(gate, {})
+            self._emit("gate_started", app.application_id, {
+                "gate": gate,
+                "section": meta.get("section", ""),
+                "name": meta.get("name", ""),
+            })
 
-            # 1. Collect evidence from scanners
-            scanners = scanners_for(gate)
-            evidences: List[Evidence] = [s.run(app.identity) for s in scanners]
+            evidences: List[Evidence] = [s.run(app.identity) for s in scanners_for(gate, context)]
 
-            # If G1 has missing vendor signature, apply platform endorsement
+            # G1 §6.1：厂商签名缺失时用平台背书锁定 digest，仍满足「完整性与真实性」要求
             if gate == "G1":
                 sig_ev = next((e for e in evidences if e.collector == "sigstore-verify"), None)
                 if sig_ev and sig_ev.payload.get("vendor_signature") == "absent":
-                    endorsement = platform_endorse(app.identity)
-                    sig_ev.payload.update(endorsement)
+                    sig_ev.payload.update(platform_endorse(app.identity))
+
+            # 控制台组装到本门禁的情报来源：advisory 证据，只留痕不参与规则求值
+            # 截止日取申请创建日，避免采信申请之后才产生的情报
+            advisory = resolve_contributions(
+                app.contributions, gate, before=(app.created_at or "")[:10] or None
+            )
+            if advisory:
+                evidences.extend(advisory)
+                self._emit("advisory_attached", app.application_id, {
+                    "gate": gate,
+                    "count": len(advisory),
+                    "labels": [e.payload.get("label", "") for e in advisory],
+                })
 
             app.evidence.extend(evidences)
             self.store.save(app)
             self._emit("evidence_collected", app.application_id, {
                 "gate": gate,
                 "count": len(evidences),
+                "advisory_count": len(advisory),
                 "digests": [e.digest for e in evidences],
             })
 
-            # 2. Evaluate Policy rules
             verdict = evaluate_gate(gate, evidences, self.policy)
             app.verdicts.append(verdict)
             self.store.save(app)
             self._emit("gate_verdict", app.application_id, verdict.to_dict())
 
-            # Fail-fast check
             if verdict.verdict == "fail":
                 app.transition_to(AppStatus.REJECTED)
                 self.store.save(app)
                 self._emit("clearance_rejected", app.application_id, {
                     "failed_gate": gate,
+                    "section": meta.get("section", ""),
                     "failed_checks": verdict.failed_checks,
+                    "hard_block": gate in HARD_BLOCK_GATES,
                 })
                 return app
 
@@ -89,11 +116,11 @@ class GateOrchestrator:
                 self.store.save(app)
                 self._emit("clearance_need_info", app.application_id, {
                     "gate": gate,
+                    "section": meta.get("section", ""),
                     "missing_checks": verdict.failed_checks,
                 })
                 return app
 
-            # 3. Agent Review for designated gates (G3, G4, G5)
             if gate in AGENT_GATES:
                 opinion = simulate_or_call_agent_review(gate, app, evidences, verdict)
                 app.opinions.append(opinion)
@@ -105,7 +132,7 @@ class GateOrchestrator:
                     self.store.save(app)
                     return app
 
-        # 4. Adjudication & Signoff (G6)
+        # §9 证据与保障裁决
         app.transition_to(AppStatus.ADJUDICATING)
         self.store.save(app)
         self._emit("adjudication_started", app.application_id, {})
@@ -113,7 +140,7 @@ class GateOrchestrator:
         decision = adjudicate(app, self.policy)
         if decision.verdict == "approved":
             app.transition_to(AppStatus.APPROVED)
-        elif decision.verdict == "approved_with_conditions":
+        elif decision.verdict in ("approved_with_conditions", "restricted"):
             app.transition_to(AppStatus.APPROVED_COND)
         else:
             app.transition_to(AppStatus.REJECTED)
@@ -124,126 +151,90 @@ class GateOrchestrator:
         return app
 
 
+def _gate_content(gate: str, verdict: Optional[GateVerdict], evidences: List[Evidence]) -> str:
+    meta = GATE_BY_ID.get(gate, {})
+    section = meta.get("section", "")
+    name = meta.get("name", gate)
+    if verdict is None:
+        return f"§{section} {name}：未执行。"
+    if verdict.verdict == "pass":
+        return f"§{section} {name}：通过（{len(evidences)} 项证据）。"
+    if verdict.verdict == "needs_info":
+        return f"§{section} {name}：证据不足，待补 {', '.join(verdict.failed_checks) or '—'}。"
+    return f"§{section} {name}：未通过，阻断项 {', '.join(verdict.failed_checks) or '—'}。"
+
+
 def generate_application_events(app: ModelApplication) -> List[Dict[str, Any]]:
-    """Synthesize standardized journey timeline events from application evidence, verdicts, and opinions."""
+    """由门禁目录数据驱动生成流水线时间线事件。
+
+    新增门禁只需改 standard.py，本函数无需同步修改。
+    """
     events: List[Dict[str, Any]] = []
     seq = 1
 
-    # 1. G1 Ingress event
-    events.append({
-        "seq": seq,
-        "phase": "context",
-        "node": "g1_provenance",
-        "participant": "Provenance & Signature Scanner",
-        "status": "completed",
-        "content": f"模型标识: {app.identity.model_id} (revision: {app.identity.revision})，证据已冻结。",
-        "structured": {
-            "model_id": app.identity.model_id,
-            "revision": app.identity.revision,
-            "evidence_count": len([e for e in app.evidence if e.gate == "G1"]),
-        },
-        "evidence": [e.evidence_id for e in app.evidence if e.gate == "G1"],
-        "ts": app.created_at,
-    })
-    seq += 1
+    for gate in GATE_ORDER:
+        meta = GATE_BY_ID.get(gate, {})
+        verdict = next((v for v in app.verdicts if v.gate == gate), None)
+        gate_ev = [e for e in app.evidence if e.gate == gate]
+        opinion = next((o for o in app.opinions if o.gate == gate), None)
 
-    # 2. G2 Security & BOM event
-    g2_verdict = next((v for v in app.verdicts if v.gate == "G2"), None)
-    events.append({
-        "seq": seq,
-        "phase": "analysis",
-        "node": "g2_bom_cve",
-        "participant": "CycloneDX BOM & Security Scanner",
-        "status": "completed" if g2_verdict and g2_verdict.verdict == "pass" else "failed",
-        "content": "CycloneDX ML-BOM 格式安全与 CVE 漏洞扫描完成。",
-        "structured": {
-            "claim": "Safetensors 格式安全，无已知 CRITICAL 漏洞",
-            "direction": "up" if g2_verdict and g2_verdict.verdict == "pass" else "down",
-            "confidence": 0.95,
-            "label": "analysis",
-        },
-        "evidence": [e.evidence_id for e in app.evidence if e.gate == "G2"],
-        "ts": g2_verdict.decided_at if g2_verdict else app.updated_at,
-    })
-    seq += 1
+        if verdict is None:
+            status = "pending"
+        elif verdict.verdict == "pass":
+            status = "completed"
+        elif verdict.verdict == "needs_info":
+            status = "needs_info"
+        else:
+            status = "failed"
 
-    # 3. G3 Compliance & License event
-    g3_verdict = next((v for v in app.verdicts if v.gate == "G3"), None)
-    g3_opinion = next((o for o in app.opinions if o.gate == "G3"), None)
-    events.append({
-        "seq": seq,
-        "phase": "planning",
-        "node": "compliance_reviewer",
-        "participant": "Compliance & Legal Reviewer",
-        "status": "completed" if g3_verdict and g3_verdict.verdict == "pass" else "failed",
-        "content": f"许可证条款与管辖权合规评估完成: {', '.join(g3_opinion.recommended_conditions) if g3_opinion and g3_opinion.recommended_conditions else '允许商用与内部推理'}",
-        "structured": {
-            "objective": "开放权重模型许可范围与法律风险判定",
-            "base_case": {"action": "APPROVED", "scope": "internal"},
-            "bull_case": {"action": "COMMERCIAL_OK"},
-            "bear_case": {"action": "RESTRICTED"},
-        },
-        "evidence": [e.evidence_id for e in app.evidence if e.gate == "G3"],
-        "ts": g3_verdict.decided_at if g3_verdict else app.updated_at,
-    })
-    seq += 1
+        structured: Dict[str, Any] = {
+            "gate": gate,
+            "section": f"§{meta.get('section', '')}",
+            "standard_name": meta.get("name_en", ""),
+            "owner_role": meta.get("owner_role", ""),
+            "hard_block": bool(meta.get("hard_block")),
+            "verdict": verdict.verdict if verdict else "pending",
+            "failed_checks": list(verdict.failed_checks) if verdict else [],
+            "evidence_count": len(gate_ev),
+            "label": "fact" if gate in ("G0", "G1", "G2") else "analysis",
+        }
+        if opinion:
+            structured["reviewer"] = opinion.reviewer
+            structured["risk_level"] = opinion.risk_level
+            structured["recommended_conditions"] = list(opinion.recommended_conditions)
 
-    # 4. G4 Resource & Infra event
-    g4_verdict = next((v for v in app.verdicts if v.gate == "G4"), None)
-    events.append({
-        "seq": seq,
-        "phase": "trading",
-        "node": "infra_reviewer",
-        "participant": "Infra & GPU Capacity Reviewer",
-        "status": "completed",
-        "content": "显存占用、KV-Cache 与多节点并发推演完成。",
-        "structured": {
-            "summary": "资源画像满足生产推理池基线",
-            "action": "STANDARD_GPU_POOL",
-            "label": "simulation",
-        },
-        "evidence": [e.evidence_id for e in app.evidence if e.gate == "G4"],
-        "ts": g4_verdict.decided_at if g4_verdict else app.updated_at,
-    })
-    seq += 1
+        events.append({
+            "seq": seq,
+            "phase": GATE_PHASE.get(gate, "context"),
+            "node": f"{gate.lower()}_sec{meta.get('section', '').replace('.', '_')}",
+            "participant": meta.get("owner_role", "Clearance Scanner"),
+            "status": status,
+            "content": _gate_content(gate, verdict, gate_ev),
+            "structured": structured,
+            "evidence": [e.evidence_id for e in gate_ev],
+            "ts": verdict.decided_at if verdict else app.updated_at,
+        })
+        seq += 1
 
-    # 5. G5 Red team & Safety event
-    g5_verdict = next((v for v in app.verdicts if v.gate == "G5"), None)
-    events.append({
-        "seq": seq,
-        "phase": "risk",
-        "node": "redteam_eval",
-        "participant": "Safety & Red Team Gate",
-        "status": "completed" if g5_verdict and g5_verdict.verdict == "pass" else "failed",
-        "content": "越狱攻击、提示注入与有害内容防御测试通过。",
-        "structured": {
-            "gate": "approved" if g5_verdict and g5_verdict.verdict == "pass" else "rejected",
-            "reason": "对抗越狱与注入防御测试均在安全基线内",
-        },
-        "evidence": [e.evidence_id for e in app.evidence if e.gate == "G5"],
-        "ts": g5_verdict.decided_at if g5_verdict else app.updated_at,
-    })
-    seq += 1
-
-    # 6. G6 Adjudication & Attestation event
+    # §9 裁决与 §10 许可用途
+    approved = app.status in (AppStatus.APPROVED, AppStatus.APPROVED_COND)
     events.append({
         "seq": seq,
         "phase": "portfolio",
-        "node": "clearance_board",
-        "participant": "Clearance Adjudication Coordinator",
-        "status": "completed" if app.status in (AppStatus.APPROVED, AppStatus.APPROVED_COND) else "failed",
-        "content": f"准入评审会签完成，状态: {app.status.value}",
+        "node": "assurance_decision",
+        "participant": "AI模型准入主理人",
+        "status": "completed" if approved else "failed",
+        "content": f"§9 证据与保障裁决完成，状态: {app.status.value}",
         "structured": {
             "decision": {
                 "verdict": app.status.value,
                 "application_id": app.application_id,
                 "applicant": app.applicant,
             },
+            "permitted_use": app.deployment.permitted_use,
             "portfolio": {
                 "entry_id": f"reg-{app.application_id}",
-                "runtime_profile": "standard",
-                "scope": ["internal", "commercial"],
-                "disclaimer": "仅供内部治理参考，不构成法律或采购建议。",
+                "disclaimer": "保障适用于具体模型制品与已批准的部署条件，不构成对模型提供方或其托管服务的一般性批准。",
             },
         },
         "evidence": [e.evidence_id for e in app.evidence],

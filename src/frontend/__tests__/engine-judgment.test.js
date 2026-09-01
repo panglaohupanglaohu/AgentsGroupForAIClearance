@@ -16,27 +16,36 @@ function loadJudgment() {
   return sandbox.window.EngineJudgment || sandbox.EngineJudgment;
 }
 
-describe('Clearance multi-dim gate matrix (P12)', () => {
-  it('exposes 11 gate dimensions and gate group tabs', () => {
+describe('Clearance gate matrix (§3/§6/§7/§8)', () => {
+  it('exposes one dimension per standard gate G0-G8 and phase-aligned group tabs', () => {
     const J = loadJudgment();
-    expect(J.DIMENSION_KEYS).toHaveLength(11);
-    expect(J.DIMENSION_KEYS).toContain('license_compliance');
-    expect(J.DIMENSION_KEYS).toContain('operational_control');
-    expect(Object.keys(J.GROUPS).length).toBeGreaterThanOrEqual(4);
-    expect(J.GATE_OF.artifact_integrity).toBe('G1');
-    expect(J.GATE_OF.operational_control).toBe('G6');
+    expect(J.DIMENSION_KEYS).toEqual(['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8']);
+    expect(J.GATE_OF.G1).toBe('G1');
+    expect(J.LABELS.G7).toContain('§7.3');
+    expect(Object.keys(J.GROUPS)).toEqual([
+      'summary',
+      'context',
+      'analysis',
+      'planning',
+      'risk',
+      'portfolio',
+    ]);
+    // §3 硬红线与§6.1/§6.2/§7 均为 Blocker
+    expect(J.BLOCKER_KEYS.G0).toBe(true);
+    expect(J.BLOCKER_KEYS.G7).toBe(true);
+    expect(J.BLOCKER_KEYS.G3).toBeUndefined();
   });
 
-  it('builds fixture matrix without inventing certainty on missing dims', () => {
+  it('starts fail-closed: no evidence means missing rows, never fabricated scores', () => {
     const J = loadJudgment();
-    const dims = J.buildFixtureDimensions({
-      model_id: 'Qwen/Qwen2.5-7B-Instruct',
-      as_of: '2026-07-01',
-    });
-    expect(dims.length).toBe(11);
+    const dims = J.emptyDimensions('2026-07-01');
+    expect(dims.length).toBe(9);
+    expect(dims.every((d) => d.score === null && d.state === 'missing')).toBe(true);
+
     const overall = J.overallFromDimensions(dims, '2026-07-01');
-    expect(overall.coverage).toBeGreaterThan(0);
-    expect(overall.label).toMatch(/模拟/);
+    expect(overall.score).toBe(null);
+    expect(overall.coverage).toBe(0);
+    expect(overall.label).toBe('证据不足');
   });
 
   it('maps scores to clearance verdicts instead of market direction', () => {
@@ -49,12 +58,22 @@ describe('Clearance multi-dim gate matrix (P12)', () => {
 
   it('blocks overall verdict when a blocker gate fails, ignoring the average', () => {
     const J = loadJudgment();
-    let dims = J.buildFixtureDimensions({
-      model_id: 'mistralai/Mistral-Large-Instruct-2407',
+    let dims = J.DIMENSION_KEYS.map((key) => ({
+      key,
+      gate: key,
+      score: 0.95,
+      label: J.LABELS[key],
+      direction: 'pass',
+      confidence: 0.95,
       as_of: '2026-07-01',
-    });
+      evidence_count: 1,
+      source_domains: [],
+      rationale: 'ok',
+      state: 'ok',
+      progress: 'done',
+    }));
     dims = J.mergeEventDimension(dims, {
-      key: 'license_compliance',
+      key: 'G7',
       score: 0.1,
       direction: 'fail',
       state: 'conflict',
@@ -64,17 +83,14 @@ describe('Clearance multi-dim gate matrix (P12)', () => {
     const overall = J.overallFromDimensions(dims, '2026-07-01');
     expect(overall.blocked).toBe(true);
     expect(overall.label).toContain('阻断');
-    expect(overall.risks.join(' ')).toContain('许可证合规');
+    expect(overall.risks.join(' ')).toContain('用例、数据与法务');
   });
 
   it('merges event dimension payloads', () => {
     const J = loadJudgment();
-    let dims = J.buildFixtureDimensions({
-      model_id: 'deepseek-ai/DeepSeek-R1',
-      as_of: '2026-07-01',
-    });
+    let dims = J.emptyDimensions('2026-07-01');
     dims = J.mergeEventDimension(dims, {
-      key: 'resource_fit',
+      key: 'G5',
       score: 0.9,
       direction: 'pass',
       state: 'ok',
@@ -82,9 +98,8 @@ describe('Clearance multi-dim gate matrix (P12)', () => {
       evidence_count: 3,
       confidence: 0.8,
       as_of: '2026-07-01',
-      label: '资源与算力适配',
     });
-    const m = dims.find((d) => d.key === 'resource_fit');
+    const m = dims.find((d) => d.key === 'G5');
     expect(m.score).toBe(0.9);
     expect(m.rationale).toBe('event update');
   });

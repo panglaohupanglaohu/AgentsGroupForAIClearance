@@ -26,23 +26,22 @@ describe('Engine Live Cockpit (T801/T802/T832/T861)', () => {
     expect(html).toContain('仅供内部治理参考');
   });
 
-  it('keeps the assembly wide and stacks controls/results on the right rail', () => {
+  it('keeps the rig wide and stacks controls/results on the right rail', () => {
     const html = readFileSync(
       path.join(process.cwd(), 'src/frontend/ai-model-entry-clearance.html'),
       'utf8',
     );
-    expect(html).toContain('grid-template-areas:"main config" "main rail"');
+    expect(html).toContain('grid-template-areas:"rig rig" "main config" "main rail"');
     expect(html).toContain('#engine-config { grid-area:config; }');
     expect(html).toContain('.grid > aside:not(#engine-config) { grid-area:rail;');
     expect(html).toContain('max-width:none');
     expect(html).toContain('id="reports" class="report-index"');
-    expect(html).toContain('report-flow');
-    expect(html).toContain('id="assembly-zoom-out"');
-    expect(html).toContain('id="assembly-zoom-fit"');
-    expect(html).toContain('.road-shell.is-empty');
+    expect(html).toContain('id="gate-lanes"');
+    expect(html).toContain('id="parts-teams"');
+    // 组装状态必须驱动主 CTA 与上下文卡片
     expect(
       readFileSync(path.join(process.cwd(), 'src/frontend/js/ai-model-entry-clearance.js'), 'utf8'),
-    ).toContain('draftModules.length');
+    ).toContain('contributions.length');
   });
 
   it('deriveStartState covers five run statuses', () => {

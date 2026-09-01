@@ -136,6 +136,10 @@ def _parse_ts(s: str) -> Optional[datetime]:
 _RANK = {Classification.RESERVE.value: 0, Classification.EXCLUSIVE.value: 1, Classification.GENERAL.value: 2}
 
 
+DEBOUNCE_WINDOW = 3
+DEBOUNCE_MAJORITY = 2
+
+
 def classify_with_history(
     prev_record: Optional[Dict[str, Any]],
     skill: Dict[str, Any],
@@ -143,10 +147,10 @@ def classify_with_history(
     trial_evidence: Optional[Dict[str, Any]] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
-    """带防抖的分类 (G2-1):
+    """带防抖的分类 (论文 Section 5.6 2-of-3 多数去抖 + 历史兼容):
 
-    - 毕业（rank 上升）需连续 GRADUATE_STREAK 个周期即时分类达标
-    - 降级（rank 下降）有 DEMOTE_GRACE 个周期宽限
+    - 保留最近 3 次分类窗口，当某种分类在窗口中出现 >= 2 次时发生状态跃迁
+    - 安全违规或严重故障立即旁路去抖（bypass debounce），直接降级至 reserve
     """
     raw = classify(skill, usage_evidence, trial_evidence, now)
     raw_cls = raw["classification"]
@@ -155,26 +159,46 @@ def classify_with_history(
     streak = int(prev.get("streak", 0))
     grace = int(prev.get("grace", 0))
 
+    # 维护最近 DEBOUNCE_WINDOW 次即时分类窗口
+    prev_window = list(prev.get("window", []))
+    window = prev_window[-(DEBOUNCE_WINDOW - 1):] + [raw_cls]
+
     effective = current
     event = None
 
-    if raw_cls == current:
+    # 论文 5.6：安全违规/严重失败直接旁路去抖立即降级
+    if skill.get("safety_violation") or skill.get("severe_failure"):
+        effective = Classification.RESERVE.value
+        event = {
+            "type": "demote",
+            "from": current,
+            "to": effective,
+            "rule": "safety_bypass_debounce",
+            "suggest_evolution": True,
+        }
+        window = [effective]
         streak, grace = 0, 0
-    elif _RANK[raw_cls] > _RANK[current]:
+    elif raw_cls != current and window.count(raw_cls) >= DEBOUNCE_MAJORITY:
+        effective = raw_cls
+        kind = "graduate" if _RANK.get(raw_cls, 0) > _RANK.get(current, 0) else "demote"
+        event = {
+            "type": kind,
+            "from": current,
+            "to": raw_cls,
+            "window": list(window),
+            "rule": "2-of-3-majority",
+            "suggest_evolution": raw_cls == Classification.RESERVE.value,
+        }
+        window = [effective]  # 跃迁后重置窗口，防止二次连续震荡
+        streak, grace = 0, 0
+    elif raw_cls == current:
+        streak, grace = 0, 0
+    elif _RANK.get(raw_cls, 0) > _RANK.get(current, 0):
         streak += 1
         grace = 0
-        if streak >= GRADUATE_STREAK:
-            effective = raw_cls
-            event = {"type": "graduate", "from": current, "to": raw_cls}
-            streak = 0
-    else:  # 降级方向
+    else:
         grace += 1
         streak = 0
-        if grace > DEMOTE_GRACE:
-            effective = raw_cls
-            event = {"type": "demote", "from": current, "to": raw_cls,
-                     "suggest_evolution": raw_cls == Classification.RESERVE.value}
-            grace = 0
 
     return {
         "classification": effective,
@@ -183,6 +207,7 @@ def classify_with_history(
         "score_card": raw["score_card"],
         "streak": streak,
         "grace": grace,
+        "window": window,
         "event": event,
         "evaluated_at": (now or datetime.now(timezone.utc)).isoformat(),
     }

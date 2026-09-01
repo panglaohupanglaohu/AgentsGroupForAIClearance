@@ -1,15 +1,16 @@
 {
+  "45f8ea2a": {},
   "build_system": {
     "codebuddy": {
       "model_id": "codebuddy",
-      "provider": "openai",
-      "name": "qwen-36",
-      "max_tokens": 10240,
+      "provider": "deepseek",
+      "name": "deepseek-v4-pro",
+      "max_tokens": 4096,
       "temperature": 0.7,
       "is_default": true,
       "enabled": true,
       "api_key": "",
-      "api_base_url": "https://sub2api.fcyaxing.com/v1"
+      "api_base_url": "https://api.deepseek.com"
     },
     "deepseek": {
       "model_id": "deepseek",
@@ -37,27 +38,27 @@
   "ai_coding": {
     "deepseek": {
       "model_id": "deepseek",
-      "provider": "openai",
-      "name": "qwen-36",
-      "max_tokens": 10240,
+      "provider": "deepseek",
+      "name": "deepseek-v4-pro",
+      "max_tokens": 4096,
       "temperature": 0.7,
       "is_default": true,
       "enabled": true,
       "api_key": "",
-      "api_base_url": "https://sub2api.fcyaxing.com/v1"
+      "api_base_url": "https://api.deepseek.com"
     }
   },
   "energy_first_principle": {
     "deepseek": {
       "model_id": "deepseek",
-      "provider": "openai",
-      "name": "qwen-36",
-      "max_tokens": 10240,
+      "provider": "deepseek",
+      "name": "deepseek-v4-pro",
+      "max_tokens": 4096,
       "temperature": 0.7,
       "is_default": true,
       "enabled": true,
       "api_key": "",
-      "api_base_url": "https://sub2api.fcyaxing.com/v1"
+      "api_base_url": "https://api.deepseek.com"
     },
     "copilot": {
       "model_id": "copilot",
@@ -74,29 +75,31 @@
   "d083a568": {
     "deepseek": {
       "model_id": "deepseek",
-      "provider": "openai",
-      "name": "qwen-36",
-      "max_tokens": 10240,
+      "provider": "deepseek",
+      "name": "deepseek-v4-pro",
+      "max_tokens": 4096,
       "temperature": 0.7,
       "is_default": true,
       "enabled": true,
       "api_key": "",
-      "api_base_url": "https://sub2api.fcyaxing.com/v1"
+      "api_base_url": "https://api.deepseek.com"
     }
   },
+  "cloud-ops-team": {},
   "aws-ops": {
     "deepseek": {
       "model_id": "deepseek",
-      "provider": "openai",
-      "name": "qwen-36",
-      "max_tokens": 10240,
+      "provider": "deepseek",
+      "name": "deepseek-v4-pro",
+      "max_tokens": 4096,
       "temperature": 0.7,
       "is_default": true,
       "enabled": true,
       "api_key": "",
-      "api_base_url": "https://sub2api.fcyaxing.com/v1"
+      "api_base_url": "https://api.deepseek.com"
     }
   },
   "pet_squad": {},
-  "cloud-ops-team": {}
+  "156920ad": {},
+  "3954265c": {}
 }

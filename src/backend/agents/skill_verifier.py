@@ -54,6 +54,8 @@ class VerificationResult:
     run_id: str = ""
     gate: Dict[str, Any] = field(default_factory=dict)
     requires_review: bool = False
+    # 论文 Section 5.1/5.2 六道验证门报告
+    six_gates_report: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -81,6 +83,7 @@ class VerificationResult:
             "run_id": self.run_id,
             "gate": self.gate,
             "requires_review": self.requires_review,
+            "six_gates_report": self.six_gates_report,
         }
 
 
@@ -368,6 +371,36 @@ class SkillVerifier:
             except Exception as ge:
                 logger.warning("Token Gate 评估失败（不阻断授予）: %s", ge)
                 self._process_log.append({"step": "gate_skip", "msg": f"Gate 评估跳过: {ge}"})
+
+        # 论文 Section 5.1/5.2 六门统一裁决
+        try:
+            from .skill_gates import run_gates
+            skill_dict = skill.to_dict() if hasattr(skill, "to_dict") else {
+                "name": skill.name,
+                "description": skill.description,
+                "category": getattr(skill.category, "value", str(skill.category)),
+                "tools": list(skill.tools or []),
+                "instructions": skill.instructions,
+                "evidence_spans": getattr(skill, "evidence_spans", []),
+            }
+            six_report = run_gates(
+                skill_dict,
+                ctx={
+                    "known_tools": self._KNOWN_TOOLS,
+                    "sandbox_result": {"passed": sandbox_ok and sandbox_exit_ok, "error": evidence.get("error", "")},
+                    "competition_result": None,
+                },
+                candidate_id=skill_id,
+                env_version=str(runtime.get("version", "")),
+            )
+            result.six_gates_report = six_report.to_dict()
+            self._process_log.append({
+                "step": "six_gates",
+                "msg": f"六门裁决: {six_report.aggregate.value} (P={six_report.P}, R={six_report.R}, L={six_report.L})",
+                "report": six_report.to_dict(),
+            })
+        except Exception as gate_err:
+            logger.warning("六门裁决执行异常（不阻断）: %s", gate_err)
 
         result.evidence_run_id = await self._record_evidence_run(team_id, skill, result, evidence)
         if result.evidence_run_id:

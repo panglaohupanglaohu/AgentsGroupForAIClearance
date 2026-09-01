@@ -8615,7 +8615,6 @@ def get_openclaw_status(team_id: str, agent_id: str) -> Dict[str, Any]:
     agent = _get_agent_or_404(team_id, agent_id)
     return agent.metadata.get("openclaw", {"connected": False})
 
-
 @router.post(
     "/teams/{team_id}/agents/{agent_id}/sync-openclaw",
     summary="Sync OpenClaw Agent",
@@ -8626,6 +8625,166 @@ def sync_openclaw_agent(team_id: str, agent_id: str) -> Dict[str, Any]:
         agent.metadata["openclaw"] = {"connected": False}
     agent.metadata["openclaw"]["last_sync"] = datetime.now(timezone.utc).isoformat()
     return agent.metadata["openclaw"]
+
+
+# ══════════════════════════════════════════════════════════════
+# External Team Import (整队导入)
+# ══════════════════════════════════════════════════════════════
+
+MAX_IMPORT_AGENTS = 100
+MAX_IMPORT_MODELS = 50
+
+
+def _mask_token(token: str) -> str:
+    """凭据脱敏：只回显前 4 位，其余固定掩码，避免密钥经响应体外泄。"""
+    if not token:
+        return ""
+    return f"{token[:4]}***" if len(token) > 4 else "***"
+
+
+class ImportTeamAgentItem(BaseModel):
+    name: str = Field(..., min_length=1, max_length=128)
+    role: str = ""
+    description: str = ""
+    model_id: str = ""
+    system_prompt: str = ""
+    tools: List[str] = Field(default_factory=list)
+    skills: List[str] = Field(default_factory=list)
+    openclaw_agent_id: str = ""
+
+
+class ImportTeamModelItem(BaseModel):
+    provider: str = "anthropic"
+    name: str = Field(..., min_length=1, max_length=128)
+    max_tokens: int = Field(default=8192, ge=1, le=200000)
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    api_base_url: str = ""
+
+
+class ImportTeamRequest(BaseModel):
+    """整支外部智能体团队导入请求。"""
+
+    name: str = Field(..., min_length=1, max_length=128)
+    description: str = ""
+    source: str = "json"  # json | openclaw
+    openclaw_url: str = ""
+    openclaw_token: str = ""
+    agents: List[ImportTeamAgentItem] = Field(default_factory=list)
+    models: List[ImportTeamModelItem] = Field(default_factory=list)
+    workflow_mode: str = "single"
+
+
+@router.post(
+    "/teams/import",
+    summary="Import an external agent team",
+    status_code=status.HTTP_201_CREATED,
+)
+def import_team(req: ImportTeamRequest) -> Dict[str, Any]:
+    """把外部团队包（JSON 或 OpenClaw 网关）落成本地团队。
+
+    整支导入是原子的：任一成员构造失败即回滚已创建的团队，避免留下半成品。
+    """
+    if not req.agents:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="团队至少需要包含一个智能体"
+        )
+    if len(req.agents) > MAX_IMPORT_AGENTS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f"智能体数量超限（{len(req.agents)} > {MAX_IMPORT_AGENTS}）",
+        )
+    if len(req.models) > MAX_IMPORT_MODELS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f"模型数量超限（{len(req.models)} > {MAX_IMPORT_MODELS}）",
+        )
+    source = req.source if req.source in ("json", "openclaw") else "json"
+    if source == "openclaw" and not req.openclaw_url:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="OpenClaw 来源必须提供 Gateway URL"
+        )
+
+    # 同名团队自动改名，不覆盖既有团队
+    existing_names = {t.name for t in _tm().list_teams()}
+    final_name = req.name
+    if final_name in existing_names:
+        suffix = 2
+        while f"{final_name} ({suffix})" in existing_names:
+            suffix += 1
+        final_name = f"{final_name} ({suffix})"
+
+    team = _tm().create_team(name=final_name, description=req.description)
+    warnings: List[str] = []
+    try:
+        team.workflow_mode = req.workflow_mode
+        team.metadata["import"] = {
+            "source": source,
+            "imported_at": datetime.now(timezone.utc).isoformat(),
+            "original_name": req.name,
+            "openclaw_url": req.openclaw_url,
+            "openclaw_token": _mask_token(req.openclaw_token),
+            "openclaw_token_set": bool(req.openclaw_token),
+        }
+
+        model_name_to_id: Dict[str, str] = {}
+        for m in req.models:
+            cfg = ModelConfig(
+                provider=m.provider,
+                name=m.name,
+                max_tokens=m.max_tokens,
+                temperature=m.temperature,
+                api_base_url=m.api_base_url,
+            )
+            team.add_model(cfg)
+            model_name_to_id[m.name] = cfg.model_id
+
+        for item in req.agents:
+            resolved_model = model_name_to_id.get(item.model_id, item.model_id)
+            if item.model_id and resolved_model == item.model_id and item.model_id not in team.models:
+                warnings.append(f"成员「{item.name}」引用了未随包提供的模型 {item.model_id}")
+            agent = AgentProfile(
+                name=item.name,
+                role=item.role,
+                description=item.description,
+                model_id=resolved_model,
+                system_prompt=item.system_prompt,
+                tools=list(item.tools),
+                skills=list(item.skills),
+            )
+            agent.metadata["import_source"] = source
+            if source == "openclaw":
+                agent.metadata["openclaw"] = {
+                    "url": req.openclaw_url,
+                    "token": _mask_token(req.openclaw_token),
+                    "token_set": bool(req.openclaw_token),
+                    "agent_id": item.openclaw_agent_id,
+                    "connected": bool(req.openclaw_url and req.openclaw_token),
+                    "imported_at": datetime.now(timezone.utc).isoformat(),
+                }
+            team.add_agent(agent)
+
+        _tm()._persist()
+    except HTTPException:
+        _tm().delete_team(team.team_id)
+        raise
+    except Exception as e:
+        _tm().delete_team(team.team_id)
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"团队导入失败已回滚: {e}"
+        ) from e
+
+    return {
+        "team": team.to_dict(),
+        "report": {
+            "team_id": team.team_id,
+            "name": final_name,
+            "renamed": final_name != req.name,
+            "source": source,
+            "agents_imported": len(req.agents),
+            "models_imported": len(req.models),
+            "warnings": warnings,
+        },
+    }
 
 
 # ══════════════════════════════════════════════════════════════

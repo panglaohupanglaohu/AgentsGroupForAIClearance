@@ -324,11 +324,12 @@ export function createOfficeScene(canvas, container) {
         const hit = hits[0].object;
         // 点击猫 → 弹出对话框
         if (hit.userData._isCat) {
-          if (window.OfficeAPI && window.OfficeAPI.onCatClick) window.OfficeAPI.onCatClick();
+          if (!_petsHidden && window.OfficeAPI && window.OfficeAPI.onCatClick) window.OfficeAPI.onCatClick();
           return;
         }
         // 点击老鼠 → 弹出吱吱气泡
         if (hit.userData._isMouse) {
+          if (_petsHidden) return;
           showAgentBubble('squeak_mouse', {
             name: '吱吱', role: '寻路研究员', team: 'pet_squad',
             skills: ['Pathfinding', 'Data Analysis', 'Information Gathering', 'Research', 'Route Planning'],
@@ -491,9 +492,17 @@ export function createOfficeScene(canvas, container) {
   // Predator/Prey 生态由 PetEcosystem 接管（模型/行为/台词/TTS 全部数据驱动）
   const petEco = new PetEcosystem(scene, makeLabel);
   let cat = null, squeak = null;
+  let _petsHidden = false; // UI 可隐藏 吱吱/小虎：冻结生态步进并压制模型显示
+  function setPetsVisible(visible) {
+    _petsHidden = !visible;
+    for (const p of [cat, squeak]) {
+      if (p && p.group) p.group.visible = !!visible;
+    }
+  }
   petEco.init().then(() => {
     cat = petEco.pets['xiaohu_cat'] || null;
     squeak = petEco.pets['squeak_mouse'] || null;
+    if (_petsHidden) setPetsVisible(false); // 异步建好后立即应用隐藏状态
   }).catch((e) => console.warn('[office-scene] PetEcosystem init failed', e));
 
   function deskFor(index) {
@@ -966,7 +975,13 @@ export function createOfficeScene(canvas, container) {
       }
     }
     // Predator/Prey 生态：小虎(捕食者) + 吱吱(猎物) 的模型/行为/台词全部由 PetEcosystem 驱动
-    petEco.step(dt, t);
+    if (_petsHidden) {
+      // 已隐藏：冻结生态步进（不再移动/冒泡/说话），并压制后建模型的显示
+      if (cat && cat.group) cat.group.visible = false;
+      if (squeak && squeak.group) squeak.group.visible = false;
+    } else {
+      petEco.step(dt, t);
+    }
     _stepFx(dt);
     // XB-6.1 觅食光点飞行
     for (let i = forageParticles.length - 1; i >= 0; i--) {
@@ -1019,6 +1034,7 @@ export function createOfficeScene(canvas, container) {
   return {
     applyState,
     showAgentBubble,
+    setPetsVisible,
     showCatBubble(text) {
       _catBubbleHold = Date.now() + 10000;
       if (cat) cat.drawBubble(text);

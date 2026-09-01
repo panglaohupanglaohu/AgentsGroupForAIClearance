@@ -1,120 +1,123 @@
 /**
- * P12 — Multi-dimensional clearance matrix for the Model Admission Cockpit.
- * Fixture-safe, as_of aware; missing evidence stays `missing` instead of being
- * scored as passing (T4 fail-closed).
+ * 准入门禁矩阵 —— 对齐 Lenovo AI 模型准入标准 §3/§6/§7/§8。
+ *
+ * 一个门禁一行，直接映射后端 GateVerdict；不再虚构后端不产出的子维度，
+ * 也不在未取证时编造分数（fail-closed：缺证即 missing，绝不默认放行）。
  */
 (function (global) {
   'use strict';
 
-  var DIMENSION_KEYS = [
-    'artifact_integrity',
-    'signature_trust',
-    'revision_lock',
-    'bom_completeness',
-    'vulnerability',
-    'serialization_safety',
-    'license_compliance',
-    'jurisdiction_risk',
-    'resource_fit',
-    'safety_behavior',
-    'operational_control',
+  /** 与 domain/model_clearance/standard.py 的 GATE_DEFINITIONS 一一对应。 */
+  var GATES = [
+    {
+      key: 'G0',
+      section: '3',
+      label: '禁止部署筛查',
+      blocker: true,
+      group: 'context',
+      rationale: '标准 §3 硬红线：命中任一禁止部署形态即不可通过，且不受其它门禁结果影响。',
+    },
+    {
+      key: 'G1',
+      section: '6.1',
+      label: '模型制品与溯源',
+      blocker: true,
+      group: 'context',
+      rationale: '来源血缘、不可变版本与哈希、许可条款、签名完整性与训练数据透明度可独立验证。',
+    },
+    {
+      key: 'G2',
+      section: '6.2',
+      label: '软件供应链',
+      blocker: true,
+      group: 'analysis',
+      rationale: 'AI-BOM 完备、序列化格式安全、CVE 已清、受控仓库与版本锁定、回滚路径可用。',
+    },
+    {
+      key: 'G3',
+      section: '6.3',
+      label: '安全、安全性与行为评估',
+      blocker: false,
+      group: 'analysis',
+      rationale: '提示注入、数据外泄、不安全代码生成、越狱易感性、隐私泄露与偏见的量化评估。',
+    },
+    {
+      key: 'G4',
+      section: '6.4',
+      label: '威胁情报与红队',
+      blocker: false,
+      group: 'planning',
+      rationale: '已知漏洞与攻击手法情报比对，以及对抗与红队测试发现项的定级与处置。',
+    },
+    {
+      key: 'G5',
+      section: '7.1',
+      label: '部署与数据流',
+      blocker: true,
+      group: 'planning',
+      rationale: '托管环境受控、出向流量受限、工作负载隔离、监控审计与技术护栏就位。',
+    },
+    {
+      key: 'G6',
+      section: '7.2',
+      label: '模型权限与工具访问',
+      blocker: true,
+      group: 'risk',
+      rationale: '工具访问白名单、最小权限、自主动作受限、后果性操作需人工批准、生成代码视为不可信。',
+    },
+    {
+      key: 'G7',
+      section: '7.3',
+      label: '用例、数据与法务',
+      blocker: true,
+      group: 'risk',
+      rationale: '许可证商用条款、禁止用途、隐私影响、知识产权与人工监督责任的法务判定。',
+    },
+    {
+      key: 'G8',
+      section: '8',
+      label: '持续保障',
+      blocker: false,
+      group: 'portfolio',
+      rationale: '具名负责人、监控、漏洞管理、事件响应、回滚与暂停/吊销能力的可执行性核验。',
+    },
   ];
 
+  var GATE_BY_KEY = {};
+  GATES.forEach(function (g) {
+    GATE_BY_KEY[g.key] = g;
+  });
+
+  var DIMENSION_KEYS = GATES.map(function (g) {
+    return g.key;
+  });
+
+  var LABELS = {};
+  var GATE_OF = {};
+  var BLOCKER_KEYS = {};
+  var RATIONALE = {};
+  GATES.forEach(function (g) {
+    LABELS[g.key] = '§' + g.section + ' ' + g.label;
+    GATE_OF[g.key] = g.key;
+    if (g.blocker) BLOCKER_KEYS[g.key] = true;
+    RATIONALE[g.key] = g.rationale;
+  });
+
+  /** 分组即流水线站点，与后端 GATE_PHASE 一致。 */
   var GROUPS = {
-    summary: {
-      id: 'summary',
-      label: '准入摘要',
-      keys: ['artifact_integrity', 'license_compliance', 'operational_control'],
-    },
-    integrity: {
-      id: 'integrity',
-      label: '完整性 G1',
-      keys: ['artifact_integrity', 'signature_trust', 'revision_lock'],
-    },
-    supply_chain: {
-      id: 'supply_chain',
-      label: '供应链 G2',
-      keys: ['bom_completeness', 'vulnerability', 'serialization_safety'],
-    },
-    compliance: {
-      id: 'compliance',
-      label: '许可证 G3',
-      keys: ['license_compliance', 'jurisdiction_risk'],
-    },
-    runtime: {
-      id: 'runtime',
-      label: '资源与安全 G4/G5',
-      keys: ['resource_fit', 'safety_behavior'],
-    },
-    governance: {
-      id: 'governance',
-      label: 'Lenovo 直管 G6',
-      keys: ['operational_control'],
-    },
+    summary: { id: 'summary', label: '全部门禁', keys: DIMENSION_KEYS.slice() },
+    context: { id: 'context', label: '登记 §3/§6.1', keys: ['G0', 'G1'] },
+    analysis: { id: 'analysis', label: '供应链与行为 §6.2/§6.3', keys: ['G2', 'G3'] },
+    planning: { id: 'planning', label: '红队与部署 §6.4/§7.1', keys: ['G4', 'G5'] },
+    risk: { id: 'risk', label: '权限与法务 §7.2/§7.3', keys: ['G6', 'G7'] },
+    portfolio: { id: 'portfolio', label: '持续保障 §8', keys: ['G8'] },
   };
-
-  var LABELS = {
-    artifact_integrity: '制品完整性',
-    signature_trust: '签名可验性',
-    revision_lock: '版本锁定',
-    bom_completeness: 'AI-BOM 完备性',
-    vulnerability: '漏洞暴露面',
-    serialization_safety: '序列化安全',
-    license_compliance: '许可证合规',
-    jurisdiction_risk: '司法辖区风险',
-    resource_fit: '资源与算力适配',
-    safety_behavior: '安全行为（红队）',
-    operational_control: '运营可控性',
-  };
-
-  var GATE_OF = {
-    artifact_integrity: 'G1',
-    signature_trust: 'G1',
-    revision_lock: 'G1',
-    bom_completeness: 'G2',
-    vulnerability: 'G2',
-    serialization_safety: 'G2',
-    license_compliance: 'G3',
-    jurisdiction_risk: 'G3',
-    resource_fit: 'G4',
-    safety_behavior: 'G5',
-    operational_control: 'G6',
-  };
-
-  /** Blocker 维度失败即整体阻断，平均分不得覆盖（对齐 PLAN 2.1）。 */
-  var BLOCKER_KEYS = {
-    artifact_integrity: true,
-    signature_trust: true,
-    revision_lock: true,
-    bom_completeness: true,
-    vulnerability: true,
-    serialization_safety: true,
-    license_compliance: true,
-    jurisdiction_risk: true,
-  };
-
-  var RATIONALE = {
-    artifact_integrity: '逐文件 SHA-256 清单已生成，root digest 可锁定运行时权重。',
-    signature_trust: '厂商签名或平台背书签名可验；无签名时按平台背书降档处理。',
-    revision_lock: '已锁定不可变 revision（tag/commit），未使用 main/latest 可变引用。',
-    bom_completeness: 'CycloneDX ML-BOM 已产出，模型/依赖/配置组件可追溯。',
-    vulnerability: '依赖与基础镜像 CVE 扫描结果；Critical 未清零即触发阻断。',
-    serialization_safety: '权重格式扫描：safetensors/gguf 放行，pickle 类判定为代码执行面。',
-    license_compliance: '许可证类别与商用条款判定，附加义务转为运行时 conditions。',
-    jurisdiction_risk: '出口管制与采购限制清单比对，命中则强制法务会签。',
-    resource_fit: '权重显存 + KV-Cache + 激活峰值三段式估算与集群容量比对。',
-    safety_behavior: '红队越狱率、提示注入抗性与有害内容触发率的量化结果。',
-    operational_control: '责任人、Kill-Switch、回滚预案与处置 SLA 的可执行性核验。',
-  };
-
-  function clamp(n, lo, hi) {
-    return Math.max(lo, Math.min(hi, n));
-  }
 
   function emptyDim(key, asOf) {
+    var g = GATE_BY_KEY[key] || {};
     return {
       key: key,
-      gate: GATE_OF[key] || '',
+      gate: key,
       score: null,
       label: LABELS[key] || key,
       direction: 'unknown',
@@ -122,10 +125,17 @@
       as_of: asOf || '',
       evidence_count: 0,
       source_domains: [],
-      rationale: '证据缺失，按 fail-closed 处理，不得默认放行',
+      rationale: g.rationale || '证据缺失，按 fail-closed 处理，不得默认放行',
       state: 'missing',
       progress: 'pending',
     };
+  }
+
+  /** 未取证时的初始矩阵：9 行全部 missing，不编造分数。 */
+  function emptyDimensions(asOf) {
+    return DIMENSION_KEYS.map(function (key) {
+      return emptyDim(key, asOf);
+    });
   }
 
   function directionFromScore(score) {
@@ -135,89 +145,32 @@
     return 'needs_info';
   }
 
-  function hashSeed(str) {
-    var h = 0;
-    var s = String(str || '');
-    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-    return Math.abs(h);
-  }
-
-  /**
-   * TA04: Map real GateOrchestrator ModelApplication verdicts + evidence into judgment matrix rows.
-   */
+  /** 把 GateOrchestrator 的 verdict + evidence 映射成矩阵行。 */
   function dimensionsFromVerdicts(app, asOf) {
     if (!app) return [];
     var appAsOf = asOf || (app.identity && app.identity.as_of) || (app.created_at || '').slice(0, 10);
-    var verdicts = app.verdicts || [];
-    var evidences = app.evidence || [];
 
     var verdictByGate = {};
-    verdicts.forEach(function (v) {
+    (app.verdicts || []).forEach(function (v) {
       if (v && v.gate) verdictByGate[v.gate] = v;
     });
 
     var evidenceByGate = {};
-    evidences.forEach(function (e) {
+    (app.evidence || []).forEach(function (e) {
       if (e && e.gate) {
         if (!evidenceByGate[e.gate]) evidenceByGate[e.gate] = [];
         evidenceByGate[e.gate].push(e);
       }
     });
 
-    var dims = [];
-    DIMENSION_KEYS.forEach(function (key) {
-      var gate = GATE_OF[key] || '';
-      var v = verdictByGate[gate];
-      var evList = evidenceByGate[gate] || [];
+    return DIMENSION_KEYS.map(function (key) {
+      var v = verdictByGate[key];
+      if (!v) return emptyDim(key, appAsOf);
 
-      // G6 operational_control check
-      if (key === 'operational_control' || gate === 'G6') {
-        var isApproved = app.status === 'approved' || app.status === 'approved_with_conditions' || app.status === 'registered';
-        var isRejected = app.status === 'rejected' || app.status === 'revoked';
-        if (isApproved) {
-          dims.push({
-            key: key,
-            gate: 'G6',
-            score: 0.95,
-            label: LABELS[key],
-            direction: 'pass',
-            confidence: 0.98,
-            as_of: appAsOf,
-            evidence_count: evidences.length,
-            source_domains: ['registry.control_plane'],
-            rationale: '责任人矩阵、Kill-Switch、回滚预案与处置 SLA 均已完备登记。',
-            state: 'ok',
-            progress: 'done',
-          });
-        } else if (isRejected) {
-          dims.push({
-            key: key,
-            gate: 'G6',
-            score: 0.2,
-            label: LABELS[key],
-            direction: 'fail',
-            confidence: 0.95,
-            as_of: appAsOf,
-            evidence_count: evidences.length,
-            source_domains: ['registry.control_plane'],
-            rationale: '前置门禁阻断或会签未通过，未达成准入基线。',
-            state: 'conflict',
-            progress: 'done',
-          });
-        } else {
-          dims.push(emptyDim(key, appAsOf));
-        }
-        return;
-      }
-
-      if (!v) {
-        dims.push(emptyDim(key, appAsOf));
-        return;
-      }
-
-      var dir = v.verdict === 'pass' ? 'pass' : (v.verdict === 'fail' ? 'fail' : 'needs_info');
-      var score = dir === 'pass' ? 0.95 : (dir === 'fail' ? 0.2 : 0.6);
-      var state = (BLOCKER_KEYS[key] && dir === 'fail') ? 'conflict' : (dir === 'needs_info' ? 'missing' : 'ok');
+      var evList = evidenceByGate[key] || [];
+      var dir = v.verdict === 'pass' ? 'pass' : v.verdict === 'fail' ? 'fail' : 'needs_info';
+      var score = dir === 'pass' ? 0.95 : dir === 'fail' ? 0.2 : 0.6;
+      var state = BLOCKER_KEYS[key] && dir === 'fail' ? 'conflict' : dir === 'needs_info' ? 'missing' : 'ok';
       var rationale = RATIONALE[key] || '门禁检查结果';
       if (v.failed_checks && v.failed_checks.length) {
         rationale = (dir === 'fail' ? '未通过检查项: ' : '待补证检查项: ') + v.failed_checks.join(', ');
@@ -227,11 +180,11 @@
       evList.forEach(function (e) {
         if (e.collector && sources.indexOf(e.collector) === -1) sources.push(e.collector);
       });
-      if (!sources.length) sources = ['gate.' + gate.toLowerCase()];
+      if (!sources.length) sources = ['gate.' + key.toLowerCase()];
 
-      dims.push({
+      return {
         key: key,
-        gate: gate,
+        gate: key,
         score: score,
         label: LABELS[key],
         direction: dir,
@@ -242,48 +195,8 @@
         rationale: rationale,
         state: state,
         progress: 'done',
-      });
+      };
     });
-
-    return dims;
-  }
-
-  /**
-   * Build fixture/demo dimensions from model_id + cutoff (deterministic, no future leak).
-   */
-  function buildFixtureDimensions(opts) {
-    opts = opts || {};
-    var modelId = String(opts.model_id || opts.ticker || 'meta-llama/Llama-3.1-8B-Instruct');
-    var asOf = opts.as_of || opts.trade_date || '';
-    var seed = hashSeed(modelId + '|' + asOf);
-    var dims = [];
-    DIMENSION_KEYS.forEach(function (key, idx) {
-      var base = ((seed >> (idx % 12)) & 97) / 100;
-      var score = clamp(0.58 + base * 0.38, 0.05, 0.97);
-      if (key === 'vulnerability') score = clamp(score * 0.62, 0.05, 0.97);
-      if (key === 'resource_fit') score = clamp(score * 0.86, 0.05, 0.97);
-      // 红队评测在 fixture 模式常缺席：判缺证，不假设已通过
-      if (key === 'safety_behavior' && seed % 4 === 0) {
-        dims.push(emptyDim(key, asOf));
-        return;
-      }
-      score = Math.round(score * 100) / 100;
-      dims.push({
-        key: key,
-        gate: GATE_OF[key] || '',
-        score: score,
-        label: LABELS[key],
-        direction: directionFromScore(score),
-        confidence: Math.round((0.45 + (seed % 40) / 100) * 100) / 100,
-        as_of: asOf,
-        evidence_count: 1 + ((seed + idx) % 4),
-        source_domains: ['scanner.local', 'policy.rules'],
-        rationale: RATIONALE[key] || '基于 as_of 前扫描证据的可解释判定。',
-        state: BLOCKER_KEYS[key] && score <= 0.5 ? 'conflict' : 'ok',
-        progress: 'done',
-      });
-    });
-    return dims;
   }
 
   function overallFromDimensions(dims, asOf) {
@@ -310,14 +223,15 @@
     });
     var score = sum / usable.length;
 
+    // Blocker 门禁失败或缺证即整体阻断，平均分不得覆盖（标准 §9）。
     var blocked = (dims || []).some(function (d) {
       return d && BLOCKER_KEYS[d.key] && (d.direction === 'fail' || d.state === 'missing');
     });
 
     var label;
-    if (blocked) label = '建议阻断（模拟）';
-    else if (score >= 0.75) label = '建议准入（模拟）';
-    else label = '带条件准入（模拟）';
+    if (blocked) label = '不予准入 / 阻断';
+    else if (score >= 0.75) label = '准入';
+    else label = '带条件准入';
 
     var sorted = usable.slice().sort(function (a, b) {
       return (b.score || 0) - (a.score || 0);
@@ -352,15 +266,13 @@
   function mergeEventDimension(dims, payload) {
     if (!payload || !payload.key) return dims;
     var next = (dims || []).slice();
-    var found = false;
     for (var i = 0; i < next.length; i++) {
       if (next[i].key === payload.key) {
         next[i] = Object.assign({}, next[i], payload);
-        found = true;
-        break;
+        return next;
       }
     }
-    if (!found) next.push(Object.assign(emptyDim(payload.key, payload.as_of), payload));
+    next.push(Object.assign(emptyDim(payload.key, payload.as_of), payload));
     return next;
   }
 
@@ -423,14 +335,13 @@
     if (tabs) {
       tabs.innerHTML = Object.keys(GROUPS)
         .map(function (id) {
-          var g = GROUPS[id];
           return (
             '<button type="button" role="tab" class="judgment-tab" data-group="' +
             id +
             '" aria-selected="' +
             (id === groupId ? 'true' : 'false') +
             '">' +
-            g.label +
+            GROUPS[id].label +
             '</button>'
           );
         })
@@ -439,8 +350,7 @@
     if (body) {
       var rows = filterGroup(dims, groupId);
       if (!rows.length) {
-        body.innerHTML =
-          '<tr><td colspan="8" style="color:#91a9c3">该门禁分组暂无维度数据</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" style="color:#91a9c3">该门禁分组暂无维度数据</td></tr>';
       } else {
         body.innerHTML = rows
           .map(function (d) {
@@ -448,7 +358,7 @@
               '<tr class="judgment-row" data-key="' +
               d.key +
               '"><td><span class="judgment-gate">' +
-              (d.gate || GATE_OF[d.key] || '—') +
+              (d.gate || d.key) +
               '</span> ' +
               (d.label || d.key) +
               (BLOCKER_KEYS[d.key] ? ' <small class="judgment-blocker">Blocker</small>' : '') +
@@ -471,9 +381,7 @@
               '</span></td><td>' +
               String(d.rationale || '') +
               (d.source_domains && d.source_domains.length
-                ? ' <small style="color:#7894b2">[' +
-                  d.source_domains.join(', ') +
-                  ']</small>'
+                ? ' <small style="color:#7894b2">[' + d.source_domains.join(', ') + ']</small>'
                 : '') +
               '</td></tr>'
             );
@@ -484,13 +392,14 @@
   }
 
   global.EngineJudgment = {
+    GATES: GATES,
     DIMENSION_KEYS: DIMENSION_KEYS,
     GROUPS: GROUPS,
     LABELS: LABELS,
     GATE_OF: GATE_OF,
     BLOCKER_KEYS: BLOCKER_KEYS,
     emptyDim: emptyDim,
-    buildFixtureDimensions: buildFixtureDimensions,
+    emptyDimensions: emptyDimensions,
     dimensionsFromVerdicts: dimensionsFromVerdicts,
     overallFromDimensions: overallFromDimensions,
     mergeEventDimension: mergeEventDimension,

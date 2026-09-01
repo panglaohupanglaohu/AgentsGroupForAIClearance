@@ -62,5 +62,21 @@
       "metadata": {},
       "snapshot_at": "2026-07-28T09:35:03.711720+00:00"
     }
+  ],
+  "f028f121": [
+    {
+      "version": 1,
+      "name": "SPEAKER-SCRIPT",
+      "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+      "instructions": "基于原文片段『# 逐字稿 · Speaker Script\n**《One Alert. One AI-Native Loop. Zero Wake-up Calls.》**\n\n中英对照 · 30 分钟口语版\n\n---\n\n## 用法说明\n\n- **现场只念英文。中文是理解和提词，不要中英各念一遍。**\n- **【点】** 表示需要操作；没有标记的地方不要临时展开，避免超时。\n- **【找鼠标时说】** 先开口，再移动鼠标；这句话就是找目标时的缓冲。\n- **【加载时说】** 点击后页面还没出来，就说这一句，不要沉默盯屏幕。\n- *』：\n1. 列出业务目标与验收口径\n2. 明确前置条件、依赖与不可变约束\n3. 输出「必须做 / 可选做 / 禁止做」三栏\n4. 补最小验证步骤与回滚点",
+      "category": "research",
+      "icon": "🧭",
+      "visibility": "private",
+      "lifecycle_stage": "draft",
+      "quality_score": 0.0,
+      "reason": "",
+      "metadata": {},
+      "snapshot_at": "2026-08-24T09:40:17.167885+00:00"
+    }
   ]
 }

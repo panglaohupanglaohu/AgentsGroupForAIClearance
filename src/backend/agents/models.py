@@ -62,14 +62,32 @@ class SkillCategory(Enum):
 
 
 class SkillLifecycleStage(Enum):
-    """Skill lifecycle stages (Filter→Improve→Verify→Solidify)."""
+    """Skill lifecycle stages — 论文 Section 5.6 完整六态与兼容别名."""
 
     DRAFT = "draft"
-    TEAM_LOCAL = "team_local"
+    REVISION = "revision"       # 被 revise 裁决打回修改
+    READY = "ready"             # 六门通过、等待版本竞争
     PUBLISHED = "published"
+    DEGRADED = "degraded"
+    DEPRECATED = "deprecated"   # 退出常规检索（终态）
+    # 向后兼容别名（勿删）
+    TEAM_LOCAL = "team_local"
     VERIFIED = "verified"
     SOLIDIFIED = "solidified"
-    DEGRADED = "degraded"
+
+
+# 合法生命周期迁移表（论文 5.6）
+LIFECYCLE_TRANSITIONS: Dict[str, Set[str]] = {
+    "draft": {"revision", "ready", "team_local", "verified"},
+    "revision": {"draft", "ready", "team_local"},
+    "ready": {"published", "revision", "verified"},
+    "published": {"degraded", "deprecated", "solidified"},
+    "degraded": {"published", "deprecated", "ready"},
+    "deprecated": set(),
+    "team_local": {"verified", "published", "draft", "ready"},
+    "verified": {"published", "solidified", "team_local", "ready"},
+    "solidified": {"degraded", "deprecated", "published"},
+}
 
 
 class Visibility(Enum):

@@ -67,7 +67,7 @@ class FistToFiveVote:
 
 @dataclass
 class FistToFiveResult:
-    """五指投票的集体结果."""
+    """五指投票的集体结果 — 论文 Eq.(5) 共识模型."""
 
     votes: List[FistToFiveVote] = field(default_factory=list)
     consensus_reached: bool = False
@@ -75,7 +75,9 @@ class FistToFiveResult:
     supportive_agents: List[str] = field(default_factory=list)
     mean_fingers: float = 0.0
     median_fingers: float = 0.0
-    consensus_level: str = "none"  # none | weak | strong
+    consensus_level: str = "none"  # none | weak | strong | blocked
+    rho: float = 0.0               # ρ_k 支持率: 指数 >= 3 的占比
+    mu: float = 0.0                # μ_k 平均支持度
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -86,6 +88,8 @@ class FistToFiveResult:
             "mean_fingers": round(self.mean_fingers, 2),
             "median_fingers": self.median_fingers,
             "consensus_level": self.consensus_level,
+            "rho": round(self.rho, 4),
+            "mu": round(self.mu, 4),
         }
 
 
@@ -113,18 +117,20 @@ def collect_fist_to_five(
     mean_f = sum(fingers_list) / len(fingers_list)
     median_f = _median(fingers_list)
 
-    # Consensus: 没有人给1指 AND 多数人≥3指
+    # Consensus Eq.(5): min(v_a) > 1 且 ρ_k >= 0.6 且 μ_k >= 3.0
     no_blocking = len(blocking) == 0
     accepting = sum(1 for v in votes if v.is_accepting)
-    majority_accept = accepting >= len(votes) * 0.6
+    rho = accepting / len(votes) if votes else 0.0
+    mu = mean_f
+    majority_accept = (rho >= 0.6) and (mu >= 3.0)
 
     consensus_reached = no_blocking and majority_accept
 
     if not no_blocking:
         level = "blocked"
-    elif mean_f >= 4.0:
+    elif mean_f >= 4.0 and rho >= 0.8 and all(v.fingers >= 3 for v in votes):
         level = "strong"
-    elif mean_f >= 3.0:
+    elif consensus_reached:
         level = "weak"
     else:
         level = "none"
@@ -137,6 +143,8 @@ def collect_fist_to_five(
         mean_fingers=mean_f,
         median_fingers=median_f,
         consensus_level=level,
+        rho=rho,
+        mu=mu,
     )
 
 

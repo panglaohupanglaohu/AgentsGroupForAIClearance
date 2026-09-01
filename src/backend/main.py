@@ -490,6 +490,22 @@ async def startup():
             except Exception as e:
                 logger.warning(f"⚠️ AWS Ops team not loaded: {e}")
 
+        # AI 模型准入团队（Open-Weight Model Assurance Standard 执行载体）
+        if not _target_team or _target_team == "ai_model_clearance":
+            try:
+                from agents.teams.ai_model_clearance_team import (
+                    create_ai_model_clearance_team,
+                    TEAM_ID as _MC_TID,
+                )
+                if _MC_TID not in _team_manager._teams:
+                    mc_obj = _team_manager.register_team(create_ai_model_clearance_team())
+                    logger.info(
+                        f"✅ AI Model Clearance team registered: {mc_obj.team_id} "
+                        f"— {len(mc_obj.agents)} agents"
+                    )
+            except Exception as e:
+                logger.warning(f"⚠️ AI Model Clearance team not loaded: {e}")
+
         # 宠物智能体团队（猫小虎 + 老鼠）
         # 猫台词提示词技能：小虎即兴发言走 /llm/cat-speak 时以此 instructions 作 system prompt
         _CAT_SPEAK_SKILL_ID = "cat_speak_prompt"

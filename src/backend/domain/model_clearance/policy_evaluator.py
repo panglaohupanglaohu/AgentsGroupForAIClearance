@@ -48,10 +48,13 @@ def evaluate_gate(
     needs_info_checks: List[str] = []
     evidence_refs = [e.evidence_id for e in evidences]
 
+    # 参考情报只随裁决留痕，不参与规则求值：外部团队的分析不得让门禁自动通过或失败。
+    scanner_evidences = [e for e in evidences if not getattr(e, "advisory", False)]
+
     # Aggregate all payloads from this gate's evidences for rule evaluation
     merged_payload: Dict[str, Any] = {}
     any_error = False
-    for ev in evidences:
+    for ev in scanner_evidences:
         if ev.payload:
             if ev.payload.get("_status") != "ok":
                 any_error = True
@@ -64,7 +67,7 @@ def evaluate_gate(
         on_false = rule.get("on_false", "fail")
 
         # T4 Fail-closed check: if evidence failed to collect or errored
-        if not evidences or any_error or merged_payload.get("_status") != "ok":
+        if not scanner_evidences or any_error or merged_payload.get("_status") != "ok":
             if is_blocker or on_false == "fail":
                 failed_checks.append(rule_id)
             else:

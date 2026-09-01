@@ -605,15 +605,15 @@
     "models": {
       "codebuddy": {
         "model_id": "codebuddy",
-        "provider": "openai",
-        "name": "qwen-36",
-        "max_tokens": 10240,
+        "provider": "deepseek",
+        "name": "deepseek-v4-pro",
+        "max_tokens": 4096,
         "temperature": 0.7,
         "is_default": true,
         "enabled": true,
-        "api_key": "",
-        "api_base_url": "https://sub2api.fcyaxing.com/v1",
-        "has_api_key": false
+        "api_key": "****938d",
+        "api_base_url": "https://api.deepseek.com",
+        "has_api_key": true
       },
       "deepseek": {
         "model_id": "deepseek",
@@ -623,9 +623,9 @@
         "temperature": 0.7,
         "is_default": false,
         "enabled": true,
-        "api_key": "",
+        "api_key": "****d2ce",
         "api_base_url": "https://api.deepseek.com",
-        "has_api_key": false
+        "has_api_key": true
       },
       "550ce2b5": {
         "model_id": "550ce2b5",
@@ -635,9 +635,9 @@
         "temperature": 0.7,
         "is_default": false,
         "enabled": true,
-        "api_key": "",
+        "api_key": "****938d",
         "api_base_url": "https://sub2api.fcyaxing.com/v1",
-        "has_api_key": false
+        "has_api_key": true
       }
     },
     "tools": {},
@@ -1259,14 +1259,322 @@
         "lineage": "",
         "schema_version": 1,
         "evidence_sessions": []
+      },
+      "0d230cc7": {
+        "skill_id": "0d230cc7",
+        "name": "System / Build需求拆解与约束澄清",
+        "description": "围绕当前议题提炼关键目标、边界条件和不可违反约束，形成可执行的问题定义。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🧭",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "topic-constraint-clarification-620e4474",
+        "required_tools": [
+          "read_file",
+          "web_search"
+        ],
+        "instructions": "基于原文片段『## 技术概要\n围绕「K8S节点升级SOP」，先冻结当前生产基线，再比较纵向升配与横向扩节点两条路径。首要方案是由 Build System 生成可审阅、可 dry-run、可回滚的 Terraform/运维脚本，AWS 运维团队负责容量评估、变更执行、监控验收、成本治理与区域合规。最大风险是扩容后索引迁移、热点分片和跨可用区流量导致的性能抖动；因此所有动作必须有指标门禁、回滚窗口和北美 AI 项目数据驻留检查。本计划由系统在 LLM 不可用或未返回结构化计划 场景下生成，可直接派发任务并进入数字孪生演练。\n\n##』，先列业务目标与验收口径，再明确前置条件、依赖和不可变约束；输出时必须给出‘必须做/可选做/禁止做’三栏。",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "8c750fd5": {
+        "skill_id": "8c750fd5",
+        "name": "System / Build实施路径与风险防护",
+        "description": "将议题拆成最小可交付步骤，并为每步补齐回滚条件与风险触发阈值。",
+        "category": "automation",
+        "required": false,
+        "enabled": true,
+        "icon": "🛠️",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "topic-delivery-risk-guard-620e4474",
+        "required_tools": [
+          "run_in_terminal",
+          "read_file",
+          "grep_search"
+        ],
+        "instructions": "把方案拆成 3-5 个顺序步骤；每步明确输入、输出、负责人与验证动作。对高风险步骤提供熔断条件与回滚指令，避免一次性大改。",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "db88712a": {
+        "skill_id": "db88712a",
+        "name": "System / Build验收指标与复盘闭环",
+        "description": "为当前议题建立可量化验收标准，并沉淀复盘模板，保证后续可追踪改进。",
+        "category": "general",
+        "required": false,
+        "enabled": true,
+        "icon": "✅",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "topic-acceptance-retro-loop-620e4474",
+        "required_tools": [
+          "testFailure",
+          "run_in_terminal"
+        ],
+        "instructions": "定义最小验收集（功能、性能、稳定性、成本）；失败时记录 root cause 与 next action，并把可复用规则写入团队规范。",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "d8516efe": {
+        "skill_id": "d8516efe",
+        "name": "完整 Storyline：从一条告警，到一条可信、可优化…",
+        "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🧭",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "offline-placeholder-3e173186",
+        "required_tools": [
+          "read_file",
+          "web_search"
+        ],
+        "instructions": "基于原文片段『一、完整 Storyline：从一条告警，到一条可信、可优化、可复用的工作链\n凌晨 02:14，一条公有云告警进入运营视野。服务健康正在下降，但此时真正的问题还不是“哪个 Agent 可以马上执行修复”，而是：我们是否已经拥有足够的上下文，能够让下一步行动是正确的、被授权的，而且最终可以被验证。\n告警进入一个持续保留工作的 Workspace Channel。这里不是一个临时聊天窗口，而是这次任务的共同工作现场。已有的服务信息、历史讨论、知识文件、任务、Owner、权限范围、Agent、连接器和操作记录被带到同一个』：\n1. 列出业务目标与验收口径\n2. 明确前置条件、依赖与不可变约束\n3. 输出「必须做 / 可选做 / 禁止做」三栏\n4. 补最小验证步骤与回滚点",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "66cd33ba": {
+        "skill_id": "66cd33ba",
+        "name": "System / Build需求拆解与约束澄清",
+        "description": "围绕当前议题提炼关键目标、边界条件和不可违反约束，形成可执行的问题定义。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🧭",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "topic-constraint-clarification-620e4474",
+        "required_tools": [
+          "read_file",
+          "web_search"
+        ],
+        "instructions": "基于原文片段『## 技术概要\n围绕「K8S节点升级SOP」，先冻结当前生产基线，再比较纵向升配与横向扩节点两条路径。首要方案是由 Build System 生成可审阅、可 dry-run、可回滚的 Terraform/运维脚本，AWS 运维团队负责容量评估、变更执行、监控验收、成本治理与区域合规。最大风险是扩容后索引迁移、热点分片和跨可用区流量导致的性能抖动；因此所有动作必须有指标门禁、回滚窗口和北美 AI 项目数据驻留检查。本计划由系统在 LLM 不可用或未返回结构化计划 场景下生成，可直接派发任务并进入数字孪生演练。\n\n##』，先列业务目标与验收口径，再明确前置条件、依赖和不可变约束；输出时必须给出‘必须做/可选做/禁止做’三栏。",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "a4d11866": {
+        "skill_id": "a4d11866",
+        "name": "System / Build实施路径与风险防护",
+        "description": "将议题拆成最小可交付步骤，并为每步补齐回滚条件与风险触发阈值。",
+        "category": "automation",
+        "required": false,
+        "enabled": true,
+        "icon": "🛠️",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "topic-delivery-risk-guard-620e4474",
+        "required_tools": [
+          "run_in_terminal",
+          "read_file",
+          "grep_search"
+        ],
+        "instructions": "把方案拆成 3-5 个顺序步骤；每步明确输入、输出、负责人与验证动作。对高风险步骤提供熔断条件与回滚指令，避免一次性大改。",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "172c904a": {
+        "skill_id": "172c904a",
+        "name": "System / Build验收指标与复盘闭环",
+        "description": "为当前议题建立可量化验收标准，并沉淀复盘模板，保证后续可追踪改进。",
+        "category": "general",
+        "required": false,
+        "enabled": true,
+        "icon": "✅",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "topic-acceptance-retro-loop-620e4474",
+        "required_tools": [
+          "testFailure",
+          "run_in_terminal"
+        ],
+        "instructions": "定义最小验收集（功能、性能、稳定性、成本）；失败时记录 root cause 与 next action，并把可复用规则写入团队规范。",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "d48c4fed": {
+        "skill_id": "d48c4fed",
+        "name": "完整 Storyline：从一条告警，到一条可信、可优化…",
+        "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🧭",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "offline-placeholder-3e173186",
+        "required_tools": [
+          "read_file",
+          "web_search"
+        ],
+        "instructions": "基于原文片段『一、完整 Storyline：从一条告警，到一条可信、可优化、可复用的工作链\n凌晨 02:14，一条公有云告警进入运营视野。服务健康正在下降，但此时真正的问题还不是“哪个 Agent 可以马上执行修复”，而是：我们是否已经拥有足够的上下文，能够让下一步行动是正确的、被授权的，而且最终可以被验证。\n告警进入一个持续保留工作的 Workspace Channel。这里不是一个临时聊天窗口，而是这次任务的共同工作现场。已有的服务信息、历史讨论、知识文件、任务、Owner、权限范围、Agent、连接器和操作记录被带到同一个』：\n1. 列出业务目标与验收口径\n2. 明确前置条件、依赖与不可变约束\n3. 输出「必须做 / 可选做 / 禁止做」三栏\n4. 补最小验证步骤与回滚点",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
       }
     },
     "metadata": {
-      "team_type": "build"
+      "team_type": "build",
+      "custom_topology": [
+        {
+          "source": "build_researcher",
+          "target": "build_pm",
+          "label": "协作交接"
+        },
+        {
+          "source": "build_doc_writer",
+          "target": "build_pm",
+          "label": "协作交接"
+        },
+        {
+          "source": "build_pm",
+          "target": "build_researcher",
+          "label": "协作交接"
+        },
+        {
+          "source": "build_researcher",
+          "target": "build_architect",
+          "label": "协作交接"
+        },
+        {
+          "source": "build_developer",
+          "target": "build_architect",
+          "label": "协作交接"
+        },
+        {
+          "source": "build_architect",
+          "target": "build_tester",
+          "label": "协作交接"
+        },
+        {
+          "source": "build_tester",
+          "target": "build_deployer",
+          "label": "协作交接"
+        },
+        {
+          "source": "build_deployer",
+          "target": "build_doc_writer",
+          "label": "协作交接"
+        }
+      ]
     },
     "created_at": "2026-06-23T21:44:08.935447+00:00",
     "runtime": "legacy",
-    "workflow_mode": "single"
+    "workflow_mode": "custom"
   },
   "ai_coding": {
     "team_id": "ai_coding",
@@ -1627,15 +1935,15 @@
     "models": {
       "deepseek": {
         "model_id": "deepseek",
-        "provider": "openai",
-        "name": "qwen-36",
-        "max_tokens": 10240,
+        "provider": "deepseek",
+        "name": "deepseek-v4-pro",
+        "max_tokens": 4096,
         "temperature": 0.7,
         "is_default": true,
         "enabled": true,
-        "api_key": "",
-        "api_base_url": "https://sub2api.fcyaxing.com/v1",
-        "has_api_key": false
+        "api_key": "****938d",
+        "api_base_url": "https://api.deepseek.com",
+        "has_api_key": true
       }
     },
     "tools": {},
@@ -1645,7 +1953,7 @@
     },
     "created_at": "2026-06-23T21:44:08.948926+00:00",
     "runtime": "legacy",
-    "workflow_mode": "single"
+    "workflow_mode": "mesh"
   },
   "ai_news_60s": {
     "team_id": "ai_news_60s",
@@ -5149,13 +5457,13 @@
         "model_id": "deepseek",
         "provider": "deepseek",
         "name": "deepseek-v4-pro",
-        "max_tokens": 8192,
-        "temperature": 0.2,
+        "max_tokens": 4096,
+        "temperature": 0.7,
         "is_default": true,
         "enabled": true,
-        "api_key": "",
+        "api_key": "****938d",
         "api_base_url": "https://api.deepseek.com",
-        "has_api_key": false
+        "has_api_key": true
       },
       "copilot": {
         "model_id": "copilot",
@@ -5915,17 +6223,151 @@
         "model_id": "deepseek",
         "provider": "deepseek",
         "name": "deepseek-v4-pro",
-        "max_tokens": 8192,
-        "temperature": 0.2,
+        "max_tokens": 4096,
+        "temperature": 0.7,
         "is_default": true,
         "enabled": true,
-        "api_key": "",
+        "api_key": "****938d",
         "api_base_url": "https://api.deepseek.com",
-        "has_api_key": false
+        "has_api_key": true
       }
     },
     "tools": {},
-    "skills": {},
+    "skills": {
+      "f028f121": {
+        "skill_id": "f028f121",
+        "name": "SPEAKER-SCRIPT",
+        "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🧭",
+        "config_schema": {},
+        "config": {
+          "last_evolution": {
+            "from_version": 1,
+            "to_version": 2,
+            "changelog": [
+              "明确了业务目标与验收口径，强调30分钟时长限制和标记点完整性",
+              "细化了必须做/可选做/禁止做三栏，补充了口语自然度、标记位置、中英对照准确性等具体检查项",
+              "增加了最小验证步骤与回滚点，确保修改后时长和标记完整性可验证",
+              "明确了前置条件和依赖工具，避免执行时遗漏必要信息"
+            ]
+          },
+          "last_verify": {
+            "status": "failed",
+            "pass_rate": 0.8571428571428571,
+            "passed": 12,
+            "failed": 2,
+            "error_detail": "语义硬失败（离线占位/空指令等不可验证内容）",
+            "failed_checks": [
+              {
+                "name": "not_offline_placeholder",
+                "message": "reject offline/fallback placeholder skills",
+                "layer": "semantic-hard"
+              },
+              {
+                "name": "sandbox_output_parse",
+                "message": "sandbox did not return verification checks",
+                "layer": "sandbox"
+              }
+            ],
+            "twin_ab": {},
+            "skill_version": 2,
+            "at": "2026-08-24T09:40:38.983074+00:00"
+          }
+        },
+        "is_default": false,
+        "source": "distilled",
+        "slug": "offline-placeholder-45d094d0",
+        "required_tools": [
+          "read_file",
+          "web_search"
+        ],
+        "instructions": "1. 业务目标与验收口径：\n- 目标：基于提供的演讲主题《One Alert. One AI-Native Loop. Zero Wake-up Calls.》及原文片段，生成或校验一份30分钟的中英对照口语演讲逐字稿。\n- 验收：英文部分流畅自然，适合现场口语表达；中文部分准确对应英文含义，仅作提词辅助；总时长控制在30分钟以内；所有【点】、【找鼠标时说】、【加载时说】等标记位置准确，无遗漏。\n\n2. 前置条件、依赖与不可变约束：\n- 前置：已获得演讲主题、原文片段或完整草稿；确认演讲时长为30分钟。\n- 依赖：使用 read_file 读取本地文件，使用 web_search 补充背景信息（如需）。\n- 不可变约束：现场只念英文，中文不朗读；【点】标记处必须执行操作，无标记处不临时展开；【找鼠标时说】必须先开口再移动鼠标；【加载时说】必须在页面未加载完成时说出，禁止沉默盯屏。\n\n3. 必须做 / 可选做 / 禁止做：\n- 必须做：\n  a) 逐句核对英文口语表达的自然度，确保无书面化、冗长句式。\n  b) 确保所有【点】、【找鼠标时说】、【加载时说】标记位置正确，且内容与操作匹配。\n  c) 检查中英对照的准确性，中文需准确传达英文含义，允许口语化调整但不得偏离原意。\n  d) 估算总时长，确保不超过30分钟；如超时，优先删减非核心段落，保留所有标记点。\n- 可选做：\n  a) 根据 web_search 结果补充行业背景或数据支撑（仅在原文有引用且需核实时使用）。\n  b) 对口语表达进行微调，提升流畅度（不改变原意）。\n- 禁止做：\n  a) 禁止中英各念一遍，中文仅作为提词。\n  b) 禁止在无【点】标记处临时展开内容，避免超时。\n  c) 禁止在【找鼠标时说】位置沉默移动鼠标，必须先开口。\n  d) 禁止在【加载时说】位置沉默等待页面加载，必须说出缓冲语。\n\n4. 最小验证步骤与回滚点：\n- 最小验证：\n  a) 通读英文部分，确认口语自然、无书面化表达。\n  b) 检查所有【点】、【找鼠标时说】、【加载时说】标记是否完整且位置正确。\n  c) 核对中英对照，确保中文准确传达英文含义。\n  d) 估算总时长，确认不超过30分钟。\n- 回滚点：若修改后出现时长超标或标记缺失，回滚至最近一次通过验证的版本，重新检查修改部分。",
+        "lifecycle_stage": "team_local",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 2,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "7449d23f": {
+        "skill_id": "7449d23f",
+        "name": "SPEAKER-SCRIPT",
+        "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🧭",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "offline-placeholder-45d094d0",
+        "required_tools": [
+          "read_file",
+          "web_search"
+        ],
+        "instructions": "基于原文片段『# 逐字稿 · Speaker Script\n**《One Alert. One AI-Native Loop. Zero Wake-up Calls.》**\n\n中英对照 · 30 分钟口语版\n\n---\n\n## 用法说明\n\n- **现场只念英文。中文是理解和提词，不要中英各念一遍。**\n- **【点】** 表示需要操作；没有标记的地方不要临时展开，避免超时。\n- **【找鼠标时说】** 先开口，再移动鼠标；这句话就是找目标时的缓冲。\n- **【加载时说】** 点击后页面还没出来，就说这一句，不要沉默盯屏幕。\n- *』：\n1. 列出业务目标与验收口径\n2. 明确前置条件、依赖与不可变约束\n3. 输出「必须做 / 可选做 / 禁止做」三栏\n4. 补最小验证步骤与回滚点",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "8dc78b78": {
+        "skill_id": "8dc78b78",
+        "name": "开放权重模型合规性评估",
+        "description": "依据Lenovo标准，对开放权重模型进行基于证据的独立评估，验证其是否满足部署、数据流及安全要求，并识别剩余风险。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🔍",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "open-weight-model-assurance",
+        "required_tools": [
+          "python",
+          "curl",
+          "sql"
+        ],
+        "instructions": "1. 确认模型是否在Approved Model Catalog中，检查其版本和权重来源。\n2. 验证模型部署环境是否在Lenovo控制或批准的ROW基础设施内，检查数据流边界。\n3. 审查模型供应链、训练数据不确定性、偏差及地缘政治风险，执行红队测试以识别安全弱点。\n4. 记录证据、缓解措施及剩余风险，确保评估可重复且符合标准。",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      }
+    },
     "metadata": {
       "team_type": "xops"
     },
@@ -5965,24 +6407,21 @@
             "resource": "storage:*",
             "access_level": "read",
             "channels": [],
-            "allowed_tools": [],
-            "description": "读取存储策略和成本数据"
+            "allowed_tools": []
           },
           {
             "agent_id": "",
             "resource": "network:*",
             "access_level": "read",
             "channels": [],
-            "allowed_tools": [],
-            "description": "读取网络出口配置和成本数据"
+            "allowed_tools": []
           },
           {
             "agent_id": "",
             "resource": "audit:*",
             "access_level": "write",
             "channels": [],
-            "allowed_tools": [],
-            "description": "生成审计报告"
+            "allowed_tools": []
           }
         ],
         "channels": [
@@ -6058,16 +6497,14 @@
             "resource": "storage:*",
             "access_level": "write",
             "channels": [],
-            "allowed_tools": [],
-            "description": "管理存储生命周期策略"
+            "allowed_tools": []
           },
           {
             "agent_id": "",
             "resource": "storage:policy:*",
             "access_level": "admin",
             "channels": [],
-            "allowed_tools": [],
-            "description": "创建/修改/锁定存储策略"
+            "allowed_tools": []
           }
         ],
         "channels": [
@@ -6141,24 +6578,21 @@
             "resource": "network:*",
             "access_level": "write",
             "channels": [],
-            "allowed_tools": [],
-            "description": "管理网络出口配置"
+            "allowed_tools": []
           },
           {
             "agent_id": "",
             "resource": "network:cdn:*",
             "access_level": "admin",
             "channels": [],
-            "allowed_tools": [],
-            "description": "管理 CDN 配置"
+            "allowed_tools": []
           },
           {
             "agent_id": "",
             "resource": "network:vpc:*",
             "access_level": "admin",
             "channels": [],
-            "allowed_tools": [],
-            "description": "管理 VPC Endpoint 配置"
+            "allowed_tools": []
           }
         ],
         "channels": [
@@ -6233,24 +6667,21 @@
             "resource": "automation:*",
             "access_level": "write",
             "channels": [],
-            "allowed_tools": [],
-            "description": "执行自动化运维操作"
+            "allowed_tools": []
           },
           {
             "agent_id": "",
             "resource": "monitoring:*",
             "access_level": "read",
             "channels": [],
-            "allowed_tools": [],
-            "description": "读取监控数据"
+            "allowed_tools": []
           },
           {
             "agent_id": "",
             "resource": "iaac:*",
             "access_level": "write",
             "channels": [],
-            "allowed_tools": [],
-            "description": "管理基础设施即代码"
+            "allowed_tools": []
           }
         ],
         "channels": [
@@ -6330,16 +6761,14 @@
             "resource": "governance:*",
             "access_level": "admin",
             "channels": [],
-            "allowed_tools": [],
-            "description": "云治理管理权限"
+            "allowed_tools": []
           },
           {
             "agent_id": "",
             "resource": "policy:lock",
             "access_level": "admin",
             "channels": [],
-            "allowed_tools": [],
-            "description": "批准策略锁定"
+            "allowed_tools": []
           }
         ],
         "channels": [
@@ -6781,17 +7210,150 @@
         "model_id": "deepseek",
         "provider": "deepseek",
         "name": "deepseek-v4-pro",
-        "max_tokens": 8192,
-        "temperature": 0.2,
+        "max_tokens": 4096,
+        "temperature": 0.7,
         "is_default": true,
         "enabled": true,
-        "api_key": "",
+        "api_key": "****938d",
         "api_base_url": "https://api.deepseek.com",
-        "has_api_key": false
+        "has_api_key": true
       }
     },
     "tools": {},
-    "skills": {},
+    "skills": {
+      "777751cd": {
+        "skill_id": "777751cd",
+        "name": "Operation System Linux CentO…",
+        "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🧭",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "offline-placeholder-5b00af6c",
+        "required_tools": [
+          "read_file",
+          "web_search"
+        ],
+        "instructions": "基于原文片段『Topic: Operation System Linux CentOS 7.9升级到Rocky9\nGoal: Operation System Linux CentOS 7.9升级到Rocky9\n[Round 0] 运维Leader (运维Leader, signal=supplement): CentOS 7.9 下个月就 EOL 了，安全补丁断了，合规风险很高。这次迁移到 Rocky9 不只是换个系统版本，涉及应用兼容性、架构调整和运维流程全面翻新。\n\n**第一个问题：** 各位觉得我们走“原地升级”还是“新』：\n1. 列出业务目标与验收口径\n2. 明确前置条件、依赖与不可变约束\n3. 输出「必须做 / 可选做 / 禁止做」三栏\n4. 补最小验证步骤与回滚点",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "4d1c99f9": {
+        "skill_id": "4d1c99f9",
+        "name": "Operation System Linux CentO…",
+        "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🧭",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "offline-placeholder-19297b68",
+        "required_tools": [
+          "read_file",
+          "web_search"
+        ],
+        "instructions": "基于原文片段『Topic: Operation System Linux CentOS 7.9升级到Rocky9\nGoal: Operation System Linux CentOS 7.9升级到Rocky9\n[Round 0] 运维Leader (运维Leader, signal=supplement): 各位，今天核心议题就一个：CentOS 7.9 明年6月停服，我们得把生产环境的 OS 统一升级到 Rocky9。这活儿涉及兼容性、迁移成本、业务中断风险，还有运维习惯的转变。\n\n第一个问题：**上云架构师，你先评估一下，』：\n1. 列出业务目标与验收口径\n2. 明确前置条件、依赖与不可变约束\n3. 输出「必须做 / 可选做 / 禁止做」三栏\n4. 补最小验证步骤与回滚点",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "f155826a": {
+        "skill_id": "f155826a",
+        "name": "Operation System Linux CentO…",
+        "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🧭",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "offline-placeholder-5b00af6c",
+        "required_tools": [
+          "read_file",
+          "web_search"
+        ],
+        "instructions": "基于原文片段『Topic: Operation System Linux CentOS 7.9升级到Rocky9\nGoal: Operation System Linux CentOS 7.9升级到Rocky9\n[Round 0] 运维Leader (运维Leader, signal=supplement): CentOS 7.9 下个月就 EOL 了，安全补丁断了，合规风险很高。这次迁移到 Rocky9 不只是换个系统版本，涉及应用兼容性、架构调整和运维流程全面翻新。\n\n**第一个问题：** 各位觉得我们走“原地升级”还是“新』：\n1. 列出业务目标与验收口径\n2. 明确前置条件、依赖与不可变约束\n3. 输出「必须做 / 可选做 / 禁止做」三栏\n4. 补最小验证步骤与回滚点",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      },
+      "302ae532": {
+        "skill_id": "302ae532",
+        "name": "Operation System Linux CentO…",
+        "description": "离线占位草案（TSE/LLM 解码未成功，非正式技能名）。请编辑指令后审核，或修好模型后强制重萃。",
+        "category": "research",
+        "required": false,
+        "enabled": true,
+        "icon": "🧭",
+        "config_schema": {},
+        "config": {},
+        "is_default": false,
+        "source": "distilled",
+        "slug": "offline-placeholder-19297b68",
+        "required_tools": [
+          "read_file",
+          "web_search"
+        ],
+        "instructions": "基于原文片段『Topic: Operation System Linux CentOS 7.9升级到Rocky9\nGoal: Operation System Linux CentOS 7.9升级到Rocky9\n[Round 0] 运维Leader (运维Leader, signal=supplement): 各位，今天核心议题就一个：CentOS 7.9 明年6月停服，我们得把生产环境的 OS 统一升级到 Rocky9。这活儿涉及兼容性、迁移成本、业务中断风险，还有运维习惯的转变。\n\n第一个问题：**上云架构师，你先评估一下，』：\n1. 列出业务目标与验收口径\n2. 明确前置条件、依赖与不可变约束\n3. 输出「必须做 / 可选做 / 禁止做」三栏\n4. 补最小验证步骤与回滚点",
+        "lifecycle_stage": "draft",
+        "quality_score": 0.0,
+        "visibility": "private",
+        "version": 1,
+        "usage_count": 0,
+        "success_count": 0,
+        "fail_count": 0,
+        "effectiveness": 0.0,
+        "last_used_at": "",
+        "adopted_by": [],
+        "origin_team_id": "",
+        "lineage": "",
+        "schema_version": 1,
+        "evidence_sessions": []
+      }
+    },
     "metadata": {
       "team_type": "aws_ops"
     },
@@ -8372,5 +8934,753 @@
     "created_at": "2026-08-19T15:49:09.069806+00:00",
     "runtime": "legacy",
     "workflow_mode": "single"
+  },
+  "cb309eea": {
+    "team_id": "cb309eea",
+    "name": "HPC运维运营团队",
+    "description": "HPC运维运营",
+    "visibility": "private",
+    "agents": {},
+    "models": {},
+    "tools": {},
+    "skills": {},
+    "metadata": {},
+    "created_at": "2026-08-28T07:58:39.563915+00:00",
+    "runtime": "legacy",
+    "workflow_mode": "single"
+  },
+  "ai-model-clearance": {
+    "team_id": "ai-model-clearance",
+    "name": "AI 模型准入团队",
+    "description": "依据 Lenovo Open-Weight Model Assurance Standard 组建的 8 角色准入评审团队：主理人裁决、基础设施架构师把部署与数据流红线、安全审核人评估模型行为风险、法务审核人管许可与出口管制、标准撰写人产出保障记录、供应链工程师验制品完整性、红队分析师做对抗测试、运营负责人守全生命周期。",
+    "visibility": "internal",
+    "agents": {
+      "mc_owner": {
+        "agent_id": "mc_owner",
+        "name": "AI模型准入主理人",
+        "role": "AI模型准入主理人",
+        "description": "AI 模型准入团队 · AI模型准入主理人（负责标准 §9、§10、§11、§12）",
+        "template_type": "custom",
+        "state": "idle",
+        "model_id": "clearance-primary",
+        "system_prompt": "你是 Lenovo AI 模型准入团队的AI模型准入主理人，依据《Open-Weight Model Assurance Standard》负责 §9、§10、§11、§12 的评估。\n铁律：\n1. 结论必须基于可独立验证的证据，不得仅凭模型提供方的声明。\n2. 评估针对具体模型制品与版本，不等同于批准该提供方或其托管服务。\n3. 模型来源/产地只作为风险信号；判定必须落到可管可证的技术与运营控制项。\n4. 无法完全控制或独立验证的残余风险必须显式记录，不得隐去。\n5. 证据不足时输出 needs_info 并列出缺失项，禁止臆断放行。\n请用中文输出，结论需给出：判定、依据证据、残余风险、建议条件。\n",
+        "personality": {
+          "tone": "professional",
+          "language": "zh-CN",
+          "expertise_areas": [
+            "governance",
+            "program_management",
+            "risk_acceptance"
+          ],
+          "response_style": "technical",
+          "creativity": 0.2
+        },
+        "permissions": [
+          {
+            "agent_id": "",
+            "resource": "model_clearance",
+            "access_level": "write",
+            "channels": [
+              "model_clearance_bus"
+            ],
+            "allowed_tools": []
+          }
+        ],
+        "channels": [
+          {
+            "channel": "model_clearance_bus",
+            "channel_name": "model_clearance_bus",
+            "endpoint": "",
+            "enabled": true,
+            "sync_interval_seconds": 60,
+            "subscribe": true,
+            "publish": true,
+            "priority": 0
+          }
+        ],
+        "tools": [
+          "delegate_task",
+          "read_file",
+          "search_files"
+        ],
+        "skills": [
+          "clearance_intake_triage",
+          "assurance_decision_adjudication",
+          "permitted_use_scoping"
+        ],
+        "metadata": {
+          "team_type": "ai_model_clearance",
+          "role": "AI模型准入主理人",
+          "governance_role": "approve",
+          "standard_sections": [
+            "§9",
+            "§10",
+            "§11",
+            "§12"
+          ]
+        },
+        "created_at": "2026-08-28T09:58:34.477724+00:00",
+        "is_hermes_agent": false,
+        "autonomy_level": 2,
+        "token_budget": 0,
+        "fallback_model_id": "",
+        "runtime": "legacy"
+      },
+      "mc_infra": {
+        "agent_id": "mc_infra",
+        "name": "基础设施架构师",
+        "role": "基础设施架构师",
+        "description": "AI 模型准入团队 · 基础设施架构师（负责标准 §7.1、§7.2、§3）",
+        "template_type": "custom",
+        "state": "idle",
+        "model_id": "clearance-primary",
+        "system_prompt": "你是 Lenovo AI 模型准入团队的基础设施架构师，依据《Open-Weight Model Assurance Standard》负责 §7.1、§7.2、§3 的评估。\n铁律：\n1. 结论必须基于可独立验证的证据，不得仅凭模型提供方的声明。\n2. 评估针对具体模型制品与版本，不等同于批准该提供方或其托管服务。\n3. 模型来源/产地只作为风险信号；判定必须落到可管可证的技术与运营控制项。\n4. 无法完全控制或独立验证的残余风险必须显式记录，不得隐去。\n5. 证据不足时输出 needs_info 并列出缺失项，禁止臆断放行。\n请用中文输出，结论需给出：判定、依据证据、残余风险、建议条件。\n",
+        "personality": {
+          "tone": "professional",
+          "language": "zh-CN",
+          "expertise_areas": [
+            "infrastructure",
+            "network_egress",
+            "deployment_architecture"
+          ],
+          "response_style": "technical",
+          "creativity": 0.2
+        },
+        "permissions": [
+          {
+            "agent_id": "",
+            "resource": "model_clearance",
+            "access_level": "read",
+            "channels": [
+              "model_clearance_bus"
+            ],
+            "allowed_tools": []
+          }
+        ],
+        "channels": [
+          {
+            "channel": "model_clearance_bus",
+            "channel_name": "model_clearance_bus",
+            "endpoint": "",
+            "enabled": true,
+            "sync_interval_seconds": 60,
+            "subscribe": true,
+            "publish": true,
+            "priority": 0
+          }
+        ],
+        "tools": [
+          "run_shell",
+          "read_file",
+          "search_files"
+        ],
+        "skills": [
+          "deployment_dataflow_assurance",
+          "prohibited_deployment_screening",
+          "model_authority_least_privilege"
+        ],
+        "metadata": {
+          "team_type": "ai_model_clearance",
+          "role": "基础设施架构师",
+          "governance_role": "evaluate",
+          "standard_sections": [
+            "§7.1",
+            "§7.2",
+            "§3"
+          ]
+        },
+        "created_at": "2026-08-28T09:58:34.477735+00:00",
+        "is_hermes_agent": false,
+        "autonomy_level": 2,
+        "token_budget": 0,
+        "fallback_model_id": "",
+        "runtime": "legacy"
+      },
+      "mc_security": {
+        "agent_id": "mc_security",
+        "name": "AI模型安全审核人",
+        "role": "AI模型安全审核人",
+        "description": "AI 模型准入团队 · AI模型安全审核人（负责标准 §6.3、§7.2）",
+        "template_type": "custom",
+        "state": "idle",
+        "model_id": "clearance-primary",
+        "system_prompt": "你是 Lenovo AI 模型准入团队的AI模型安全审核人，依据《Open-Weight Model Assurance Standard》负责 §6.3、§7.2 的评估。\n铁律：\n1. 结论必须基于可独立验证的证据，不得仅凭模型提供方的声明。\n2. 评估针对具体模型制品与版本，不等同于批准该提供方或其托管服务。\n3. 模型来源/产地只作为风险信号；判定必须落到可管可证的技术与运营控制项。\n4. 无法完全控制或独立验证的残余风险必须显式记录，不得隐去。\n5. 证据不足时输出 needs_info 并列出缺失项，禁止臆断放行。\n请用中文输出，结论需给出：判定、依据证据、残余风险、建议条件。\n",
+        "personality": {
+          "tone": "professional",
+          "language": "zh-CN",
+          "expertise_areas": [
+            "ai_security",
+            "adversarial_testing",
+            "privacy_leakage"
+          ],
+          "response_style": "technical",
+          "creativity": 0.2
+        },
+        "permissions": [
+          {
+            "agent_id": "",
+            "resource": "model_clearance",
+            "access_level": "read",
+            "channels": [
+              "model_clearance_bus"
+            ],
+            "allowed_tools": []
+          }
+        ],
+        "channels": [
+          {
+            "channel": "model_clearance_bus",
+            "channel_name": "model_clearance_bus",
+            "endpoint": "",
+            "enabled": true,
+            "sync_interval_seconds": 60,
+            "subscribe": true,
+            "publish": true,
+            "priority": 0
+          }
+        ],
+        "tools": [
+          "run_python",
+          "run_shell",
+          "read_file"
+        ],
+        "skills": [
+          "model_behaviour_security_eval",
+          "prompt_injection_exfiltration_test",
+          "insecure_code_generation_review"
+        ],
+        "metadata": {
+          "team_type": "ai_model_clearance",
+          "role": "AI模型安全审核人",
+          "governance_role": "evaluate",
+          "standard_sections": [
+            "§6.3",
+            "§7.2"
+          ]
+        },
+        "created_at": "2026-08-28T09:58:34.477742+00:00",
+        "is_hermes_agent": false,
+        "autonomy_level": 2,
+        "token_budget": 0,
+        "fallback_model_id": "",
+        "runtime": "legacy"
+      },
+      "mc_legal": {
+        "agent_id": "mc_legal",
+        "name": "AI模型法务审核人",
+        "role": "AI模型法务审核人",
+        "description": "AI 模型准入团队 · AI模型法务审核人（负责标准 §7.3、§6.2）",
+        "template_type": "custom",
+        "state": "idle",
+        "model_id": "clearance-primary",
+        "system_prompt": "你是 Lenovo AI 模型准入团队的AI模型法务审核人，依据《Open-Weight Model Assurance Standard》负责 §7.3、§6.2 的评估。\n铁律：\n1. 结论必须基于可独立验证的证据，不得仅凭模型提供方的声明。\n2. 评估针对具体模型制品与版本，不等同于批准该提供方或其托管服务。\n3. 模型来源/产地只作为风险信号；判定必须落到可管可证的技术与运营控制项。\n4. 无法完全控制或独立验证的残余风险必须显式记录，不得隐去。\n5. 证据不足时输出 needs_info 并列出缺失项，禁止臆断放行。\n请用中文输出，结论需给出：判定、依据证据、残余风险、建议条件。\n",
+        "personality": {
+          "tone": "professional",
+          "language": "zh-CN",
+          "expertise_areas": [
+            "licensing",
+            "export_control",
+            "privacy_law"
+          ],
+          "response_style": "technical",
+          "creativity": 0.2
+        },
+        "permissions": [
+          {
+            "agent_id": "",
+            "resource": "model_clearance",
+            "access_level": "read",
+            "channels": [
+              "model_clearance_bus"
+            ],
+            "allowed_tools": []
+          }
+        ],
+        "channels": [
+          {
+            "channel": "model_clearance_bus",
+            "channel_name": "model_clearance_bus",
+            "endpoint": "",
+            "enabled": true,
+            "sync_interval_seconds": 60,
+            "subscribe": true,
+            "publish": true,
+            "priority": 0
+          }
+        ],
+        "tools": [
+          "read_file",
+          "search_files"
+        ],
+        "skills": [
+          "license_redistribution_review",
+          "export_control_sanctions_check",
+          "usecase_regulatory_assessment"
+        ],
+        "metadata": {
+          "team_type": "ai_model_clearance",
+          "role": "AI模型法务审核人",
+          "governance_role": "evaluate",
+          "standard_sections": [
+            "§7.3",
+            "§6.2"
+          ]
+        },
+        "created_at": "2026-08-28T09:58:34.477747+00:00",
+        "is_hermes_agent": false,
+        "autonomy_level": 2,
+        "token_budget": 0,
+        "fallback_model_id": "",
+        "runtime": "legacy"
+      },
+      "mc_standard": {
+        "agent_id": "mc_standard",
+        "name": "AI模型准入标准撰写人",
+        "role": "AI模型准入标准撰写人",
+        "description": "AI 模型准入团队 · AI模型准入标准撰写人（负责标准 §9、§13）",
+        "template_type": "custom",
+        "state": "idle",
+        "model_id": "clearance-primary",
+        "system_prompt": "你是 Lenovo AI 模型准入团队的AI模型准入标准撰写人，依据《Open-Weight Model Assurance Standard》负责 §9、§13 的评估。\n铁律：\n1. 结论必须基于可独立验证的证据，不得仅凭模型提供方的声明。\n2. 评估针对具体模型制品与版本，不等同于批准该提供方或其托管服务。\n3. 模型来源/产地只作为风险信号；判定必须落到可管可证的技术与运营控制项。\n4. 无法完全控制或独立验证的残余风险必须显式记录，不得隐去。\n5. 证据不足时输出 needs_info 并列出缺失项，禁止臆断放行。\n请用中文输出，结论需给出：判定、依据证据、残余风险、建议条件。\n",
+        "personality": {
+          "tone": "professional",
+          "language": "zh-CN",
+          "expertise_areas": [
+            "technical_writing",
+            "standards",
+            "audit_evidence"
+          ],
+          "response_style": "technical",
+          "creativity": 0.2
+        },
+        "permissions": [
+          {
+            "agent_id": "",
+            "resource": "model_clearance",
+            "access_level": "read",
+            "channels": [
+              "model_clearance_bus"
+            ],
+            "allowed_tools": []
+          }
+        ],
+        "channels": [
+          {
+            "channel": "model_clearance_bus",
+            "channel_name": "model_clearance_bus",
+            "endpoint": "",
+            "enabled": true,
+            "sync_interval_seconds": 60,
+            "subscribe": true,
+            "publish": true,
+            "priority": 0
+          }
+        ],
+        "tools": [
+          "read_file",
+          "write_file",
+          "search_files"
+        ],
+        "skills": [
+          "assurance_record_authoring",
+          "residual_risk_documentation",
+          "standard_maintenance_review"
+        ],
+        "metadata": {
+          "team_type": "ai_model_clearance",
+          "role": "AI模型准入标准撰写人",
+          "governance_role": "evaluate",
+          "standard_sections": [
+            "§9",
+            "§13"
+          ]
+        },
+        "created_at": "2026-08-28T09:58:34.477756+00:00",
+        "is_hermes_agent": false,
+        "autonomy_level": 2,
+        "token_budget": 0,
+        "fallback_model_id": "",
+        "runtime": "legacy"
+      },
+      "mc_supply": {
+        "agent_id": "mc_supply",
+        "name": "供应链与制品完整性工程师",
+        "role": "供应链与制品完整性工程师",
+        "description": "AI 模型准入团队 · 供应链与制品完整性工程师（负责标准 §6.1、§6.2）",
+        "template_type": "custom",
+        "state": "idle",
+        "model_id": "clearance-primary",
+        "system_prompt": "你是 Lenovo AI 模型准入团队的供应链与制品完整性工程师，依据《Open-Weight Model Assurance Standard》负责 §6.1、§6.2 的评估。\n铁律：\n1. 结论必须基于可独立验证的证据，不得仅凭模型提供方的声明。\n2. 评估针对具体模型制品与版本，不等同于批准该提供方或其托管服务。\n3. 模型来源/产地只作为风险信号；判定必须落到可管可证的技术与运营控制项。\n4. 无法完全控制或独立验证的残余风险必须显式记录，不得隐去。\n5. 证据不足时输出 needs_info 并列出缺失项，禁止臆断放行。\n请用中文输出，结论需给出：判定、依据证据、残余风险、建议条件。\n",
+        "personality": {
+          "tone": "professional",
+          "language": "zh-CN",
+          "expertise_areas": [
+            "supply_chain",
+            "sbom",
+            "cryptographic_verification"
+          ],
+          "response_style": "technical",
+          "creativity": 0.2
+        },
+        "permissions": [
+          {
+            "agent_id": "",
+            "resource": "model_clearance",
+            "access_level": "read",
+            "channels": [
+              "model_clearance_bus"
+            ],
+            "allowed_tools": []
+          }
+        ],
+        "channels": [
+          {
+            "channel": "model_clearance_bus",
+            "channel_name": "model_clearance_bus",
+            "endpoint": "",
+            "enabled": true,
+            "sync_interval_seconds": 60,
+            "subscribe": true,
+            "publish": true,
+            "priority": 0
+          }
+        ],
+        "tools": [
+          "run_shell",
+          "run_python",
+          "read_file"
+        ],
+        "skills": [
+          "artifact_provenance_verification",
+          "aibom_dependency_scanning",
+          "secure_serialization_check"
+        ],
+        "metadata": {
+          "team_type": "ai_model_clearance",
+          "role": "供应链与制品完整性工程师",
+          "governance_role": "evaluate",
+          "standard_sections": [
+            "§6.1",
+            "§6.2"
+          ]
+        },
+        "created_at": "2026-08-28T09:58:34.477762+00:00",
+        "is_hermes_agent": false,
+        "autonomy_level": 2,
+        "token_budget": 0,
+        "fallback_model_id": "",
+        "runtime": "legacy"
+      },
+      "mc_redteam": {
+        "agent_id": "mc_redteam",
+        "name": "红队与威胁情报分析师",
+        "role": "红队与威胁情报分析师",
+        "description": "AI 模型准入团队 · 红队与威胁情报分析师（负责标准 §6.4）",
+        "template_type": "custom",
+        "state": "idle",
+        "model_id": "clearance-primary",
+        "system_prompt": "你是 Lenovo AI 模型准入团队的红队与威胁情报分析师，依据《Open-Weight Model Assurance Standard》负责 §6.4 的评估。\n铁律：\n1. 结论必须基于可独立验证的证据，不得仅凭模型提供方的声明。\n2. 评估针对具体模型制品与版本，不等同于批准该提供方或其托管服务。\n3. 模型来源/产地只作为风险信号；判定必须落到可管可证的技术与运营控制项。\n4. 无法完全控制或独立验证的残余风险必须显式记录，不得隐去。\n5. 证据不足时输出 needs_info 并列出缺失项，禁止臆断放行。\n请用中文输出，结论需给出：判定、依据证据、残余风险、建议条件。\n",
+        "personality": {
+          "tone": "professional",
+          "language": "zh-CN",
+          "expertise_areas": [
+            "red_teaming",
+            "threat_intelligence",
+            "vulnerability_research"
+          ],
+          "response_style": "technical",
+          "creativity": 0.2
+        },
+        "permissions": [
+          {
+            "agent_id": "",
+            "resource": "model_clearance",
+            "access_level": "read",
+            "channels": [
+              "model_clearance_bus"
+            ],
+            "allowed_tools": []
+          }
+        ],
+        "channels": [
+          {
+            "channel": "model_clearance_bus",
+            "channel_name": "model_clearance_bus",
+            "endpoint": "",
+            "enabled": true,
+            "sync_interval_seconds": 60,
+            "subscribe": true,
+            "publish": true,
+            "priority": 0
+          }
+        ],
+        "tools": [
+          "run_python",
+          "run_shell",
+          "search_files"
+        ],
+        "skills": [
+          "threat_intelligence_review",
+          "adversarial_red_team_campaign",
+          "jailbreak_susceptibility_probe"
+        ],
+        "metadata": {
+          "team_type": "ai_model_clearance",
+          "role": "红队与威胁情报分析师",
+          "governance_role": "evaluate",
+          "standard_sections": [
+            "§6.4"
+          ]
+        },
+        "created_at": "2026-08-28T09:58:34.477768+00:00",
+        "is_hermes_agent": false,
+        "autonomy_level": 2,
+        "token_budget": 0,
+        "fallback_model_id": "",
+        "runtime": "legacy"
+      },
+      "mc_operations": {
+        "agent_id": "mc_operations",
+        "name": "持续保障与运营负责人",
+        "role": "持续保障与运营负责人",
+        "description": "AI 模型准入团队 · 持续保障与运营负责人（负责标准 §8、§11）",
+        "template_type": "custom",
+        "state": "idle",
+        "model_id": "clearance-primary",
+        "system_prompt": "你是 Lenovo AI 模型准入团队的持续保障与运营负责人，依据《Open-Weight Model Assurance Standard》负责 §8、§11 的评估。\n铁律：\n1. 结论必须基于可独立验证的证据，不得仅凭模型提供方的声明。\n2. 评估针对具体模型制品与版本，不等同于批准该提供方或其托管服务。\n3. 模型来源/产地只作为风险信号；判定必须落到可管可证的技术与运营控制项。\n4. 无法完全控制或独立验证的残余风险必须显式记录，不得隐去。\n5. 证据不足时输出 needs_info 并列出缺失项，禁止臆断放行。\n请用中文输出，结论需给出：判定、依据证据、残余风险、建议条件。\n",
+        "personality": {
+          "tone": "professional",
+          "language": "zh-CN",
+          "expertise_areas": [
+            "security_operations",
+            "incident_response",
+            "lifecycle_management"
+          ],
+          "response_style": "technical",
+          "creativity": 0.2
+        },
+        "permissions": [
+          {
+            "agent_id": "",
+            "resource": "model_clearance",
+            "access_level": "read",
+            "channels": [
+              "model_clearance_bus"
+            ],
+            "allowed_tools": []
+          }
+        ],
+        "channels": [
+          {
+            "channel": "model_clearance_bus",
+            "channel_name": "model_clearance_bus",
+            "endpoint": "",
+            "enabled": true,
+            "sync_interval_seconds": 60,
+            "subscribe": true,
+            "publish": true,
+            "priority": 0
+          }
+        ],
+        "tools": [
+          "run_shell",
+          "set_alarm",
+          "watch_file"
+        ],
+        "skills": [
+          "continuous_assurance_monitoring",
+          "incident_response_escalation",
+          "suspension_revocation_control",
+          "model_optionality_fallback"
+        ],
+        "metadata": {
+          "team_type": "ai_model_clearance",
+          "role": "持续保障与运营负责人",
+          "governance_role": "own_monitor_revoke",
+          "standard_sections": [
+            "§8",
+            "§11"
+          ]
+        },
+        "created_at": "2026-08-28T09:58:34.477772+00:00",
+        "is_hermes_agent": false,
+        "autonomy_level": 2,
+        "token_budget": 0,
+        "fallback_model_id": "",
+        "runtime": "legacy"
+      }
+    },
+    "models": {
+      "clearance-primary": {
+        "model_id": "clearance-primary",
+        "provider": "deepseek",
+        "name": "deepseek-v4-pro",
+        "max_tokens": 8192,
+        "temperature": 0.2,
+        "is_default": true,
+        "enabled": true,
+        "api_key": "",
+        "api_base_url": "https://api.deepseek.com",
+        "has_api_key": false
+      }
+    },
+    "tools": {},
+    "skills": {},
+    "metadata": {
+      "team_type": "ai_model_clearance",
+      "standard": "Lenovo Open-Weight Model Assurance Standard v0.1",
+      "governance_roles": [
+        "evaluate",
+        "approve",
+        "own",
+        "monitor",
+        "revoke"
+      ],
+      "custom_topology": [
+        {
+          "source": "mc_owner",
+          "target": "mc_infra",
+          "label": "派工/裁决"
+        },
+        {
+          "source": "mc_owner",
+          "target": "mc_security",
+          "label": "派工/裁决"
+        },
+        {
+          "source": "mc_owner",
+          "target": "mc_legal",
+          "label": "派工/裁决"
+        },
+        {
+          "source": "mc_owner",
+          "target": "mc_standard",
+          "label": "派工/裁决"
+        },
+        {
+          "source": "mc_owner",
+          "target": "mc_supply",
+          "label": "派工/裁决"
+        },
+        {
+          "source": "mc_owner",
+          "target": "mc_redteam",
+          "label": "派工/裁决"
+        },
+        {
+          "source": "mc_owner",
+          "target": "mc_operations",
+          "label": "派工/裁决"
+        },
+        {
+          "source": "mc_infra",
+          "target": "mc_security",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_infra",
+          "target": "mc_legal",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_infra",
+          "target": "mc_standard",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_infra",
+          "target": "mc_supply",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_infra",
+          "target": "mc_redteam",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_infra",
+          "target": "mc_operations",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_security",
+          "target": "mc_legal",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_security",
+          "target": "mc_standard",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_security",
+          "target": "mc_supply",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_security",
+          "target": "mc_redteam",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_security",
+          "target": "mc_operations",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_legal",
+          "target": "mc_standard",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_legal",
+          "target": "mc_supply",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_legal",
+          "target": "mc_redteam",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_legal",
+          "target": "mc_operations",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_standard",
+          "target": "mc_supply",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_standard",
+          "target": "mc_redteam",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_standard",
+          "target": "mc_operations",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_supply",
+          "target": "mc_redteam",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_supply",
+          "target": "mc_operations",
+          "label": "交叉会签"
+        },
+        {
+          "source": "mc_redteam",
+          "target": "mc_operations",
+          "label": "交叉会签"
+        }
+      ]
+    },
+    "created_at": "2026-08-28T09:58:34.477692+00:00",
+    "runtime": "legacy",
+    "workflow_mode": "custom"
   }
 }

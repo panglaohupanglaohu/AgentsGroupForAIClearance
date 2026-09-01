@@ -108,6 +108,13 @@ class RoutingSession:
     stage1_ms: float = 0
     stage2_ms: float = 0
     pool_size: int = 0
+    state_filter: str = ""
+
+
+# 论文 Section 5.6 状态硬过滤集合
+PRODUCTION_STATES = frozenset({"published", "solidified"})
+SANDBOX_STATES = frozenset({"published", "solidified", "verified", "team_local", "ready", "revision", "draft"})
+EXCLUDED_ALWAYS = frozenset({"deprecated"})
 
 
 class SkillRouter:
@@ -134,6 +141,7 @@ class SkillRouter:
         top_k: int = 10,
         mode: str = "assign",
         exclude_skill_ids: Optional[List[str]] = None,
+        production_only: bool = False,
     ) -> RoutingSession:
         """Execute the 2-stage retrieve-and-rerank pipeline.
 
@@ -150,9 +158,23 @@ class SkillRouter:
             if team and agent_id in team.agents:
                 agent_name = team.agents[agent_id].name
 
-        # Get skill pool
+        # Get skill pool & state filtering
         all_skills = self._get_skill_pool(team_id)
-        candidates = [s for s in all_skills if s.get("skill_id", "") not in exclude]
+        candidates = []
+        is_prod = production_only or (mode == "production")
+        allowed_states = PRODUCTION_STATES if is_prod else SANDBOX_STATES
+        state_filter_label = "production_only" if is_prod else "sandbox_all"
+
+        for s in all_skills:
+            if s.get("skill_id", "") in exclude:
+                continue
+            st = str(self._lifecycle_stage_str(s) or "draft").lower()
+            if st in EXCLUDED_ALWAYS:
+                continue
+            if is_prod and st not in allowed_states:
+                continue
+            candidates.append(s)
+
         pool_size = len(candidates)
 
         # Build IDF from corpus (cached)
@@ -225,6 +247,7 @@ class SkillRouter:
             stage1_ms=round(stage1_ms, 1),
             stage2_ms=round(stage2_ms, 1),
             pool_size=pool_size,
+            state_filter=state_filter_label,
         )
         self._sessions[session.session_id] = session
         logger.info(
@@ -899,16 +922,20 @@ class SkillRouter:
                         saturation_score += (hits_in_primary - 1) / max(len(group) - 1, 1)
                 saturation_score = min(saturation_score / len(active_groups), 1.0)
 
+            # Character n-gram overlap (robust against Chinese token segmentation boundaries)
+            char_ngram_score = self._ngram_score(query, primary_text, n=3)
+
             # Combined retrieval score
             score = (
-                0.25 * self._normalize_bm25(bm25) +
-                0.18 * cosine +
-                0.09 * bigram_overlap +
+                0.22 * self._normalize_bm25(bm25) +
+                0.16 * cosine +
+                0.08 * bigram_overlap +
                 0.03 * trigram_overlap +
-                0.15 * desc_phrase_score +
-                0.06 * body_score +
-                0.09 * synonym_bonus +
-                0.15 * saturation_score
+                0.14 * desc_phrase_score +
+                0.05 * body_score +
+                0.08 * synonym_bonus +
+                0.14 * saturation_score +
+                0.10 * char_ngram_score
             )
             scored.append((skill, score))
 
@@ -1131,6 +1158,23 @@ class SkillRouter:
         if len(tokens) < 3:
             return set()
         return {(tokens[i], tokens[i + 1], tokens[i + 2]) for i in range(len(tokens) - 2)}
+
+    @staticmethod
+    def _char_ngrams(text: str, n: int = 3) -> Set[str]:
+        """Generate character n-grams from raw text."""
+        t = re.sub(r"\s+", "", text or "")
+        if len(t) < n:
+            return {t} if t else set()
+        return {t[i:i+n] for i in range(len(t) - n + 1)}
+
+    @classmethod
+    def _ngram_score(cls, query: str, doc: str, n: int = 3) -> float:
+        """Calculate Jaccard similarity over character n-grams."""
+        a = cls._char_ngrams(query, n)
+        b = cls._char_ngrams(doc, n)
+        if not a or not b:
+            return 0.0
+        return len(a & b) / len(a | b)
 
     def _expand_synonyms(self, tokens: List[str]) -> Set[str]:
         """Expand query tokens with related terms from synonym groups."""

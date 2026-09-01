@@ -63,22 +63,23 @@
     }
     .engine-main { flex:1; min-width:0; max-width:100%; overflow-x:clip; }
 
-    /* Give the cockpit enough horizontal room for a readable assembly road and live cards. */
+    /* Give the cockpit enough horizontal room for the gate catalog and live journey cards. */
     .wrap { max-width:none; width:100%; margin:0; padding:20px 16px 48px; box-sizing:border-box; min-width:0; }
     h1 { font-size:1.4rem; margin:0 0 8px; }
     .sub { color:#64748b; font-size:13px; margin-bottom:12px; }
     .disclaimer { background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:10px 12px; border-radius:8px; font-size:12px; margin-bottom:16px; }
-    /* Research navigation is the far-left shell. Inside the cockpit, keep the assembly wide and
-       put the mouse-near controls on the right: simulation config, then account/health results. */
-    .grid { display:grid; grid-template-columns:minmax(0,1fr) 310px; grid-template-areas:"main config" "main rail"; gap:16px; align-items:start; min-width:0; max-width:100%; }
+    /* Research navigation is the far-left shell. Inside the cockpit, keep the gate catalog and live
+       journey wide, and put the mouse-near controls on the right: application config, then registry/health. */
+    .grid { display:grid; grid-template-columns:minmax(0,1fr) 310px; grid-template-areas:"rig rig" "main config" "main rail"; gap:16px; align-items:start; min-width:0; max-width:100%; }
     .grid > section { grid-area:main; min-width:0; }
+    /* 流水线独占整行，横排 9 道门禁才有足够宽度 */
+    #clearance-evidence { grid-area:rig; }
     #engine-config { grid-area:config; }
     #clearance-application { grid-area:config; }
     .grid > aside:not(#engine-config) { grid-area:rail; min-width:0; }
     .grid > * { min-width:0; max-width:100%; }
     @media (max-width: 960px) {
-      .grid { grid-template-columns:1fr; grid-template-areas:"config" "main" "rail"; }
-      .parts-bank { flex-wrap:nowrap; }
+      .grid { grid-template-columns:1fr; grid-template-areas:"rig" "config" "main" "rail"; }
       .engine-sidebar {
         position:fixed; left:0; top:0; bottom:0; transform:translateX(-105%); margin-top:0;
         max-height:none; box-shadow:0 0 0 rgba(0,0,0,0);
@@ -93,11 +94,10 @@
       .engine-shell.sidebar-collapsed #engine-sidebar-more { display:initial; }
     }
     @media (max-width: 600px) {
-      .lower-modules { grid-template-columns:repeat(2,1fr); }
       .insight-grid { grid-template-columns:1fr; }
-      .assembly-head { display:block; }
-      .assembly-count { display:block; margin-top:7px; }
-      .road-shell { flex-wrap:wrap; }
+      .parts-rail { max-height:none; flex-wrap:wrap; }
+      .parts-group { flex:1 1 100%; }
+      .role-grid { grid-template-columns:1fr; }
       .judgment-table-wrap { overflow-x:auto; }
       .judgment-matrix { display:grid; gap:8px; }
       .judgment-row { grid-template-columns:1fr !important; }
@@ -116,68 +116,185 @@
     .report-section { padding:8px 9px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; }
     .report-section b { display:block; font-size:11px; color:#1e293b; }
     .report-section small { display:block; margin-top:3px; color:#64748b; font-size:10px; }
+    .report-section.fail { border-color:#fca5a5; background:#fef2f2; }
+    .report-section.needs_info { border-color:#fcd34d; background:#fffbeb; }
+    .report-section.pass { border-color:#86efac; background:#f0fdf4; }
     .report-empty { padding:12px; border:1px dashed #cbd5e1; border-radius:9px; color:#64748b; font-size:12px; background:#f8fafc; }
-    .report-flow { overflow:auto; padding:12px; border:1px solid #c9d8e6; border-radius:12px; background:#f8fbff; }
-    .report-flow-head { display:flex; justify-content:space-between; gap:12px; align-items:baseline; margin-bottom:4px; color:#1e293b; }
-    .report-flow-head strong { font-size:13px; } .report-flow-head span { margin-left:9px; color:#64748b; font-size:10px; } .report-flow-head b { color:#0f766e; font-size:10px; }
-    .report-flow svg { display:block; width:1060px; max-width:none; height:520px; }
-    .flow-stage { fill:#2563eb; font:700 12px system-ui,sans-serif; } .flow-stage-sub { fill:#64748b; font:11px system-ui,sans-serif; }
-    .flow-edge { fill:none; stroke-width:1.5; opacity:.48; } .flow-edge.source-edge { stroke:#94a3b8; } .flow-edge.analysis-edge { stroke:#60a5fa; } .flow-edge.risk-edge { stroke:#f59e0b; } .flow-edge.approved-edge { stroke:#16a34a; stroke-width:2.5; opacity:.9; } .flow-edge.counter-edge { stroke:#ef4444; stroke-dasharray:5 4; }
-    .flow-node rect { stroke-width:1.5; } .flow-node text { fill:#0f172a; font:600 10px system-ui,sans-serif; } .flow-node.source rect { fill:#eef2f7; stroke:#94a3b8; } .flow-node.analyst rect { fill:#e0f2fe; stroke:#60a5fa; } .flow-node.debate rect { fill:#ede9fe; stroke:#8b5cf6; } .flow-node.risk rect { fill:#fff7ed; stroke:#f59e0b; } .flow-node.decision rect { fill:#166534; stroke:#22c55e; stroke-width:2.5; } .flow-node.decision text { fill:#fff; font-weight:800; }
-    .card h2 { font-size:14px; margin:0 0 10px; }
-    label { display:block; font-size:12px; color:#64748b; margin:8px 0 4px; }
-    input, select { width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; }
-    .btn { background:#0f172a; color:#fff; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; font-size:13px; margin-right:6px; margin-top:8px; }
-    .btn.secondary { background:#fff; color:#0f172a; border:1px solid #cbd5e1; }
-    .btn.danger { background:#b91c1c; }
-    .source-card { border:1px dashed #94a3b8; padding:8px; margin:6px 0; border-radius:8px; background:#f8fafc; cursor:grab; font-size:12px; }
-    .source-card.dragging { opacity:.5; }
-    .drop-zone { min-height:80px; border:2px dashed #cbd5e1; border-radius:8px; padding:8px; background:#fafafa; }
-    .drop-zone.over { border-color:#0d9488; background:#ecfdf5; }
-    .assembly { border:1px solid #dbe5ee; border-radius:14px; padding:14px; background:linear-gradient(180deg,#f8fbff,#fff); margin-bottom:16px; min-width:0; max-width:100%; box-sizing:border-box; overflow:hidden; }
-    .assembly-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; }
-    .assembly-head h2 { margin:0; font-size:15px; } .assembly-head p { margin:4px 0 0; color:#64748b; font-size:11px; }
-    .assembly-tools { display:flex; align-items:center; gap:4px; flex:none; }
-    .assembly-tools button { min-width:28px; height:26px; padding:3px 7px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; color:#334155; cursor:pointer; font-size:11px; }
-    .assembly-tools button:hover { border-color:#0f766e; color:#0f766e; background:#f0fdfa; }
-    .assembly-viewport { min-width:0; max-width:100%; overflow:hidden; }
-    .assembly-viewport .road-shell { --road-zoom:1; zoom:var(--road-zoom); }
-    .assembly-count { color:#0f766e; font-weight:800; font-size:11px; white-space:nowrap; }
-    .parts-bank {
-      display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; padding:4px 2px 12px;
-      border-bottom:1px solid #e8eef5; max-width:100%; min-width:0;
+    .report-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:16px; margin-bottom:8px; }
+    .report-block { border:1px solid #dbe5ee; border-radius:10px; background:#fff; overflow:hidden; }
+    .report-block > h3 { margin:0; padding:8px 11px; font-size:12px; color:#0f172a; background:#f1f5f9; border-bottom:1px solid #e2e8f0; }
+    .report-block > h3 em { font-style:normal; color:#64748b; font-weight:400; margin-left:6px; font-size:11px; }
+    .report-block-body { padding:10px 11px; font-size:12px; color:#334155; line-height:1.55; overflow-x:auto; }
+    .report-kv { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:6px 14px; }
+    .report-kv div { font-size:11px; color:#475569; word-break:break-all; }
+    .report-kv div b { color:#0f766e; font-weight:600; }
+    .report-gate { border:1px solid #e2e8f0; border-radius:8px; margin-bottom:6px; background:#fff; }
+    .report-gate > summary { cursor:pointer; padding:7px 10px; font-size:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .report-gate > summary::-webkit-details-marker { display:none; }
+    .report-gate > summary::before { content:'▸'; color:#94a3b8; }
+    .report-gate[open] > summary::before { content:'▾'; }
+    .report-gate.fail { border-color:#fca5a5; }
+    .report-gate.needs_info { border-color:#fcd34d; }
+    .report-gate.pass { border-color:#86efac; }
+    .report-gate-detail { padding:0 10px 10px 26px; font-size:11px; color:#475569; }
+    .report-gate-detail ul { margin:4px 0 8px; padding-left:16px; }
+    .report-gate-detail li { margin:1px 0; }
+    .report-pill { font-size:10px; padding:1px 7px; border-radius:999px; border:1px solid #cbd5e1; color:#475569; background:#f8fafc; }
+    .report-pill.pass { border-color:#86efac; color:#166534; background:#f0fdf4; }
+    .report-pill.fail { border-color:#fca5a5; color:#991b1b; background:#fef2f2; }
+    .report-pill.needs_info { border-color:#fcd34d; color:#92400e; background:#fffbeb; }
+    .report-pill.blocker { border-color:#f87171; color:#b91c1c; background:#fff1f2; }
+    .report-table { width:100%; border-collapse:collapse; font-size:11px; }
+    .report-table th, .report-table td { padding:5px 7px; border-bottom:1px solid #eef2f7; text-align:left; vertical-align:top; }
+    .report-table th { color:#64748b; font-weight:600; background:#f8fafc; }
+    .report-list { margin:0; padding-left:16px; }
+    .report-list li { margin:2px 0; }
+    .report-note { color:#64748b; font-size:11px; margin-top:6px; }
+    .report-decision { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .report-decision .verdict { font-size:15px; font-weight:800; letter-spacing:.4px; }
+    .report-decision .verdict.approved { color:#166534; }
+    .report-decision .verdict.approved_with_conditions { color:#0f766e; }
+    .report-decision .verdict.restricted { color:#b45309; }
+    .report-decision .verdict.not_approved { color:#b91c1c; }
+    .adv { margin:6px 0 8px; padding:8px 10px; border-left:2px solid #94a3b8; background:#f8fafc; }
+    .adv p { margin:0 0 4px; font-size:11px; color:#334155; line-height:1.5; }
+    .adv p b { display:inline-block; min-width:72px; color:#0f766e; font-weight:600; }
+    .adv-sig { display:block; font-size:10px; color:#94a3b8; }
+    .adv-error { border-left-color:#fcd34d; background:#fffbeb; color:#92400e; font-size:11px; }
+    .intake-notice { margin:0 0 12px; padding:10px 12px; border:1px solid #7dd3fc; border-left:3px solid #0284c7;
+      border-radius:8px; background:#f0f9ff; font-size:12px; color:#0c4a6e; }
+    .intake-notice b { display:block; margin-bottom:4px; font-size:12px; }
+    .intake-notice code { font-size:11px; background:#e0f2fe; padding:1px 5px; border-radius:4px; }
+    .intake-notice ul { margin:6px 0 0; padding-left:18px; }
+    .intake-notice li { margin:1px 0; color:#b45309; }
+    .intake-notice.ready { border-color:#86efac; border-left-color:#16a34a; background:#f0fdf4; color:#14532d; }
+    .intake-notice.ready code { background:#dcfce7; }
+    .intake-notice .btn { display:block; margin:10px 0 0; }
+
+    /* 证据流水线组装台 —— 零件轨 + 门禁泳道 */
+    .standard-panel { border:1px solid #dbe5ee; border-radius:14px; padding:14px; background:linear-gradient(180deg,#f8fbff,#fff); margin-bottom:16px; box-sizing:border-box; }
+    .standard-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; }
+    .standard-head h2 { margin:0; font-size:15px; } .standard-head p { margin:4px 0 0; color:#64748b; font-size:11px; }
+    .standard-count { color:#0f766e; font-weight:800; font-size:11px; white-space:nowrap; }
+
+    .rig { display:grid; gap:12px; }
+    .parts-rail {
+      display:flex; gap:12px; overflow-x:auto; overflow-y:hidden; max-height:250px;
+      padding:10px; border:1px solid #e8eef5; border-radius:10px; background:#fbfdff;
       -webkit-overflow-scrolling:touch; scrollbar-width:thin;
     }
-    .parts-bank-bottom { margin-top:12px; padding-top:12px; padding-bottom:4px; border-top:1px solid #e8eef5; border-bottom:0; background:rgba(239,246,255,.45); border-radius:9px; }
-    .parts-bank.is-overflowing { box-shadow:inset -18px 0 16px -16px rgba(15,23,42,.18); }
-    .scroll-hint { color:#64748b; font-size:10px; margin:0 0 6px; display:none; }
-    .parts-bank.is-overflowing + .scroll-hint, .parts-bank.is-overflowing ~ .scroll-hint,
-    .scroll-hint.is-visible { display:block; }
-    .part-card { flex:0 0 150px; min-width:140px; max-width:160px; min-height:68px; border:1px solid #d8e3ed; border-radius:10px; padding:9px; background:#fff; cursor:grab; box-shadow:0 3px 12px rgba(15,23,42,.05); box-sizing:border-box; }
-    .part-card:hover { border-color:#2dd4bf; transform:translateY(-1px); } .part-card.dragging { opacity:.45; }
-    .part-card strong { display:block; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .part-card small { display:block; color:#64748b; margin-top:4px; line-height:1.35; font-size:10px; }
-    .part-type { display:inline-block; color:#0f766e; background:#e6fffa; border-radius:999px; padding:2px 5px; margin-bottom:5px; font-size:9px; font-weight:800; }
-    .part-title { flex:0 0 auto; align-self:center; color:#64748b; font-size:11px; font-weight:800; white-space:nowrap; }
-    .engine-road { margin-top:14px; min-width:0; max-width:100%; } .road-label { display:flex; justify-content:space-between; color:#64748b; font-size:10px; margin-bottom:6px; gap:8px; }
-    .road-shell {
-      display:flex; align-items:center; gap:8px; min-width:0; max-width:100%;
-      padding:12px; border:2px solid #0f766e; border-radius:14px;
-      background:linear-gradient(90deg,#ecfdf5,#f0fdfa 45%,#eff6ff);
-      box-shadow:inset 0 0 0 4px rgba(255,255,255,.65); box-sizing:border-box;
+    .parts-group { flex:0 0 224px; min-width:0; }
+    .parts-group h3 { margin:0 0 6px; font-size:10px; color:#0f766e; letter-spacing:.04em; text-transform:uppercase; }
+    /* 列宽必须锁死：默认 grid 列取 max-content，长文本会撜宽列宼生横向滚动条，
+       与纵向滚动条互相触发形成布局震荡，整页持续重排会把拖放目标抽走。 */
+    .parts-list {
+      display:grid; grid-template-columns:minmax(0,1fr); gap:6px;
+      max-height:186px; overflow-y:auto; overflow-x:hidden; padding-right:4px;
     }
-    .road-shell.over { border-color:#2563eb; background:#eff6ff; }
-    .road-shell.is-empty .road-track { min-height:64px; }
-    .road-shell.is-empty .road-empty { min-width:190px; }
-    .road-track {
-      flex:1 1 auto; min-width:0; min-height:86px; display:flex; align-items:center; gap:8px;
-      overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:thin;
+    .part {
+      min-width:0; border:1px solid #d8e3ed; border-radius:9px; padding:8px; background:#fff; cursor:grab;
+      box-shadow:0 2px 8px rgba(15,23,42,.04); font-size:11px;
     }
-    .road-core { flex:0 0 110px; min-width:100px; min-height:60px; padding:9px; border-radius:10px; color:#fff; background:#0f172a; box-shadow:0 7px 18px rgba(15,23,42,.18); box-sizing:border-box; }
-    .road-core b { display:block; font-size:11px; } .road-core small { display:block; color:#cbd5e1; margin-top:4px; font-size:9px; line-height:1.3; }
-    .road-arrow { color:#0f766e; font-weight:900; font-size:18px; flex:0 0 auto; } .assembled-part { flex:0 0 142px; min-width:130px; min-height:62px; padding:9px; border:1px solid #99f6e4; border-radius:10px; background:#fff; box-shadow:0 4px 12px rgba(13,148,136,.1); box-sizing:border-box; }
-    .assembled-part b { display:block; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .assembled-part small { display:block; color:#64748b; margin-top:4px; font-size:9px; } .assembled-part button { border:0; background:transparent; color:#b91c1c; cursor:pointer; float:right; font-size:11px; }
-    .road-empty { min-width:160px; color:#64748b; font-size:11px; text-align:center; padding:14px; border:1px dashed #94a3b8; border-radius:9px; flex:0 0 auto; }
-    .lower-modules { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; margin-top:10px; } .lower-module { padding:8px; border-radius:8px; background:#fff; border:1px solid #dbe5ee; text-align:center; font-size:10px; color:#475569; min-width:0; } .lower-module b { display:block; color:#0f172a; font-size:11px; margin-bottom:3px; }
+    .part:hover { border-color:#2dd4bf; }
+    .part.dragging { opacity:.45; }
+    .part.is-picked { border-color:#f97316; box-shadow:0 0 0 2px rgba(249,115,22,.18); }
+    .part:focus-visible { outline:2px solid #f97316; outline-offset:1px; }
+    .run-part {
+      width:100%; margin:-2px 0 2px; padding:4px 6px; border:1px solid #cbd5e1; border-radius:7px;
+      background:#fff; color:#0f766e; cursor:pointer; font-size:9px;
+    }
+    .run-part:hover:not(:disabled) { border-color:#0f766e; background:#f0fdfa; }
+    .run-part:disabled { opacity:.6; cursor:default; }
+    .part b { display:block; font-size:11px; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .part small { display:block; color:#64748b; margin-top:3px; font-size:9px; line-height:1.4; overflow-wrap:anywhere; }
+    .part-kind { display:inline-block; margin-bottom:4px; padding:1px 5px; border-radius:999px; background:#e6fffa; color:#0f766e; font:800 8px/1.5 ui-monospace,monospace; }
+    .part.is-stale .part-kind { background:#fef3c7; color:#92400e; }
+
+    .rig-note { margin:0 0 8px; padding:7px 9px; border:1px solid #fde68a; border-radius:8px; background:#fffbeb; color:#92400e; font-size:10px; line-height:1.55; }
+    /* 门禁泳道横排成一条流水线：顺序即标准章节顺序，超宽时横向滚动 */
+    .lanes {
+      display:flex; align-items:stretch; gap:26px; overflow-x:auto; overflow-y:hidden;
+      padding:4px 2px 12px; -webkit-overflow-scrolling:touch; scrollbar-width:thin;
+    }
+    .lanes.is-overflowing { box-shadow:inset -20px 0 16px -16px rgba(15,23,42,.16); }
+    .lane {
+      position:relative; flex:0 0 196px; box-sizing:border-box;
+      border:1px solid #d8e3ed; border-radius:10px; padding:10px 9px; background:#fff; min-height:168px;
+      display:flex; flex-direction:column; gap:5px; transition:border-color .15s, box-shadow .15s, background .15s;
+    }
+    .lane:not(:last-child)::after {
+      content:'→'; position:absolute; right:-21px; top:50%; transform:translateY(-50%);
+      color:#0f766e; font-weight:900; font-size:16px; pointer-events:none;
+    }
+    .lane.is-hard-block { border-color:#fca5a5; background:#fffbfb; }
+    .lane.over { border-color:#0d9488; background:#ecfdf5; box-shadow:0 0 0 3px rgba(13,148,136,.12); }
+    .lane.is-running { border-color:#0d9488; box-shadow:0 0 0 2px rgba(13,148,136,.3); background:#fafffd; }
+    .lane.is-pass { border-color:#86efac; background:#fafffc; }
+    .lane.is-fail { border-color:#fca5a5; background:#fff5f5; }
+    .lane.is-needs_info { border-color:#fcd34d; background:#fffdf5; }
+    /* 选中零件后，泳道给出「可点击放入」的明确提示，拖拽失败时仍有可用通路 */
+    .has-picked .lane { border-style:dashed; border-color:#f97316; cursor:copy; }
+    .has-picked .lane-empty::after { content:'　点此放入'; color:#c2410c; font-weight:700; }
+    
+    .lane-top { display:flex; justify-content:space-between; align-items:center; }
+    .lane-step { font:700 9px/1.4 ui-monospace,monospace; color:#475569; background:#f1f5f9; padding:1px 5px; border-radius:4px; }
+    .lane-status-tag { font:700 9px/1.4 ui-monospace,monospace; padding:1px 6px; border-radius:999px; border:1px solid #cbd5e1; color:#64748b; background:#f8fafc; }
+    .lane-status-tag.running { border-color:#0d9488; color:#0f766e; background:#ecfdf5; font-weight:800; }
+    .lane-status-tag.pass { border-color:#86efac; color:#166534; background:#f0fdf4; }
+    .lane-status-tag.fail { border-color:#fca5a5; color:#991b1b; background:#fef2f2; }
+    .lane-status-tag.needs_info { border-color:#fcd34d; color:#92400e; background:#fffbeb; }
+    .lane-status-tag.pending { border-color:#e2e8f0; color:#64748b; background:#f8fafc; }
+
+    .lane-head { display:flex; align-items:baseline; gap:6px; }
+    .lane-id { font:800 10px/1.5 ui-monospace,monospace; color:#0f766e; background:#e6fffa; border-radius:5px; padding:1px 5px; }
+    .lane-section { color:#64748b; font-size:9px; }
+    .lane-flag { margin-left:auto; color:#b91c1c; font:800 8px/1.5 ui-monospace,monospace; }
+    .lane b { font-size:11px; color:#0f172a; line-height:1.35; }
+
+    .lane-agent { display:flex; align-items:center; gap:4px; font-size:10px; color:#334155; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:3px 5px; margin:1px 0; overflow:hidden; }
+    .lane-agent-icon { font-size:10px; flex:0 0 auto; }
+    .lane-agent-name { font-weight:600; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+    .lane-agent-id { font:800 8px/1.2 ui-monospace,monospace; color:#0f766e; background:#e6fffa; border-radius:3px; padding:1px 3px; flex:0 0 auto; }
+
+    .lane-exec { font-size:9.5px; color:#64748b; line-height:1.3; min-height:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lane-exec.running { color:#0d9488; font-weight:700; }
+    .lane-exec.pass { color:#166534; }
+    .lane-exec.fail { color:#b91c1c; font-weight:600; }
+
+    .lane-drop { flex:1; display:grid; grid-template-columns:minmax(0,1fr); gap:5px; align-content:start; margin-top:1px; }
+    .lane-empty { color:#94a3b8; font-size:9px; padding:8px; border:1px dashed #cbd5e1; border-radius:7px; text-align:center; }
+    .lanes-hint { margin:0 0 6px; color:#64748b; font-size:10px; }
+    .chip {
+      display:flex; align-items:center; gap:5px; padding:4px 6px; border:1px solid #99f6e4;
+      border-radius:7px; background:#f0fdfa; font-size:10px; color:#0f172a;
+    }
+    .chip span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .chip button { border:0; background:transparent; color:#b91c1c; cursor:pointer; font-size:11px; padding:0 2px; }
+    .chip button:focus-visible { outline:2px solid #f97316; outline-offset:1px; }
+
+    .standard-roles { margin-top:14px; padding-top:12px; border-top:1px solid #e8eef5; }
+    .standard-roles h3 { margin:0 0 8px; font-size:12px; color:#0f172a; }
+    .role-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+    .role-card { padding:8px 9px; border:1px solid #dbe5ee; border-radius:8px; background:#fff; font-size:10px; color:#64748b; line-height:1.45; }
+    .role-card b { display:block; color:#0f172a; font-size:11px; margin-bottom:3px; }
+
+    .card h2 { font-size:14px; margin:0 0 10px; }
+    label { display:block; font-size:12px; color:#64748b; margin:8px 0 4px; }
+    label.check { display:flex; align-items:center; gap:7px; color:#334155; font-size:12px; margin:7px 0 0; }
+    label.check input { width:auto; }
+    .form-section { margin:16px 0 2px; padding-top:10px; border-top:1px solid #e8eef5; color:#0f766e; font-size:11px; font-weight:800; letter-spacing:.02em; }
+    .form-section:first-of-type { border-top:0; padding-top:0; margin-top:8px; }
+    .field-note { margin:4px 0 0; color:#64748b; font-size:10px; line-height:1.5; }
+    .req { color:#b91c1c; font-size:10px; margin-left:5px; }
+    input, select { width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; }
+    .btn { background:#0f172a; color:#fff; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; font-size:13px; margin-right:6px; margin-top:8px; }
+    /* taste-light.css 的 `html.taste-light .btn` 把文字压成 #4B5568，特异度高于裸 .btn；
+       本页 .btn 是深底实心按钮，套上去只剩 2.38:1。同特异度 + 后加载即可夺回。 */
+    html.taste-light .btn { color:#fff; }
+    .btn:disabled, html.taste-light .btn:disabled { background:#334155; color:#e2e8f0; cursor:not-allowed; }
+    .btn.secondary, html.taste-light .btn.secondary { background:#fff; color:#0f172a; border:1px solid #cbd5e1; }
+    html.taste-light .btn.secondary:disabled { background:#f1f5f9; color:#64748b; border-color:#cbd5e1; }
+    .btn.danger { background:#b91c1c; }
     .dynamic-dashboard { border:1px solid #1e3554; border-radius:14px; overflow:hidden; background:#0b1627; color:#dbeafe; margin-bottom:16px; box-shadow:0 16px 34px rgba(15,23,42,.16); max-width:100%; box-sizing:border-box; min-width:0; }
     /* P12 multi-dim judgment */
     .judgment-panel { padding:12px 16px 16px; border-top:1px solid #1d3652; }
@@ -256,14 +373,59 @@
           </div>
         </div>
         <div class="disclaimer">
-          仅供内部治理参考，不构成法律或采购建议。严格遵循 SAIF / NIST AI RMF 准入标准与 T1-T5 原则。
+          仅供内部治理参考，不构成法律或采购建议。依据 Lenovo AI 模型准入标准 §3 禁止部署、§6 基线保障、§7 部署与用例、§8 持续保障、§9 裁决、§10 许可用途、§11 治理角色执行。
         </div>
 
         <div class="grid">
+          <section class="standard-panel anchor-target" id="clearance-evidence" tabindex="-1" aria-label="证据流水线组装台">
+            <div class="standard-head">
+              <div>
+                <h2>证据流水线 · 弹性组装</h2>
+                <p>把上方情报零件拖到任意门禁泳道，即成为该门禁的参考情报。零件可跨门禁复用，一个门禁可挂多个来源。</p>
+              </div>
+              <span class="standard-count" id="standard-count">加载中…</span>
+            </div>
+
+            <div class="rig">
+              <aside class="parts-rail" aria-label="可组装情报零件">
+                <div class="parts-group">
+                  <h3>智能体情报团队</h3>
+                  <div id="parts-teams" class="parts-list"><div class="empty">加载中…</div></div>
+                </div>
+                <div class="parts-group">
+                  <h3>采集运行过程</h3>
+                  <div id="parts-runs" class="parts-list"><div class="empty">加载中…</div></div>
+                </div>
+                <div class="parts-group">
+                  <h3>已发布分析文档</h3>
+                  <div id="parts-documents" class="parts-list"><div class="empty">加载中…</div></div>
+                </div>
+                <div class="parts-group">
+                  <h3>信息源</h3>
+                  <div id="parts-sources" class="parts-list"><div class="empty">加载中…</div></div>
+                </div>
+              </aside>
+
+              <div class="lanes-wrap">
+                <p class="rig-note">
+                  参考情报只作风险信号：它随裁决留痕、供评审人复核，但<b>不进入门禁规则求值</b>，
+                  不能让任何一道门自动通过或失败（标准 §6.1「不得仅凭提供方声明」）。
+                </p>
+                <p class="lanes-hint" id="lanes-hint" hidden>流水线较宽，可左右滚动查看全部 9 道门禁</p>
+                <div class="lanes" id="gate-lanes"><div class="empty">正在读取门禁目录…</div></div>
+              </div>
+            </div>
+
+            <div class="standard-roles" id="clearance-board" tabindex="-1">
+              <h3>§11 治理角色</h3>
+              <div class="role-grid" id="standard-roles"><div class="empty">加载中…</div></div>
+            </div>
+          </section>
           <aside class="card anchor-target" id="clearance-application" tabindex="-1">
             <h2>准入申请配置</h2>
-            <label>应用场景 / 领域</label>
-            <select id="use_case"><option value="ai_compute" selected>基础大模型 / 通用推理</option><option value="code_generation">代码生成 / 研发助手</option><option value="domain_finance">领域专用 / 金融合规</option><option value="multimodal">多模态 / 视觉语言</option><option value="edge_mobile">端侧轻量 / 移动部署</option><option value="embodied_ai">具身智能 / 机器人</option><option value="">自定义 / 未指定</option></select>
+            <div id="intake-notice" class="intake-notice" hidden></div>
+
+            <p class="form-section">§6.1 模型标识与制品</p>
             <label>模型 ID / 标识 (model_id)</label>
             <input id="model_id" value="meta-llama/Llama-3.1-8B-Instruct" maxlength="128" list="model-presets" />
             <datalist id="model-presets"><option value="meta-llama/Llama-3.1-8B-Instruct">Llama 3.1 8B</option><option value="Qwen/Qwen2.5-7B-Instruct">Qwen 2.5 7B</option><option value="deepseek-ai/DeepSeek-V3">DeepSeek V3</option><option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B</option><option value="google/gemma-2-9b-it">Gemma 2 9B</option><option value="microsoft/Phi-3.5-mini-instruct">Phi 3.5 mini</option></datalist>
@@ -272,72 +434,86 @@
             <input id="revision" value="v1.0" maxlength="64" placeholder="禁止 main/latest" />
             <label>权重仓库 URI / Path (weights_uri)</label>
             <input id="weights_uri" value="https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct" maxlength="256" placeholder="https://..." />
+            <label>预期签名者身份 (expected_signer_identity)</label>
+            <input id="expected_signer" maxlength="128" placeholder="留空则按平台背书签名降档处理" />
             <label>准入基准日期 (as_of / cutoff)</label>
             <input id="as_of" type="date" />
-            <label>预估并发量 (req/min)</label>
-            <input id="target_qpm" type="number" value="1000" min="1" />
-            <label>合规评审轮数</label>
-            <input id="review_rounds" type="number" value="1" min="0" max="5" />
-            <label>红队审核轮数</label>
-            <input id="redteam_rounds" type="number" value="1" min="0" max="5" />
-            <label>评审模式</label>
-            <select id="mode">
-              <option value="fixture" selected>离线 fixture（推荐）</option>
-              <option value="live">在线准入扫描（全门禁 G0-G6）</option>
+
+            <p class="form-section">§10 申请的许可用途</p>
+            <label>许可用途分级 (permitted_use)</label>
+            <select id="permitted_use"></select>
+            <p class="field-note" id="permitted_use_note">选择分级后显示该分级要求的附加评估条目。</p>
+            <label class="check"><input type="checkbox" id="additional_assessment_complete" /> 该分级要求的附加产品与用例评估已完成</label>
+
+            <p class="form-section">§7.1 部署与数据流</p>
+            <label>托管环境 (hosting_environment)</label>
+            <select id="hosting_environment">
+              <option value="lenovo_controlled" selected>Lenovo 直管环境</option>
+              <option value="approved_third_party">已批准的第三方环境</option>
+              <option value="external">外部/未评估环境</option>
             </select>
+            <label>托管区域 (hosting_region)</label>
+            <select id="hosting_region">
+              <option value="ROW" selected>ROW</option>
+              <option value="PRC">PRC</option>
+              <option value="other">其他</option>
+            </select>
+            <label>访问方式 (access_mode)</label>
+            <select id="access_mode">
+              <option value="self_hosted_weights" selected>自托管权重</option>
+              <option value="remote_api">远程 API</option>
+            </select>
+            <label class="check"><input type="checkbox" id="provider_hosted_in_prc" /> 供应商在 PRC 托管（§3 风险信号）</label>
+            <label class="check"><input type="checkbox" id="data_egress_to_prc" /> 存在向 PRC 的数据外传（§3 硬红线）</label>
+            <label class="check"><input type="checkbox" id="outbound_egress_controlled" checked /> 出向流量受控</label>
+            <label class="check"><input type="checkbox" id="workload_segregated" checked /> 工作负载隔离</label>
+            <label class="check"><input type="checkbox" id="monitoring_and_audit_logging" checked /> 监控与审计日志已启用</label>
+
+            <p class="form-section">§7.2 模型权限与工具访问</p>
+            <label class="check"><input type="checkbox" id="tool_access_allowlisted" checked /> 工具访问白名单化</label>
+            <label class="check"><input type="checkbox" id="least_privilege_enforced" checked /> 最小权限已强制</label>
+            <label class="check"><input type="checkbox" id="human_approval_for_consequential" checked /> 后果性操作需人工批准</label>
+            <label class="check"><input type="checkbox" id="generated_code_treated_untrusted" checked /> 生成代码按不可信处理</label>
+
+            <p class="form-section">§7.3 用例、数据与法务</p>
+            <label>预期用途 (intended_use)<span class="req">必填</span></label>
+            <input id="intended_use" maxlength="200" placeholder="例：内部 ROW 研发辅助问答" />
+            <label class="check"><input type="checkbox" id="privacy_assessed" checked /> 隐私影响已评估</label>
+            <label class="check"><input type="checkbox" id="ip_licensing_reviewed" checked /> 知识产权与许可已复核</label>
+            <label class="check"><input type="checkbox" id="human_oversight_defined" checked /> 人工监督责任已界定</label>
+
+            <p class="form-section">§8 / §11 持续保障与归属</p>
+            <label>具名负责人 (named_owner)<span class="req">必填</span></label>
+            <input id="named_owner" maxlength="120" placeholder="业务或技术负责人" />
+            <label class="check"><input type="checkbox" id="incident_response_defined" checked /> 事件响应流程已定义</label>
+            <label class="check"><input type="checkbox" id="rollback_capability" checked /> 回滚能力可用</label>
+            <label class="check"><input type="checkbox" id="suspension_revocation_capable" checked /> 可暂停 / 吊销</label>
+            <label class="check"><input type="checkbox" id="alternative_model_path" checked /> 备选模型迁移路径已就绪</label>
+
             <div class="row">
               <button class="btn" id="btn-create" type="button">创建申请</button>
-              <button class="btn" id="btn-start" type="button" disabled>启动</button>
+              <button class="btn" id="btn-start" type="button" disabled>提交评审</button>
               <button class="btn danger" id="btn-cancel" type="button" disabled>取消</button>
             </div>
-            <p class="stat">当前 run: <code id="run-id">—</code></p>
+            <p class="stat">当前申请: <code id="run-id">—</code></p>
             <p class="stat">状态: <span class="status" id="run-status">—</span></p>
-
-            <p class="stat" style="margin-top:18px">装配提示：把中间主干道周边的证据源和评审团队拖入主干道，即可纳入本次准入评审。右侧准入清单会随审核更新。</p>
           </aside>
 
           <section class="card">
-            <div class="assembly anchor-target" id="clearance-board" tabindex="-1">
-              <div class="assembly-head"><div><h2>准入控制台</h2><p>横向主干道是门禁执行顺序；上方零件是证据采集器与评审专家入口，拖入后会成为本次评审的上下文。</p></div><div class="assembly-tools" aria-label="装配台缩放"><button type="button" id="assembly-zoom-out" aria-label="缩小装配台">−</button><button type="button" id="assembly-zoom-reset">100%</button><button type="button" id="assembly-zoom-in" aria-label="放大装配台">＋</button><button type="button" id="assembly-zoom-fit">适配</button><span class="assembly-count" id="assembly-count">0 个信息模块</span></div></div>
-              <div class="parts-bank" id="module-library" aria-label="可拖拽信息源团队">
-                <span class="part-title">可用零件</span>
-                <div class="part-card" draggable="true" data-id="team:ai_news_60s" data-name="60 秒 AI 信息团队" data-kind="team"><span class="part-type">AGENT TEAM</span><strong>60 秒 AI 信息团队</strong><small>AI 快讯、核验、产业映射</small></div>
-                <div class="part-card" draggable="true" data-id="team:dufu_world_intel" data-name="独夫之心世界趋势团队" data-kind="team"><span class="part-type">AGENT TEAM</span><strong>独夫之心世界趋势</strong><small>世界趋势、数据分析、情景树</small></div>
-                <div class="part-card" draggable="true" data-id="team:open_weights" data-name="开放权重资源团队" data-kind="team"><span class="part-type">AGENT TEAM</span><strong>开放权重资源</strong><small>模型生态、许可证、合规线索</small></div>
-              </div>
-              <div class="engine-road" id="clearance-evidence" tabindex="-1">
-                <div class="road-label"><span>登记 G0 → 完整性 G1 → 供应链 G2 → 许可证 G3 → 资源 G4 → 安全行为 G5 → 会签 G6</span><span class="scroll-hint" id="road-scroll-hint">左右滑动查看已装配模块</span></div>
-                <div class="assembly-viewport"><div class="road-shell drop-zone" id="source-drop" aria-label="准入控制台横向主干道">
-                  <div class="road-core" data-road-core="ingress"><b>证据入口</b><small>Sources / Scanners<br>as_of cutoff</small></div>
-                  <span class="road-arrow" aria-hidden="true">→</span>
-                  <div class="road-track" id="road-modules-scroll" tabindex="0" aria-label="已装配模块，可横向滚动">
-                    <div id="source-selected" style="display:contents"></div>
-                    <div class="road-empty" id="source-empty">把周边零件拖到这里组装 Engine</div>
-                  </div>
-                  <span class="road-arrow" aria-hidden="true">→</span>
-                  <div class="road-core" data-road-core="research"><b>Clearance Board</b><small>门禁求值<br>专家会签</small></div>
-                  <span class="road-arrow" aria-hidden="true">→</span>
-                  <div class="road-core" data-road-core="portfolio"><b>准入清单</b><small>Attestation<br>准入许可</small></div>
-                </div></div>
-              </div>
-              <p class="scroll-hint" id="parts-scroll-hint">零件过多时可在栏内横向滚动</p>
-              <div class="parts-bank parts-bank-bottom" id="module-library-bottom" aria-label="可拖拽数据源零件，可横向滚动"><span class="part-title">数据与上下文零件</span><div class="part-card" draggable="true" data-id="document:latest" data-name="最新动态 HTML 文档" data-kind="document"><span class="part-type">DOCUMENT</span><strong>最新动态 HTML</strong><small>把已发布研究报告接入上下文</small></div><div class="part-card" draggable="true" data-id="market:event-clock" data-name="事件时钟" data-kind="market"><span class="part-type">ENGINE</span><strong>事件时钟</strong><small>按 as_of 截止时间排列信息</small></div><div id="source-library" style="display:contents"></div></div>
-              <div class="lower-modules"><div class="lower-module"><b>Context Cutoff</b>证据基线冻结</div><div class="lower-module"><b>Reviewer Board</b>多 Agent 评审</div><div class="lower-module"><b>Gate Enforcement</b>策略即代码</div><div class="lower-module"><b>Attestation</b>防篡改存证</div></div>
-            </div>
 
             <section class="dynamic-dashboard anchor-target" id="dynamic-dashboard" tabindex="-1" aria-live="polite">
               <div id="clearance-posture" class="anchor-target" tabindex="-1"></div>
               <div id="engine-dashboard" style="display:contents"></div>
               <div class="dashboard-head"><div><h2>Clearance Live Journey</h2><p>准入流程启动后由事件流驱动门禁、规划、资源需求与准入裁决</p></div><div class="hud" id="engine-hud"><span class="pulse"></span><span id="engine-phase">待启动</span><span id="engine-progress">0%</span><span id="engine-conn" style="opacity:.75">未连接</span></div></div>
               <div class="dashboard-progress"><span id="engine-progress-bar"></span></div>
-              <div class="route-strip" id="engine-route"><span class="route-stop active" data-route="context">登记 G0</span><span class="route-line">→</span><span class="route-stop" data-route="judgment">完整性 G1</span><span class="route-line">→</span><span class="route-stop" data-route="plan">供应链 G2</span><span class="route-line">→</span><span class="route-stop" data-route="risk">许可证 G3</span><span class="route-line">→</span><span class="route-stop" data-route="portfolio">会签 G6</span></div>
+              <div class="route-strip" id="engine-route"><span class="route-stop active" data-route="context">§3/§6.1 登记</span><span class="route-line">→</span><span class="route-stop" data-route="judgment">§6.2/§6.3 供应链与行为</span><span class="route-line">→</span><span class="route-stop" data-route="plan">§6.4/§7.1 红队与部署</span><span class="route-line">→</span><span class="route-stop" data-route="risk">§7.2/§7.3 权限与法务</span><span class="route-line">→</span><span class="route-stop" data-route="portfolio">§8/§9 保障与裁决</span></div>
               <div class="insight-grid">
-                <article class="insight-card" id="judgment-card"><h3>门禁结论 · 分析</h3><p>等待模型准入审查启动。</p><small>事实/分析/推断标签由事件 structured 提供 · 仅供治理参考</small></article>
-                <article class="insight-card" id="plan-card"><h3>合规路径 · 规划</h3><p>等待合规图谱规划准入路径。</p><small>standard / restricted / isolated 条件路径</small></article>
-                <article class="insight-card" id="revenue-card"><h3>资源需求 · 推演</h3><p>尚未形成显存与并发需求推演。</p><small>基于参数规模与 KV-Cache 经验估算</small></article>
-                <article class="insight-card" id="risk-card"><h3>风险门禁</h3><p>等待策略引擎与红队审查节点。</p><small>approved / needs_info / rejected</small></article>
-                <article class="insight-card" id="portfolio-card"><h3>准入裁决</h3><p>待审，等待 Clearance Board 裁决。</p><small>准入声明由平台签名归档</small></article>
-                <article class="insight-card" id="context-card"><h3>证据上下文</h3><p>等待信息源团队和历史文档装载。</p><small>严格遵守 as_of 截止时间</small></article>
+                <article class="insight-card" id="context-card"><h3>登记与制品 · §3/§6.1</h3><p>等待禁止部署筛查与制品溯源取证。</p><small>硬红线命中即阻断 · 严格遵守 as_of 截止时间</small></article>
+                <article class="insight-card" id="judgment-card"><h3>供应链与行为 · §6.2/§6.3</h3><p>等待 AI-BOM、CVE 与行为评估结论。</p><small>事实/分析/推断标签由事件 structured 提供</small></article>
+                <article class="insight-card" id="plan-card"><h3>红队与部署 · §6.4/§7.1</h3><p>等待威胁情报、红队发现项与部署数据流核验。</p><small>发现项定级与处置路径</small></article>
+                <article class="insight-card" id="risk-card"><h3>权限与法务 · §7.2/§7.3</h3><p>等待工具权限边界与许可证/用例法务判定。</p><small>pass / needs_info / fail</small></article>
+                <article class="insight-card" id="portfolio-card"><h3>持续保障与裁决 · §8/§9</h3><p>待审，等待 Clearance Board 裁决。</p><small>准入 / 带条件准入 / 受限 / 不予准入</small></article>
+                <article class="insight-card" id="revenue-card"><h3>许可用途 · §10</h3><p>尚未确定许可用途分级与附加评估状态。</p><small>internal_row / customer_facing / high_risk</small></article>
               </div>
               <section class="judgment-panel" id="judgment-dimensions-panel" aria-label="多维准入判断">
                 <p class="research-note">模型准入门禁矩阵 · 仅供内部治理参考 · 仅使用 as_of 之前证据 · Blocker 维度失败即整体阻断</p>
@@ -364,8 +540,15 @@
 
             <h2 id="clearance-timeline" class="anchor-target" tabindex="-1">审批时间线与报告</h2>
             <div class="timeline" id="timeline"><div class="empty">创建并启动申请后显示节点进度</div></div>
-            <h2 style="margin-top:16px">报告索引</h2>
-            <section id="reports" class="report-index" aria-live="polite"><div class="report-empty">启动模拟后，这里会把技术索引整理成易读的准入小结。</div></section>
+            <div class="report-head">
+              <h2 style="margin:0">§9 保障记录 · 审核报告</h2>
+              <div style="display:flex;gap:6px">
+                <button type="button" class="btn btn-sm" id="btn-advise-blockers" disabled>生成 Blocker 分析建议</button>
+                <button type="button" class="btn btn-sm" id="btn-open-report" disabled>打开独立报告页</button>
+                <button type="button" class="btn btn-sm" id="btn-export-report" disabled>导出 JSON</button>
+              </div>
+            </div>
+            <section id="reports" class="report-index" aria-live="polite"><div class="report-empty">启动评审后，这里按 Open-Weight Model Assurance Standard §9 生成完整保障记录。</div></section>
           </section>
 
           <aside class="card">
@@ -388,6 +571,7 @@
   <script src="/js/engine-reducer.js"></script>
   <script src="/js/engine-judgment.js"></script>
   <script src="/js/engine-sidebar.js"></script>
+  <script src="/js/assurance-report-doc.js"></script>
   <script src="/js/ai-model-entry-clearance.js"></script>
 </body>
 </html>

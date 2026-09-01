@@ -1715,6 +1715,14 @@ async def run_drill_via_trial(
             out["integration"] = None
     else:
         out["integration"] = None
+
+    # 论文 5.7：差异化留存证据回流到下一轮变异（Plaza 开场上下文）
+    try:
+        from .eco_feedback import capture_from_drill
+        out["persistence_evidence"] = capture_from_drill(out)
+    except Exception as e:  # pragma: no cover
+        logger.debug("eco feedback capture failed: %s", e)
+        out["persistence_evidence"] = None
     return out
 
 

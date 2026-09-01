@@ -144,6 +144,40 @@ function stL(s){return{idle:'待命中',working:'工作中',reporting:'汇报中
 function el(id){return document.getElementById(id)}
 function escapeHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 
+// ── 作用域：平台级 vs 团队级 ──
+// tid === ALL_TEAMS 表示「未选择具体团队」，此时只呈现平台视角。
+const ALL_TEAMS='__all__';
+function isPlatformScope(){return tid===ALL_TEAMS||!tid}
+/** 团队级视图在平台作用域下不可用，统一降级回仪表盘。 */
+const TEAM_SCOPED_VIEWS=['models','tools','skills','tasks','agent','wizard'];
+
+function currentTeamName(){
+  const t=(_teamsListCache||[]).find(x=>x&&x.team_id===tid);
+  return t?.name||tid||'—';
+}
+
+function renderScopeChrome(view){
+  const chip=el('scope-chip');
+  const platform=isPlatformScope();
+  if(chip){
+    const teamScoped=!platform&&TEAM_SCOPED_VIEWS.includes(view);
+    const overviewTeam=!platform&&view==='overview';
+    if(teamScoped||overviewTeam){
+      chip.dataset.scope='team';
+      chip.textContent=`团队 · ${currentTeamName()}`;
+    }else{
+      chip.dataset.scope='platform';
+      chip.textContent='平台 · 全部团队';
+    }
+  }
+  const nameEl=el('sb-scope-team-name');
+  if(nameEl)nameEl.textContent=platform?'未选择':currentTeamName();
+  document.querySelectorAll('.sb-nav a[data-scope="team"]').forEach(a=>{
+    a.classList.toggle('scope-muted',platform);
+    a.title=platform?'需先选择一个团队':'';
+  });
+}
+
 // ── Teams ──
 async function loadTeams(){
   const d=await getTeamsList(true);const s=el('team-select');
@@ -163,22 +197,41 @@ async function loadTeams(){
     const qTeam=qp.get('team_id')||qp.get('team');
     if(qTeam&&d.some(t=>t.team_id===qTeam))tid=qTeam;
   }catch(e){/* ignore */}
-  s.innerHTML=d.map(t=>`<option value="${escapeHtml(t.team_id)}">${escapeHtml(t.name)}</option>`).join('');
-  if(!tid)tid=d[0].team_id;s.value=tid;loadView();
+  s.innerHTML=`<option value="${ALL_TEAMS}">▣ 全部团队 · 平台总览</option>`
+    +d.map(t=>`<option value="${escapeHtml(t.team_id)}">${escapeHtml(t.name)}</option>`).join('');
+  if(!tid)tid=ALL_TEAMS;
+  s.value=tid;loadView();
 }
 el('team-select').onchange=e=>{
   tid=e.target.value;
   if(typeof toggleTopologyEditMode==='function') toggleTopologyEditMode(false);
+  // 平台作用域下团队级视图无意义，回落到仪表盘
+  const active=document.querySelector('.sb-nav a.active');
+  if(isPlatformScope()&&active&&TEAM_SCOPED_VIEWS.includes(active.dataset.view)){
+    switchView('overview');
+    return;
+  }
   loadView();
 };
 
 // ── View switch ──
 function switchView(v,extra){
+  // 平台作用域拦截：团队级视图必须先选团队
+  if(isPlatformScope()&&TEAM_SCOPED_VIEWS.includes(v)){
+    toast('请先在左上角选择一个团队','error');
+    v='overview';
+    extra=undefined;
+  }
   document.querySelectorAll('.main-inner').forEach(e=>e.classList.add('hidden'));
   document.querySelectorAll('.sb-nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===v));
   document.querySelectorAll('.sb-agent').forEach(a=>a.classList.remove('active'));
   const t=el('main-title'),b=el('main-badge');
-  if(v==='overview'){el('view-overview').classList.remove('hidden');t.textContent='团队概览';b.textContent=tid;loadOverview()}
+  if(v==='overview'){
+    el('view-overview').classList.remove('hidden');
+    if(isPlatformScope()){t.textContent='平台总览';b.textContent='';}
+    else{t.textContent='团队概览';b.textContent=tid;}
+    loadOverview();
+  }
   else if(v==='models'){el('view-models').classList.remove('hidden');t.textContent='模型池';b.textContent='';loadModels()}
   else if(v==='tools'){el('view-tools').classList.remove('hidden');t.textContent='工具管理';b.textContent='';loadTools()}
   else if(v==='skills'){el('view-skills').classList.remove('hidden');t.textContent='技能管理';b.textContent='';loadSkills()}
@@ -189,6 +242,7 @@ function switchView(v,extra){
   else if(v==='registry'){el('view-agent').classList.remove('hidden');el('agent-tabs').style.display='none';el('agent-content').style.display='none';el('view-registry').classList.remove('hidden');t.textContent='自主 Token 工厂';b.textContent='Token Factory';loadTokenFactory();_startTfPoll()}
   else if(v==='agent'){el('view-agent').classList.remove('hidden');el('agent-tabs').style.display='';el('agent-content').style.display='';loadAgent(extra)}
   else if(v==='wizard'){el('view-wizard').classList.remove('hidden');t.textContent='新建智能体';b.textContent=''}
+  renderScopeChrome(v);
 }
 function loadView(){
   // ── Darwin rule: bridge-task-dispatch deep-link support ──
@@ -201,7 +255,7 @@ function loadView(){
   if(qAgent)aid=qAgent;
   let nextView=view && document.querySelector(`[data-view="${view}"]`) ? view : 'overview';
   if(qAgent&&(!view||view==='agent'))nextView='agent';
-  if(nextView!=='overview')loadSbAgents();
+  if(nextView!=='overview'&&!isPlatformScope())loadSbAgents();
   if(nextView==='agent'){
     // 激活对应 tab UI
     if(qAtab){
@@ -218,12 +272,14 @@ function loadView(){
 // ── Sidebar agents ──
 function renderSbAgents(team){
   const c=el('sb-agents');
+  if(isPlatformScope()){c.innerHTML='<div style="padding:12px;color:var(--dim);font-size:12px">未选择团队</div>';return}
   if(!team||!team.agents){c.innerHTML='<div style="padding:12px;color:var(--dim);font-size:12px">暂无成员</div>';return}
   const aa=Array.isArray(team.agents)?team.agents:Object.values(team.agents);
   c.innerHTML=aa.map(a=>`<div class="sb-agent${a.agent_id===aid?' active':''}" onclick="selectAgent('${a.agent_id}')"><span class="dot ${a.state||'idle'}"></span><span style="overflow:hidden;text-overflow:ellipsis">${escapeHtml(a.name||a.agent_id)}</span></div>`).join('');
 }
 
 async function loadSbAgents(){
+  if(isPlatformScope()){renderSbAgents(null);return}
   const d=await api(`${A}/teams/${tid}`);
   renderSbAgents(d);
 }
@@ -996,12 +1052,14 @@ try {
 
 async function loadOverview(){
   if(_ovTimer)clearInterval(_ovTimer);
+  if(isPlatformScope())return loadPlatformOverview();
   const [teamsList,ov]=await Promise.all([
     getTeamsList(),
     api(`${AT}/overview?team_id=${encodeURIComponent(tid)}`)
   ]);
   const curTm=ov?.current_team||null;
   const sc=el('ov-stats');
+  _setOverviewSections(false);
   const _teamIcons={'build_system':'🏗️','energy_first_principle':'⚡','ai_coding':'💻','d083a568':'☁️'};
   const allTeams=teamsList||[];
   if(ov){
@@ -1009,11 +1067,17 @@ async function loadOverview(){
     const ev=ov.evolution||{};
     const evs=ev.stats||{};
     const taskSummary=curTm?.tasks||{};
-    const totalModels=allTeams.reduce((n,t)=>n+(Number(t?.model_count)||0),0);
-    const totalAgents=allTeams.reduce((n,t)=>n+(Number(t?.agent_count)||0),0);
-    const teamCards=allTeams.filter(Boolean).map(t=>{const ic=_teamIcons[t.team_id]||'🤖';return`<div class="stat-card" style="cursor:pointer;position:relative" onclick="el('team-select').value='${t.team_id}';tid='${t.team_id}';if(typeof toggleTopologyEditMode==='function')toggleTopologyEditMode(false);loadView()"><input type="checkbox" class="ov-team-cb" value="${escapeHtml(t.team_id)}" onclick="event.stopPropagation()" style="position:absolute;top:6px;right:6px;width:auto;margin:0;cursor:pointer" title="勾选后可批量删除"><div class="label">${ic} ${escapeHtml(t.name||t.team_id)}</div><div class="value">${t.agent_count??0}</div><div class="sub">${escapeHtml(t.description||'').slice(0,30)}</div></div>`}).join('');
-    sc.innerHTML=`<div class="stat-card"><div class="label">📊 调度器</div><div class="value" style="font-size:16px;color:${sh.running?'var(--lime)':'var(--red)'}">${sh.running?'运行中':'已停止'}</div><div class="sub">Tick ${sh.tick_count??0} · 运行 ${Math.round((sh.uptime_seconds||0)/60)}m</div></div>${teamCards}<div class="stat-card"><div class="label">🔄 自我演进</div><div class="value">${ev?.evolution_items_count??'-'}</div><div class="sub">规则 ${ev?.audit_rules_count??0} · 已验证 ${evs?.total_verified??0}</div></div><div class="stat-card"><div class="label">📦 模型</div><div class="value">${totalModels}</div></div><div class="stat-card"><div class="label">🤖 智能体</div><div class="value">${totalAgents}</div></div><div class="stat-card"><div class="label">📋 任务</div><div class="value">${taskSummary.total||0}</div><div class="sub">${Object.entries(taskSummary.by_status||{}).map(([k,v])=>`${k}: ${v}`).join(' · ')||'无任务'}</div></div>`;
-    const curTmMeta=allTeams.find(t=>t&&t.team_id===tid);
+    const curMeta=allTeams.find(t=>t&&t.team_id===tid)||{};
+    const agentsArr=curTm?.agents?(Array.isArray(curTm.agents)?curTm.agents:Object.values(curTm.agents)):[];
+    const working=agentsArr.filter(a=>a&&a.state==='working').length;
+    // 团队作用域只呈现本团队指标；跨团队汇总在「全部团队」平台视图
+    sc.innerHTML=`
+      <div class="stat-card" data-scope="team"><div class="label">🤖 成员</div><div class="value">${curMeta.agent_count??agentsArr.length??0}</div><div class="sub">${working} 个工作中</div></div>
+      <div class="stat-card" data-scope="team"><div class="label">📦 模型</div><div class="value">${curMeta.model_count??0}</div><div class="sub">本团队模型槽</div></div>
+      <div class="stat-card" data-scope="team"><div class="label">📋 任务</div><div class="value">${taskSummary.total||0}</div><div class="sub">${Object.entries(taskSummary.by_status||{}).map(([k,v])=>`${k}: ${v}`).join(' · ')||'无任务'}</div></div>
+      <div class="stat-card"><div class="label">📊 调度器</div><div class="value" style="font-size:16px;color:${sh.running?'var(--lime)':'var(--red)'}">${sh.running?'运行中':'已停止'}</div><div class="sub">平台级 · Tick ${sh.tick_count??0}</div></div>
+      <div class="stat-card"><div class="label">🔄 自我演进</div><div class="value">${ev?.evolution_items_count??'-'}</div><div class="sub">平台级 · 已验证 ${evs?.total_verified??0}</div></div>`;
+    const curTmMeta=curMeta;
     const teamTitle=(curTm&&curTm.name)||(curTmMeta&&curTmMeta.name)||tid;
     const teamIcon=_teamIcons[tid]||'🤖';
     renderSbAgents(curTm);
@@ -1056,6 +1120,193 @@ async function loadOverview(){
     loadEvolution(ov?.evolution?.compliance_rating||null);
   }
 }
+
+/** 仪表盘区块按作用域切换：平台态只留对比矩阵，团队态留拓扑/成员/预算/痕迹。 */
+function _setOverviewSections(platform){
+  const show=(id,on)=>{const e=el(id);if(e)e.classList.toggle('hidden',!on)};
+  show('ov-platform-section',platform);
+  ['ov-topology-section','ov-team-section','budget-section','trace-section','evo-section']
+    .forEach(id=>show(id,!platform));
+}
+
+/** 平台总览：跨团队对比矩阵 + 平台设施状态。 */
+async function loadPlatformOverview(){
+  _setOverviewSections(true);
+  const [teams,ov]=await Promise.all([getTeamsList(),api(`${AT}/overview`)]);
+  const allTeams=(teams||[]).filter(Boolean);
+  const sh=ov?.scheduler||{};
+  const ev=ov?.evolution||{};
+  const totalAgents=allTeams.reduce((n,t)=>n+(Number(t?.agent_count)||0),0);
+  const totalModels=allTeams.reduce((n,t)=>n+(Number(t?.model_count)||0),0);
+
+  el('ov-stats').innerHTML=`
+    <div class="stat-card"><div class="label">🏢 团队</div><div class="value">${allTeams.length}</div><div class="sub">平台内已注册</div></div>
+    <div class="stat-card"><div class="label">🤖 智能体</div><div class="value">${totalAgents}</div><div class="sub">全部团队合计</div></div>
+    <div class="stat-card"><div class="label">📦 模型槽</div><div class="value">${totalModels}</div><div class="sub">全部团队合计</div></div>
+    <div class="stat-card"><div class="label">📊 调度器</div><div class="value" style="font-size:16px;color:${sh.running?'var(--lime)':'var(--red)'}">${sh.running?'运行中':'已停止'}</div><div class="sub">Tick ${sh.tick_count??0} · 运行 ${Math.round((sh.uptime_seconds||0)/60)}m</div></div>
+    <div class="stat-card"><div class="label">🔄 自我演进</div><div class="value">${ev?.evolution_items_count??'-'}</div><div class="sub">规则 ${ev?.audit_rules_count??0}</div></div>`;
+
+  const icons={'build_system':'🏗️','energy_first_principle':'⚡','ai_coding':'💻','d083a568':'☁️'};
+  const tb=el('ov-team-matrix');
+  if(!allTeams.length){
+    tb.innerHTML='<tr><td colspan="8" style="color:var(--dim);text-align:center;padding:24px">暂无团队 — 可「＋ 新建团队」或「⬇ 导入外部团队」</td></tr>';
+  }else{
+    const rows=await Promise.all(allTeams.map(async t=>{
+      const d=await api(`${A}/teams/${encodeURIComponent(t.team_id)}`);
+      const tk=d?.tasks||{};
+      const by=tk.by_status||{};
+      return{t,running:by.running||0,total:tk.total||0};
+    }));
+    tb.innerHTML=rows.map(({t,running,total})=>{
+      const ic=icons[t.team_id]||'🤖';
+      const id=escapeHtml(t.team_id);
+      return`<tr class="ov-matrix-row" onclick="focusTeam('${id}')">
+        <td><input type="checkbox" class="ov-team-cb" value="${id}" onclick="event.stopPropagation()" style="width:auto;margin:0;cursor:pointer" title="勾选后可批量删除"></td>
+        <td><b>${ic} ${escapeHtml(t.name||t.team_id)}</b></td>
+        <td>${t.agent_count??0}</td>
+        <td>${t.model_count??0}</td>
+        <td>${running?`<span class="st st-working">${running}</span>`:'<span style="color:var(--dim)">0</span>'}</td>
+        <td>${total}</td>
+        <td style="color:var(--muted)">${escapeHtml((t.description||'').slice(0,40))||'—'}</td>
+        <td style="white-space:nowrap"><button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();focusTeam('${id}')">进入 →</button></td>
+      </tr>`;
+    }).join('');
+  }
+  _ovTimer=setInterval(()=>{
+    if(document.hidden||!document.querySelector('#view-overview:not(.hidden)')||!isPlatformScope()){
+      clearInterval(_ovTimer);_ovTimer=null;return;
+    }
+    loadPlatformOverview();
+  },15000);
+}
+
+/** 从平台矩阵进入某团队作用域。 */
+function focusTeam(id){
+  tid=id;
+  const s=el('team-select');if(s)s.value=id;
+  if(typeof toggleTopologyEditMode==='function')toggleTopologyEditMode(false);
+  switchView('overview');
+  loadSbAgents();
+}
+window.focusTeam=focusTeam;
+
+// ── 导入外部智能体团队 ──
+let _itMode='json';
+
+function setImportTeamMode(m){
+  _itMode=m;
+  el('it-mode-json').classList.toggle('selected',m==='json');
+  el('it-mode-openclaw').classList.toggle('selected',m==='openclaw');
+  el('it-mode-json').style.borderColor=m==='json'?'var(--shu)':'var(--line)';
+  el('it-mode-openclaw').style.borderColor=m==='openclaw'?'var(--shu)':'var(--line)';
+  el('it-openclaw-fields').style.display=m==='openclaw'?'block':'none';
+}
+window.setImportTeamMode=setImportTeamMode;
+
+function openImportTeamModal(){
+  ['it-name','it-desc','it-url','it-token','it-agents'].forEach(id=>{const e=el(id);if(e)e.value=''});
+  const f=el('it-file');if(f)f.value='';
+  const p=el('it-preview');if(p){p.style.display='none';p.innerHTML=''}
+  setImportTeamMode('json');
+  openModal('modal-import-team');
+}
+window.openImportTeamModal=openImportTeamModal;
+
+/** 解析用户输入：接受完整团队包或纯成员数组。 */
+function _parseTeamBundle(raw){
+  const data=JSON.parse(raw);
+  if(Array.isArray(data))return{agents:data,models:[]};
+  if(data&&typeof data==='object'){
+    if(!Array.isArray(data.agents))throw new Error('缺少 agents 数组');
+    return{name:data.name,description:data.description,agents:data.agents,models:Array.isArray(data.models)?data.models:[]};
+  }
+  throw new Error('格式无法识别');
+}
+
+function loadImportTeamFile(input){
+  const file=input.files&&input.files[0];
+  if(!file)return;
+  if(file.size>2*1024*1024){toast('文件过大（上限 2MB）','error');input.value='';return}
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const b=_parseTeamBundle(String(rd.result));
+      el('it-agents').value=JSON.stringify(b.agents,null,2);
+      if(b.name&&!el('it-name').value)el('it-name').value=b.name;
+      if(b.description&&!el('it-desc').value)el('it-desc').value=b.description;
+      const p=el('it-preview');
+      p.style.display='block';
+      p.innerHTML=`✅ 已解析：<b>${b.agents.length}</b> 个成员 · <b>${(b.models||[]).length}</b> 个模型`;
+    }catch(e){
+      toast('JSON 解析失败: '+e.message,'error');
+      input.value='';
+    }
+  };
+  rd.readAsText(file);
+}
+window.loadImportTeamFile=loadImportTeamFile;
+
+async function submitImportTeam(){
+  const name=el('it-name').value.trim();
+  if(!name){toast('团队名称不能为空','error');return}
+  const rawAgents=el('it-agents').value.trim();
+  if(!rawAgents){toast('请提供成员清单','error');return}
+  let bundle;
+  try{bundle=_parseTeamBundle(rawAgents)}
+  catch(e){toast('成员清单解析失败: '+e.message,'error');return}
+  if(!bundle.agents.length){toast('团队至少需要一个成员','error');return}
+
+  const url=el('it-url').value.trim();
+  if(_itMode==='openclaw'&&!url){toast('请输入 OpenClaw Gateway URL','error');return}
+
+  const btn=el('btn-import-team');
+  btn.disabled=true;btn.textContent='导入中…';
+  try{
+    const payload={
+      name,
+      description:el('it-desc').value.trim(),
+      source:_itMode,
+      openclaw_url:_itMode==='openclaw'?url:'',
+      openclaw_token:_itMode==='openclaw'?el('it-token').value:'',
+      agents:bundle.agents.map(a=>({
+        name:String(a.name||'').trim(),
+        role:String(a.role||''),
+        description:String(a.description||''),
+        model_id:String(a.model_id||a.model||''),
+        system_prompt:String(a.system_prompt||''),
+        tools:Array.isArray(a.tools)?a.tools.map(String):[],
+        skills:Array.isArray(a.skills)?a.skills.map(String):[],
+        openclaw_agent_id:String(a.openclaw_agent_id||a.agent_id||''),
+      })),
+      models:(bundle.models||[]).map(m=>({
+        provider:String(m.provider||'anthropic'),
+        name:String(m.name||''),
+        max_tokens:Number(m.max_tokens)||8192,
+        temperature:Number(m.temperature)??0.7,
+        api_base_url:String(m.api_base_url||''),
+      })).filter(m=>m.name),
+    };
+    if(payload.agents.some(a=>!a.name)){toast('存在没有 name 的成员','error');return}
+
+    const res=await api(`${A}/teams/import`,{method:'POST',body:JSON.stringify(payload)});
+    if(!res||!res.report){
+      const err=api._lastError;
+      toast('导入失败'+(err?.message?`: ${err.message}`:''),'error');
+      return;
+    }
+    const r=res.report;
+    closeModal('modal-import-team');
+    toast(`已导入「${r.name}」· ${r.agents_imported} 成员 / ${r.models_imported} 模型`,'success');
+    if(r.renamed)toast(`存在同名团队，已重命名为「${r.name}」`);
+    (r.warnings||[]).forEach(w=>toast(w));
+    _teamsListCache=null;
+    await loadTeams();
+    focusTeam(r.team_id);
+  }finally{
+    btn.disabled=false;btn.textContent='导入团队';
+  }
+}
+window.submitImportTeam=submitImportTeam;
 
 // ── System Evolution (自我演进) ──
 const EVP='/api/v1/agent-teams/evolution';
@@ -2095,7 +2346,7 @@ async function togAgentSkill(skillId,bind){
 // ══════════════════════════════════
 const TMPLS=[{id:'custom',ab:'自定义',nm:'自定义'},{id:'coordinator',ab:'PM',nm:'项目经理'},{id:'researcher',ab:'RS',nm:'研究员'},{id:'developer',ab:'DV',nm:'开发者'},{id:'analyst',ab:'AN',nm:'分析师'},{id:'navigator',ab:'NV',nm:'导航员'},{id:'engineer',ab:'EN',nm:'工程师'}];
 
-function openWizard(){wzD={template_type:'custom',name:'',role:'',description:'',system_prompt:'',model_id:'',team_id:tid,personality:{tone:'professional',language:'zh-CN',expertise_areas:[],response_style:'concise',creativity:0.5},skill_ids:[],tool_ids:[],permissions:[],channels:[],visibility:'public',default_access:'use'};wzS=1;switchView('wizard');renderWz()}
+function openWizard(){if(isPlatformScope()){toast('请先在左上角选择一个团队','error');return}wzD={template_type:'custom',name:'',role:'',description:'',system_prompt:'',model_id:'',team_id:tid,personality:{tone:'professional',language:'zh-CN',expertise_areas:[],response_style:'concise',creativity:0.5},skill_ids:[],tool_ids:[],permissions:[],channels:[],visibility:'public',default_access:'use'};wzS=1;switchView('wizard');renderWz()}
 
 function renderWz(){
   document.querySelectorAll('#wz-steps .wz-step').forEach(s=>{const n=+s.dataset.step;s.classList.remove('active','done');if(n===wzS)s.classList.add('active');else if(n<wzS)s.classList.add('done')});

@@ -14,24 +14,35 @@ function loadScript(rel) {
 }
 
 describe('Clearance Cockpit Wiring & De-financialization (P10 / TA01–TA09)', () => {
-  it('ai-model-entry-clearance.html contains proper clearance form inputs and zero legacy IDs', () => {
+  it('ai-model-entry-clearance.html carries the standard-mandated application fields', () => {
     const html = readFileSync(
       path.join(process.cwd(), 'src/frontend/ai-model-entry-clearance.html'),
       'utf8',
     );
+    // §6.1 制品标识
     expect(html).toContain('id="model_id"');
     expect(html).toContain('id="revision"');
     expect(html).toContain('id="weights_uri"');
+    expect(html).toContain('id="expected_signer"');
     expect(html).toContain('id="as_of"');
-    expect(html).toContain('id="target_qpm"');
-    expect(html).toContain('id="review_rounds"');
-    expect(html).toContain('id="redteam_rounds"');
-    expect(html).toContain('id="use_case"');
+    // §10 许可用途分级
+    expect(html).toContain('id="permitted_use"');
+    expect(html).toContain('id="additional_assessment_complete"');
+    // §7.1 部署与数据流
+    expect(html).toContain('id="hosting_environment"');
+    expect(html).toContain('id="data_egress_to_prc"');
+    // §7.2 模型权限
+    expect(html).toContain('id="tool_access_allowlisted"');
+    // §7.3 用例与法务 / §8 归属
+    expect(html).toContain('id="intended_use"');
+    expect(html).toContain('id="named_owner"');
 
-    // No legacy ticker/trade_date/cash/initial_cash in HTML element IDs
+    // 投研页遗留的装配台与金融字段已清除
     expect(html).not.toMatch(/id="ticker"/);
     expect(html).not.toMatch(/id="trade_date"/);
-    expect(html).not.toMatch(/id="cash"/);
+    expect(html).not.toMatch(/id="target_qpm"/);
+    expect(html).not.toMatch(/id="source-drop"/);
+    expect(html).not.toMatch(/id="module-library"/);
   });
 
   it('ai-model-entry-clearance.js contains zero investment-simulations calls and targets model-clearance APIs', () => {
@@ -42,6 +53,7 @@ describe('Clearance Cockpit Wiring & De-financialization (P10 / TA01–TA09)', (
     expect(js).not.toContain('investment-simulations');
     expect(js).toContain('/api/v1/model-clearance/applications');
     expect(js).toContain('/api/v1/model-clearance/registry');
+    expect(js).toContain('/api/v1/model-clearance/standard');
     expect(js).toContain('/submit');
   });
 
@@ -87,19 +99,22 @@ describe('Clearance Cockpit Wiring & De-financialization (P10 / TA01–TA09)', (
       evidence: [
         { evidence_id: 'ev1', gate: 'G1', check_id: 'G1-PROV-03', collector: 'hash-manifest', payload: { _status: 'ok' } },
         { evidence_id: 'ev2', gate: 'G2', check_id: 'G2-BOM-02', collector: 'format-scan', payload: { safe_only: true } },
-        { evidence_id: 'ev3', gate: 'G3', check_id: 'G3-LIC-02', collector: 'license-eval', payload: { _status: 'ok' } },
+        { evidence_id: 'ev3', gate: 'G7', check_id: 'G7-LIC-02', collector: 'license-eval', payload: { _status: 'ok' } },
       ],
-      verdicts: [
-        { gate: 'G1', verdict: 'pass', severity: 'none', failed_checks: [], evidence_refs: ['ev1'], decided_at: '2026-08-20T00:00:00Z' },
-        { gate: 'G2', verdict: 'pass', severity: 'none', failed_checks: [], evidence_refs: ['ev2'], decided_at: '2026-08-20T00:00:00Z' },
-        { gate: 'G3', verdict: 'pass', severity: 'none', failed_checks: [], evidence_refs: ['ev3'], decided_at: '2026-08-20T00:00:00Z' },
-      ],
+      verdicts: EJ.DIMENSION_KEYS.map((gate) => ({
+        gate,
+        verdict: 'pass',
+        severity: 'none',
+        failed_checks: [],
+        evidence_refs: [],
+        decided_at: '2026-08-20T00:00:00Z',
+      })),
     };
 
     const dims = EJ.dimensionsFromVerdicts(sampleApp, '2026-08-20');
     expect(dims.length).toBe(EJ.DIMENSION_KEYS.length);
 
-    const g1Dim = dims.find((d) => d.key === 'artifact_integrity');
+    const g1Dim = dims.find((d) => d.key === 'G1');
     expect(g1Dim.direction).toBe('pass');
     expect(g1Dim.gate).toBe('G1');
     expect(g1Dim.score).toBeGreaterThan(0.75);
@@ -120,17 +135,18 @@ describe('Clearance Cockpit Wiring & De-financialization (P10 / TA01–TA09)', (
         revision: 'v1.0',
       },
       evidence: [],
-      verdicts: [
-        { gate: 'G1', verdict: 'pass', severity: 'none', failed_checks: [], evidence_refs: [] },
-        { gate: 'G2', verdict: 'pass', severity: 'none', failed_checks: [], evidence_refs: [] },
-        { gate: 'G3', verdict: 'fail', severity: 'blocker', failed_checks: ['G3-LIC-02'], evidence_refs: [] },
-      ],
+      verdicts: EJ.DIMENSION_KEYS.map((gate) =>
+        gate === 'G7'
+          ? { gate, verdict: 'fail', severity: 'blocker', failed_checks: ['G7-LIC-02'], evidence_refs: [] }
+          : { gate, verdict: 'pass', severity: 'none', failed_checks: [], evidence_refs: [] },
+      ),
     };
 
     const dims = EJ.dimensionsFromVerdicts(blockedApp, '2026-08-20');
-    const g3Dim = dims.find((d) => d.key === 'license_compliance');
-    expect(g3Dim.direction).toBe('fail');
-    expect(g3Dim.rationale).toContain('G3-LIC-02');
+    const legalDim = dims.find((d) => d.key === 'G7');
+    expect(legalDim.direction).toBe('fail');
+    expect(legalDim.state).toBe('conflict');
+    expect(legalDim.rationale).toContain('G7-LIC-02');
 
     const overall = EJ.overallFromDimensions(dims, '2026-08-20');
     expect(overall.blocked).toBe(true);

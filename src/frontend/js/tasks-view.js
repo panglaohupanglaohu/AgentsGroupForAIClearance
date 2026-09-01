@@ -411,19 +411,22 @@ window.deleteTeam=async function(){
     if (cbs.length) { deleteSelectedTeams(); return; }
   }
   // 兜底：没勾选时删下拉选中的团队
-  if(!tid){toast('请先勾选团队卡片上的复选框，或在顶部下拉列表中选择要删除的团队');return}
+  if(!tid||(typeof isPlatformScope==='function'&&isPlatformScope())){
+    toast('请先勾选团队对比矩阵中的复选框，或在左上角下拉列表中选择要删除的团队');
+    return;
+  }
   const teams=await api(`${A}/teams`);
   const t=teams.find(x=>x.team_id===tid);
   const name=t?t.name:tid;
   showConfirm('⚠️ 确定要删除团队「' + name + '」吗？此操作不可撤销，团队下的所有模型、智能体、任务都会被删除。', async () => {
     const r=await api(`${A}/teams/${tid}`,{method:'DELETE'});
-    if(r){toast('✅ 团队「' + name + '」已删除');tid='';_teamsListCache=null;loadTeams()}else{toast('❌ 删除失败，请检查后端日志')}
+    if(r){toast('✅ 团队「' + name + '」已删除');tid=(typeof ALL_TEAMS!=='undefined')?ALL_TEAMS:'';_teamsListCache=null;loadTeams()}else{toast('❌ 删除失败，请检查后端日志')}
   });
 };
 // ── 批量删除选中团队 ──
 window.deleteSelectedTeams=async function(){
   const cbs=document.querySelectorAll('.ov-team-cb:checked');
-  if(!cbs.length){toast('请先在团队卡片上勾选复选框');return}
+  if(!cbs.length){toast('请先在团队对比矩阵中勾选复选框');return}
   const ids=Array.from(cbs).map(c=>c.value);
   showConfirm(`⚠️ 确定要删除选中的 ${ids.length} 个团队吗？此操作不可撤销，团队下的所有模型、智能体、任务都会被删除。`, async () => {
     let ok=0,fail=0;
@@ -432,7 +435,7 @@ window.deleteSelectedTeams=async function(){
       if(r)ok++;else fail++;
     }
     toast(`✅ 已删除 ${ok} 个团队${fail?`，${fail} 个失败`:''}`);
-    tid='';_teamsListCache=null;loadTeams();
+    tid=(typeof ALL_TEAMS!=='undefined')?ALL_TEAMS:'';_teamsListCache=null;loadTeams();
   });
 };
 // ── Add model ──

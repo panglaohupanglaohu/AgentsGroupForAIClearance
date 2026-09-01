@@ -15,6 +15,24 @@
 - `tests/test_workflow_pipeline_mode.py` — 团队流水线模式与多智能体分工验证用例（AgentTeam + TeamStore + _generate_workflow 角色匹配）
 - `docs/任务页面Build与AWS运维流程优化plan.md` — Build System/AWS 运维任务页面流程审计与分阶段优化计划
 - `docs/任务页面Build与AWS运维流程优化todos.md` — Build System/AWS 运维任务页面可执行任务与验收清单
+- `docs/论文对齐plan.md` — 论文《Agent skill evolution under ecological selection》24 项机制 vs 代码的逐条缺口表与分期规划
+- `docs/论文对齐todos.md` — 论文对齐 P0-P2 全部 10 项任务（已全量完成，50 项测试通过）
+- `src/backend/agents/skill_gates.py` — 论文 Section 5.1/5.2 六道验证门统一裁决引擎与证据三元组 (b_m, r_m, E_m)
+- `src/backend/agents/version_competition.py` — 论文 Section 5.4 版本竞争与 Student-t 单侧下置信界 LCB 裁决
+- `src/backend/agents/task_bounded_fitness.py` — 论文 Section 5.3 任务界定适应度六因子加权与配置指纹落盘
+- `src/backend/agents/memory_contamination.py` — 论文 Section 7.14 记忆迁移高召回污染筛查与隔离
+- `src/backend/agents/tse/dartnet.py` — 论文 Section 4.4 DART-Net 门面装配与感受野公式
+- `src/backend/agents/plaza_challenge_routing.py` — 论文 Eq.(3)(4) 的 Γ_k：CHALLENGE 按 Niche 环回退 ORID 阶段，带每对回退预算与硬上限防死循环
+- `src/backend/sandbox/eco_feedback.py` — 论文 §5.7 差异化留存证据回流：drill 结果抽取持续留存组合/未覆盖需求/反复失败 → 落盘 → Plaza O 阶段注入
+- `src/backend/tests/test_skill_gates.py` — 六门裁决单元测试（10 用例）
+- `src/backend/tests/test_version_competition.py` — 版本竞争与 LCB 测试（5 用例）
+- `src/backend/tests/test_task_bounded_fitness.py` — 任务界定适应度测试（3 用例）
+- `src/backend/tests/test_memory_contamination.py` — 记忆污染筛查测试（2 用例）
+- `src/backend/tests/test_swei_import_gates.py` — SWEI 导入五道具名门测试（2 用例）
+- `src/backend/tests/test_lifecycle_v2.py` — 生命周期六态与 2-of-3 去抖测试（3 用例）
+- `src/backend/tests/test_skill_router_paper_alignment.py` — 路由状态硬过滤与字符 n-gram 测试（3 用例）
+- `src/backend/tests/test_paper_p2_routing_feedback.py` — P2-8/P2-9 自检测试（17 用例）
+- `src/backend/tests/test_dartnet_and_niche.py` — DART-Net、12-Niche 三环与共识公式测试（5 用例）
 
 - `.dockerignore` — Docker ignore rules (~48 tok)
 - `.DS_Store` (~2729 tok)
@@ -34,7 +52,7 @@
 - `package-lock.json` — npm lock file (~17161 tok)
 - `package.json` — Node.js package manifest (~261 tok)
 - `pyproject.toml` — Python project configuration (~193 tok)
-- `README.md` — Project documentation (~12296 tok)
+- `README.md` — 智能体数字孪生与效能演进平台核心介绍、技术栈与规模矩阵、九大业务域、19 页面全景、核心机制与权威文档导航 (~13000 tok)
 - `SandboxTwinFrontendTodos.md` — sandbox-twin.html 前端剩余工作交接 (~1908 tok)
 - `SECSOptimize.md` — SECSOptimize — sandbox-twin.html 功能手册 & 优化清单 (~2024 tok)
 - `start_run.log` (~1932 tok)
@@ -832,3 +850,20 @@
 - `agent_memory_runtime.py` — prepare inject / update_from_evidence / plaza 回写
 - `agent_memory_transfer.py` — transfer_via_will 薄适配
 - `agent_memory_routes.py` — hub wills/migrations/inherited API
+
+## src/backend/domain/model_clearance/ (assurance report)
+
+- `assurance_record.py` — §9 保障记录装配器；`GATE_CRITERIA` 是 G0-G8 → 标准正文要点的映射；只装配不判定（~3k tok）
+
+## src/frontend/js/ (assurance deliverable)
+
+- `assurance-report-doc.js` — §9 保障记录 → 单文件可打印 HTML 交付物；`AssuranceReportDoc.build(record)`；样式内联、零外链（~4k tok）
+
+## src/backend/domain/model_clearance/ (blocker advisory)
+
+- `blocker_advisor.py` — 阻断项 LLM 分析建议；`advise_blockers(app, llm=)` 可注入，判定字段绝不从模型取（~3k tok）
+
+## src/frontend/js/ (clearance intake)
+
+- `open-weights-models.js` — `buildClearanceHref(m)` 是跳准入控制台的唯一入口构造器，卡片与弹窗共用
+- `ai-model-entry-clearance.js` — `readIncoming`/`applyIncoming`/`renderIntakeNotice` 处理 `?model_id=` 带入与启动

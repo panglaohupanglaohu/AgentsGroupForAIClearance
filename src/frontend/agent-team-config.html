@@ -22,14 +22,16 @@
   <div class="sidebar">
     <div class="sb-header"><h2><span class="seal">智</span> AgentsGroup</h2><select class="fi" id="team-select" style="font-size:12px;padding:6px 8px"></select></div>
     <div class="sb-nav" role="list">
-      <a class="active" aria-current="page" data-view="overview" onclick="switchView('overview')"><span class="seal">览</span> <span data-i18n="nav.dashboard">仪表盘</span></a>
-      <a data-view="models" onclick="switchView('models')"><span class="seal">腦</span> <span data-i18n="nav.models">模型与连接</span></a>
-      <a data-view="tools" onclick="switchView('tools')"><span class="seal seal-koke">具</span> <span data-i18n="nav.tools">工具</span></a>
-      <a data-view="skills" onclick="switchView('skills')"><span class="seal seal-kitsune">能</span> <span data-i18n="nav.skills">技能</span></a>
-      <a data-view="tasks" onclick="switchView('tasks')"><span class="seal">务</span> <span data-i18n="nav.tasks">任务</span></a>
-      <a data-view="sessions" onclick="switchView('sessions')"><span class="seal">存</span> <span data-i18n="nav.sessions">会话存档</span></a>
-      <a data-view="runtime" onclick="switchView('runtime')"><span class="seal">波</span> <span data-i18n="nav.runtime">运行时</span></a>
-      <a data-view="registry" onclick="switchView('registry')"><span class="seal">厂</span> <span data-i18n="nav.token-factory">Token 工厂</span></a>
+      <div class="sb-scope-label" data-scope="platform">平台 · 与团队无关</div>
+      <a class="active" aria-current="page" data-view="overview" data-scope="dual" onclick="switchView('overview')"><span class="seal">览</span> <span data-i18n="nav.dashboard">仪表盘</span></a>
+      <a data-view="runtime" data-scope="platform" onclick="switchView('runtime')"><span class="seal">波</span> <span data-i18n="nav.runtime">运行时</span></a>
+      <a data-view="registry" data-scope="platform" onclick="switchView('registry')"><span class="seal">厂</span> <span data-i18n="nav.token-factory">Token 工厂</span></a>
+      <a data-view="sessions" data-scope="platform" onclick="switchView('sessions')"><span class="seal">存</span> <span data-i18n="nav.sessions">会话存档</span></a>
+      <div class="sb-scope-label" data-scope="team">当前团队 · <span id="sb-scope-team-name">—</span></div>
+      <a data-view="models" data-scope="team" onclick="switchView('models')"><span class="seal">腦</span> <span data-i18n="nav.models">模型与连接</span></a>
+      <a data-view="tools" data-scope="team" onclick="switchView('tools')"><span class="seal seal-koke">具</span> <span data-i18n="nav.tools">工具</span></a>
+      <a data-view="skills" data-scope="team" onclick="switchView('skills')"><span class="seal seal-kitsune">能</span> <span data-i18n="nav.skills">技能</span></a>
+      <a data-view="tasks" data-scope="team" onclick="switchView('tasks')"><span class="seal">务</span> <span data-i18n="nav.tasks">任务</span></a>
     </div>
     <div class="sb-section">团队成员</div>
     <div class="sb-agents" id="sb-agents"></div>
@@ -40,6 +42,7 @@
     <div class="topbar-ws">
       <div class="topbar-ws__left">
         <h1 id="main-title">团队概览</h1>
+        <span class="scope-chip" id="scope-chip"></span>
         <span class="badge" id="main-badge" style="background:rgba(152,245,167,0.15);color:var(--lime)"></span>
       </div>
       <nav class="topbar-ws__nav" aria-label="主导航" data-nav-auto>
@@ -52,6 +55,7 @@
   </nav>
       <div class="topbar-ws__right">
         <button class="btn btn-sm" onclick="openModal('modal-create-team')">＋ 创建团队</button>
+        <button class="btn btn-sm" onclick="openImportTeamModal()">⬇ 导入外部团队</button>
         <button class="btn btn-sm btn-ghost" onclick="deleteTeam()" style="color:var(--red)">🗑 删除团队</button>
         <div class="topbar-ws__user">
           <span class="topbar-ws__user-avatar" id="topbar-avatar">U</span>
@@ -63,7 +67,19 @@
     <!-- Views -->
     <div id="view-overview" class="main-inner"><div class="main-scroll">
       <div class="card-grid" id="ov-stats"></div>
-      
+
+      <!-- 平台态：团队对比矩阵（选择「全部团队」时显示） -->
+      <div class="section hidden" id="ov-platform-section">
+        <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span>团队对比矩阵</span>
+          <span style="font-size:12px;color:var(--muted);font-weight:400">点击任意行进入该团队作用域</span>
+        </div>
+        <table class="tbl">
+          <thead><tr><th style="width:32px"></th><th>团队</th><th>成员</th><th>模型</th><th>运行中</th><th>任务合计</th><th>说明</th><th>操作</th></tr></thead>
+          <tbody id="ov-team-matrix"></tbody>
+        </table>
+      </div>
+
       <!-- 团队协作拓扑环状图 -->
       <div class="section" id="ov-topology-section">
         <div class="card" style="padding:16px 20px 20px;margin-bottom:20px;position:relative;overflow:hidden">
@@ -287,6 +303,31 @@
   </div>
 </div>
 <!-- Modals -->
+<div class="modal-overlay" id="modal-import-team"><div class="modal" style="max-width:620px;max-height:90vh;overflow-y:auto"><h3>⬇ 导入外部智能体团队</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="oc-mode selected" id="it-mode-json" onclick="setImportTeamMode('json')" style="border:1px solid var(--line);padding:12px;cursor:pointer;border-radius:2px"><b>📄 JSON 团队包</b><div style="font-size:11px;color:var(--muted);margin-top:4px">粘贴或上传导出的团队定义</div></div>
+    <div class="oc-mode" id="it-mode-openclaw" onclick="setImportTeamMode('openclaw')" style="border:1px solid var(--line);padding:12px;cursor:pointer;border-radius:2px"><b>🔗 OpenClaw 网关</b><div style="font-size:11px;color:var(--muted);margin-top:4px">从远端网关拉取整支团队</div></div>
+  </div>
+  <div class="form-group"><label class="form-label">团队名称 <span class="req">*</span></label><input class="fi" id="it-name" maxlength="128" placeholder="例：外部 SRE 支援团队"></div>
+  <div class="form-group"><label class="form-label">描述</label><input class="fi" id="it-desc" placeholder="来源与用途说明"></div>
+  <div id="it-openclaw-fields" style="display:none">
+    <div class="form-group"><label class="form-label">Gateway URL <span class="req">*</span></label><input class="fi" id="it-url" placeholder="https://gateway.example.com"></div>
+    <div class="form-group"><label class="form-label">API Token</label><input class="fi" id="it-token" type="password" autocomplete="off" placeholder="仅用于建立连接，服务端脱敏存储"></div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">成员清单 (JSON 数组) <span class="req">*</span></label>
+    <textarea class="fi" id="it-agents" rows="8" style="font-family:var(--font-mono);font-size:12px" placeholder='[
+  {"name":"SRE-01","role":"值班工程师","model_id":"gpt-4o","tools":[],"skills":[]},
+  {"name":"SRE-02","role":"容量规划","model_id":"gpt-4o"}
+]'></textarea>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+      <input type="file" id="it-file" accept=".json,application/json" style="font-size:12px" onchange="loadImportTeamFile(this)">
+      <span style="font-size:11px;color:var(--muted)">支持 {name,description,agents,models} 完整包或纯成员数组</span>
+    </div>
+  </div>
+  <div id="it-preview" style="display:none;font-size:12px;padding:10px;background:var(--ws-hover-bg);border:1px solid var(--line);margin-bottom:12px"></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('modal-import-team')">取消</button><button class="btn btn-pink" id="btn-import-team" onclick="submitImportTeam()">导入团队</button></div>
+</div></div>
 <div class="modal-overlay" id="modal-create-team"><div class="modal"><h3>➕ 创建新团队</h3><div class="form-group"><label class="form-label">团队名称 <span class="req">*</span></label><input class="fi" id="ct-name" maxlength="128" placeholder="例：导航决策团队"></div><div class="form-group"><label class="form-label">描述</label><textarea class="fi" id="ct-desc" placeholder="团队职责描述"></textarea></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-create-team')">取消</button><button class="btn btn-pink" id="btn-ct">创建</button></div></div></div>
 <div class="modal-overlay" id="modal-add-model"><div class="modal"><h3>🧠 添加模型</h3><div class="form-group"><label class="form-label">提供商</label><select class="fi" id="am-prov"><option value="codebuddy">CodeBuddy</option><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="github">GitHub Copilot</option><option value="qwen">Qwen</option><option value="openrouter">OpenRouter</option><option value="local">本地 (Ollama/vLLM)</option></select></div><div class="form-group"><label class="form-label">模型名称 <span class="req">*</span></label><input class="fi" id="am-name" placeholder="deepseek-v4-pro"></div><div class="form-group"><label class="form-label">Max Tokens</label><input class="fi" id="am-tok" type="number" value="8192"></div><div class="form-group"><label class="form-label">温度</label><input class="fi" id="am-temp" type="number" value="0.7" min="0" max="2" step="0.1"></div><div class="form-group"><label class="form-label">API Key</label><input class="fi" id="am-key" type="password" placeholder="sk-..."></div><div class="form-group"><label class="form-label">API Base URL (可选)</label><input class="fi" id="am-url" placeholder="留空使用默认"></div><div class="form-group"><label class="form-label">设为默认</label><select class="fi" id="am-def"><option value="false">否</option><option value="true">是</option></select></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-add-model')">取消</button><button class="btn btn-pink" id="btn-am" onclick="submitAddModel()">添加</button></div></div></div>
 <div class="modal-overlay" id="modal-edit-model"><div class="modal" style="max-height:90vh"><h3 id="em-title">✏️ 编辑模型</h3><div class="form-group"><label class="form-label">提供商</label><select class="fi" id="em-prov" onchange="updateEmUrlHint()"><option value="codebuddy">CodeBuddy</option><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="github">GitHub Copilot</option><option value="qwen">Qwen</option><option value="openrouter">OpenRouter</option><option value="local">本地 (Ollama/vLLM)</option></select></div><div class="form-group"><label class="form-label">模型名称 <span class="req">*</span></label><input class="fi" id="em-name" placeholder="deepseek-v4-pro"></div><div class="form-group"><label class="form-label">Max Tokens</label><input class="fi" id="em-tok" type="number" value="8192"></div><div class="form-group"><label class="form-label">温度</label><input class="fi" id="em-temp" type="number" value="0.7" min="0" max="2" step="0.1"></div><div class="form-group"><label class="form-label">API Key (留空不修改)</label><input class="fi" id="em-key" type="password" placeholder="留空保留原密钥（或填 env:VAR_NAME 引用环境变量）" autocomplete="off"><div style="font-size:11px;color:var(--muted);margin-top:4px">💡 推荐: 填 <code style="background:rgba(0,0,0,0.05);padding:1px 4px;border-radius:2px">env:DEEPSEEK_API_KEY</code> 引用环境变量，重启不丢失。运行 <code style="background:rgba(0,0,0,0.05);padding:1px 4px;border-radius:2px">bash scripts/setup_keys.sh</code> 管理。</div></div><div class="form-group" style="margin-top:-6px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);cursor:pointer"><input type="checkbox" id="em-remember" style="width:auto;margin:0;cursor:pointer"> 💾 记住密钥（保存到此浏览器，下次自动填入）</label></div><div class="form-group"><label class="form-label">API Base URL</label><input class="fi" id="em-url"><div id="em-url-hint" style="font-size:11px;color:var(--muted);margin-top:4px"></div></div><div class="form-group"><label class="form-label">设为默认</label><select class="fi" id="em-def"><option value="false">否</option><option value="true">是</option></select></div><div id="em-test-result" class="hidden" style="margin-bottom:16px;padding:14px;border-radius:0;border:1px solid var(--line);font-size:13px"></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-edit-model')">取消</button><button class="btn" onclick="testModelInEdit()" id="em-test-btn">🧪 测试连接</button><button class="btn btn-pink" onclick="submitEditModel()">保存修改</button></div></div></div>

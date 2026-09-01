@@ -150,6 +150,11 @@ async def list_sources():
 
 # Information/research teams that own a collection pipeline and a published channel.
 INFORMATION_TEAMS = ("ai_news_60s", "dufu_world_intel", "open_weights")
+_TEAM_LABELS = {
+    "ai_news_60s": "60 秒 AI 信息团队",
+    "dufu_world_intel": "独夫之心世界趋势团队",
+    "open_weights": "开放权重资源团队",
+}
 _TEAM_HINT = "team_id must be one of " + ", ".join(INFORMATION_TEAMS)
 
 
@@ -596,6 +601,120 @@ class ClearanceAppCreate(BaseModel):
     local_path: str = ""
     expected_signer_identity: Optional[str] = None
     auto_submit: bool = False
+    # §7/§8/§10 部署上下文；未知键由 DeploymentContext.from_dict 丢弃
+    deployment: Dict[str, Any] = Field(default_factory=dict)
+    # 控制台组装的情报来源：[{gate, kind, ref_id, label}]
+    contributions: List[Dict[str, Any]] = Field(default_factory=list, max_length=60)
+
+
+@router.get("/api/v1/model-clearance/contributors")
+async def list_clearance_contributors():
+    """可组装进流水线的情报来源：智能体情报团队、信息源、已发布文档。"""
+    from domain.information_sources.documents import get_document_store
+    from domain.information_sources.source_store import get_source_config_store
+    from domain.model_clearance.standard import gate_catalog
+
+    teams: List[Dict[str, Any]] = []
+    for tid in INFORMATION_TEAMS:
+        try:
+            docs = get_document_store().list_documents(tid, limit=1)
+        except Exception:
+            docs = []
+        latest = docs[0] if docs else None
+        teams.append({
+            "kind": "team",
+            "ref_id": tid,
+            "label": _TEAM_LABELS.get(tid, tid),
+            "latest_document_id": latest.document_id if latest else None,
+            "latest_as_of": latest.as_of if latest else None,
+            "latest_title": latest.title if latest else None,
+            "has_analysis": latest is not None,
+        })
+
+    try:
+        sources = [
+            {
+                "kind": "source",
+                "ref_id": s.source_id,
+                "label": s.name or s.source_id,
+                "source_kind": s.kind,
+                "enabled": s.enabled,
+            }
+            for s in get_source_config_store().list()
+        ]
+    except Exception:
+        sources = []
+
+    try:
+        documents = [
+            {
+                "kind": "document",
+                "ref_id": d.document_id,
+                "label": d.title or d.document_id,
+                "channel": d.channel,
+                "as_of": d.as_of,
+                "version": d.version,
+            }
+            for d in get_document_store().list_documents(limit=20)
+        ]
+    except Exception:
+        documents = []
+
+    # 一次采集运行就是一个完整的「数据采集与处理过程」，可直接组装进流水线
+    try:
+        from domain.information_sources.run_store import get_run_repository
+
+        runs = [
+            {
+                "kind": "run",
+                "ref_id": r.run_id,
+                "label": _TEAM_LABELS.get(r.team_id, r.team_id) + " · " + (r.finished_at or r.created_at or "")[:16],
+                "team_id": r.team_id,
+                "status": r.status,
+                "source_count": len(r.source_ids or []),
+                "finished_at": r.finished_at,
+            }
+            for r in get_run_repository().list_recent(limit=15)
+        ]
+    except Exception:
+        runs = []
+
+    return {
+        "teams": teams,
+        "sources": sources,
+        "documents": documents,
+        "runs": runs,
+        "gates": [
+            {"gate": g["gate"], "section": g["section"], "name": g["name"], "phase": g["phase"]}
+            for g in gate_catalog()
+        ],
+    }
+
+
+@router.get("/api/v1/model-clearance/standard")
+async def get_clearance_standard():
+    """标准目录：门定义、裁决结果、许可用途分级、治理角色。前端据此渲染，不再硬编码。"""
+    from domain.model_clearance.standard import (
+        GOVERNANCE_ROLES,
+        OUTCOME_APPROVED,
+        OUTCOME_APPROVED_COND,
+        OUTCOME_NOT_APPROVED,
+        OUTCOME_RESTRICTED,
+        PERMITTED_USE_TIERS,
+        gate_catalog,
+    )
+
+    return {
+        "gates": gate_catalog(),
+        "outcomes": [
+            OUTCOME_APPROVED,
+            OUTCOME_APPROVED_COND,
+            OUTCOME_RESTRICTED,
+            OUTCOME_NOT_APPROVED,
+        ],
+        "permitted_use_tiers": PERMITTED_USE_TIERS,
+        "governance_roles": GOVERNANCE_ROLES,
+    }
 
 
 @router.get("/api/v1/model-clearance/licenses")
@@ -622,9 +741,33 @@ async def list_clearance_applications(limit: int = Query(50, ge=1, le=200)):
 async def create_clearance_application(body: ClearanceAppCreate):
     import uuid
     from domain.model_clearance.gate_orchestrator import GateOrchestrator
-    from domain.model_clearance.models import AppStatus, ModelApplication, ModelIdentity
+    from domain.model_clearance.models import (
+        AppStatus,
+        DeploymentContext,
+        EvidenceContribution,
+        ModelApplication,
+        ModelIdentity,
+    )
     from domain.model_clearance.registry import get_registry_store
+    from domain.model_clearance.standard import GATE_BY_ID
     from domain.model_clearance.store import get_clearance_store
+
+    contributions = []
+    for c in body.contributions:
+        gate = str(c.get("gate", ""))
+        kind = str(c.get("kind", ""))
+        if gate not in GATE_BY_ID:
+            _err(400, f"Unknown gate in contributions: {gate}", code="invalid_gate")
+        if kind not in ("team", "source", "document", "run"):
+            _err(400, f"Unknown contribution kind: {kind}", code="invalid_kind")
+        contributions.append(
+            EvidenceContribution(
+                gate=gate,
+                kind=kind,
+                ref_id=str(c.get("ref_id", ""))[:128],
+                label=str(c.get("label", ""))[:120],
+            )
+        )
 
     app_id = f"app-{uuid.uuid4().hex[:10]}"
     app = ModelApplication(
@@ -637,6 +780,8 @@ async def create_clearance_application(body: ClearanceAppCreate):
             local_path=body.local_path.strip(),
             expected_signer_identity=body.expected_signer_identity,
         ),
+        deployment=DeploymentContext.from_dict(body.deployment),
+        contributions=contributions,
     )
     store = get_clearance_store()
     store.save(app)
@@ -665,6 +810,39 @@ async def get_clearance_application(app_id: str):
     if not app:
         _err(404, f"Application {app_id} not found", code="not_found")
     return app.to_dict()
+
+
+@router.post("/api/v1/model-clearance/applications/{app_id}/blocker-advisories")
+async def generate_blocker_advisories(app_id: str):
+    """为阻断项生成 LLM 分析与建议；仅作参考，不改变任何门禁判定。"""
+    from domain.model_clearance.blocker_advisor import advise_blockers
+    from domain.model_clearance.store import get_clearance_store
+
+    store = get_clearance_store()
+    app = store.get(app_id)
+    if not app:
+        _err(404, f"Application {app_id} not found", code="not_found")
+    if not app.verdicts:
+        _err(409, "尚未产生门禁裁决，无法生成阻断项分析", code="not_assessed")
+
+    app.blocker_advisories = await advise_blockers(app)
+    store.save(app)
+    return {
+        "application_id": app_id,
+        "count": len(app.blocker_advisories),
+        "advisories": [a.to_dict() for a in app.blocker_advisories],
+    }
+
+
+@router.get("/api/v1/model-clearance/applications/{app_id}/assurance-record")
+async def get_clearance_assurance_record(app_id: str):
+    """标准 §9 保障记录：评审报告的单一数据源。"""
+    from domain.model_clearance.assurance_record import build_assurance_record
+    from domain.model_clearance.store import get_clearance_store
+    app = get_clearance_store().get(app_id)
+    if not app:
+        _err(404, f"Application {app_id} not found", code="not_found")
+    return build_assurance_record(app)
 
 
 @router.get("/api/v1/model-clearance/applications/{app_id}/events")
