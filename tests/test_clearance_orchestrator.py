@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """T308 — Gate Orchestrator Integration Tests (Blocker Rejection, Approval, Event stream)."""
 
+import asyncio
 import shutil
 import tempfile
 import unittest
@@ -76,6 +77,63 @@ class TestClearanceOrchestrator(unittest.TestCase):
 
         finished = self.orchestrator.run_clearance(app)
         self.assertEqual(finished.status, AppStatus.NEED_INFO)
+
+    def test_model_review_runs_without_applicant_or_deployment_workflow(self):
+        """情报入口只评模型；未知技术证据待补，不伪造申请人或部署事实。"""
+        app = ModelApplication(
+            application_id="app-model-review",
+            applicant="",
+            identity=ModelIdentity(
+                model_id="meta-llama/Llama-3.1-8B-Instruct",
+                revision="",
+                weights_uri="https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct",
+            ),
+            deployment=DeploymentContext.unknown(),
+            review_scope="model",
+        )
+        self.store.save(app)
+
+        finished = self.orchestrator.run_clearance(app)
+
+        self.assertEqual(finished.status, AppStatus.NEED_INFO)
+        self.assertEqual([v.gate for v in finished.verdicts], ["G1", "G2", "G3", "G4", "G7"])
+        self.assertEqual(finished.applicant, "")
+        self.assertEqual(finished.deployment.named_owner, "")
+        self.assertEqual(finished.deployment.intended_use, "")
+        self.assertEqual(finished.identity.root_digest, "")
+        self.assertTrue(all(v.verdict == "needs_info" for v in finished.verdicts[:4]))
+        self.assertNotIn("G8", [v.gate for v in finished.verdicts])
+
+    def test_retry_creates_new_run_from_same_model_snapshot(self):
+        from domain.api_routes import retry_clearance_application
+        from domain.model_clearance import store as store_module
+
+        previous = ModelApplication(
+            application_id="app-model-retry",
+            applicant="",
+            identity=ModelIdentity(
+                model_id="open-model/example",
+                revision="",
+                weights_uri="https://example.invalid/open-model",
+            ),
+            deployment=DeploymentContext.unknown(),
+            review_scope="model",
+        )
+        self.store.save(previous)
+        previous = self.orchestrator.run_clearance(previous)
+        old_instance = store_module._INSTANCE
+        store_module._INSTANCE = self.store
+        try:
+            retried = asyncio.run(retry_clearance_application(previous.application_id))
+        finally:
+            store_module._INSTANCE = old_instance
+
+        self.assertNotEqual(retried["application_id"], previous.application_id)
+        self.assertEqual(retried["identity"]["model_id"], previous.identity.model_id)
+        self.assertEqual(retried["identity"]["revision"], "")
+        self.assertEqual(retried["review_scope"], "model")
+        self.assertEqual(retried["applicant"], "")
+        self.assertEqual(retried["status"], "need_info")
 
     def test_prohibited_deployment_blocks_at_g0(self):
         """§3 硬红线：数据外传 PRC 必须在 G0 即刻阻断，后续门不再执行。"""

@@ -268,6 +268,40 @@ class DeploymentContext:
         return asdict(self)
 
     @classmethod
+    def unknown(cls) -> DeploymentContext:
+        """No deployment was proposed; keep every workflow fact explicitly unknown."""
+        return cls(
+            hosting_environment="",
+            hosting_region="",
+            access_mode="",
+            provider_hosted_in_prc=False,
+            data_egress_to_prc=False,
+            outbound_egress_controlled=False,
+            workload_segregated=False,
+            monitoring_and_audit_logging=False,
+            technical_guardrails=False,
+            tool_access_allowlisted=False,
+            least_privilege_enforced=False,
+            autonomous_actions_restricted=False,
+            human_approval_for_consequential=False,
+            generated_code_treated_untrusted=False,
+            intended_use="",
+            prohibited_uses_documented=False,
+            privacy_assessed=False,
+            ip_licensing_reviewed=False,
+            human_oversight_defined=False,
+            monitoring_in_place=False,
+            vulnerability_management=False,
+            incident_response_defined=False,
+            rollback_capability=False,
+            suspension_revocation_capable=False,
+            alternative_model_path=False,
+            named_owner="",
+            permitted_use="",
+            additional_assessment_complete=False,
+        )
+
+    @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> DeploymentContext:
         if not isinstance(data, dict):
             return cls()
@@ -279,6 +313,7 @@ class ModelApplication:
     application_id: str
     applicant: str
     identity: ModelIdentity
+    review_scope: str = "full"
     custody_chain: List[CustodyStep] = field(default_factory=list)
     evidence: List[Evidence] = field(default_factory=list)
     verdicts: List[GateVerdict] = field(default_factory=list)
@@ -311,6 +346,7 @@ class ModelApplication:
         return {
             "application_id": self.application_id,
             "applicant": self.applicant,
+            "review_scope": self.review_scope,
             "identity": self.identity.to_dict(),
             "custody_chain": [c.to_dict() for c in self.custody_chain],
             "evidence": [e.to_dict() for e in self.evidence],
@@ -343,6 +379,7 @@ class ModelApplication:
             application_id=data.get("application_id", ""),
             applicant=data.get("applicant", ""),
             identity=ident,
+            review_scope=data.get("review_scope", "full"),
             custody_chain=[CustodyStep.from_dict(c) for c in data.get("custody_chain", [])],
             evidence=[Evidence.from_dict(e) for e in data.get("evidence", [])],
             verdicts=[GateVerdict.from_dict(v) for v in data.get("verdicts", [])],

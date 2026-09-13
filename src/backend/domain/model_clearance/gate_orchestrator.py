@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import uuid
 from typing import Any, Callable, Dict, List, Optional
 
 from .adjudicate import adjudicate
@@ -23,6 +24,8 @@ from .store import ModelClearanceStore, get_clearance_store
 
 # 需要专家智能体复核的门：行为评估、红队、法务、持续保障
 AGENT_GATES = {"G3", "G4", "G7", "G8"}
+MODEL_REVIEW_GATES = ("G1", "G2", "G3", "G4", "G7")
+MODEL_REVIEW_RULES = {"G7": {"G7-LIC-02", "G7-JUR-01"}}
 
 
 class GateOrchestrator:
@@ -45,6 +48,41 @@ class GateOrchestrator:
                 "ts": utc_now_iso(),
             })
 
+    @staticmethod
+    def _missing_model_evidence(gate: str, reason: str) -> Evidence:
+        return Evidence(
+            evidence_id=f"ev-{uuid.uuid4().hex[:12]}",
+            gate=gate,
+            check_id=f"{gate}-EVIDENCE-MISSING",
+            collector="model-review-intake",
+            collector_version="1.0.0",
+            collected_at=utc_now_iso(),
+            payload={"_status": "missing", "reason": reason},
+        )
+
+    def _model_review_evidence(self, app: ModelApplication, gate: str) -> List[Evidence]:
+        identity = app.identity
+        if gate == "G1":
+            if not identity.root_digest and not identity.local_path:
+                return [self._missing_model_evidence(gate, "immutable weight digest or local artifact required")]
+            return [scanner.run(identity) for scanner in scanners_for(gate)]
+        if gate == "G2":
+            if not identity.local_path:
+                return [self._missing_model_evidence(gate, "artifact inspection and AI-BOM required")]
+            return [scanner.run(identity) for scanner in scanners_for(gate)]
+        if gate in ("G3", "G4"):
+            return [self._missing_model_evidence(gate, "repeatable behaviour or red-team evidence required")]
+        if gate == "G7":
+            evidence = [
+                scanner.run(identity)
+                for scanner in scanners_for(gate)
+                if scanner.name == "license-registry-matcher"
+            ]
+            if not evidence or not evidence[0].payload.get("license_verified"):
+                return [self._missing_model_evidence(gate, "verified model license evidence required")]
+            return evidence
+        return []
+
     def run_clearance(self, app: ModelApplication) -> ModelApplication:
         if app.status == AppStatus.DRAFT:
             app.transition_to(AppStatus.SUBMITTED)
@@ -56,7 +94,11 @@ class GateOrchestrator:
 
         context = app.deployment.to_dict()
 
-        for gate in GATE_ORDER:
+        model_review = app.review_scope == "model"
+        gates = MODEL_REVIEW_GATES if model_review else GATE_ORDER
+        model_needs_info = False
+
+        for gate in gates:
             meta = GATE_BY_ID.get(gate, {})
             self._emit("gate_started", app.application_id, {
                 "gate": gate,
@@ -64,12 +106,23 @@ class GateOrchestrator:
                 "name": meta.get("name", ""),
             })
 
-            evidences: List[Evidence] = [s.run(app.identity) for s in scanners_for(gate, context)]
+            evidences: List[Evidence] = (
+                self._model_review_evidence(app, gate)
+                if model_review
+                else [s.run(app.identity) for s in scanners_for(gate, context)]
+            )
 
             # G1 §6.1：厂商签名缺失时用平台背书锁定 digest，仍满足「完整性与真实性」要求
             if gate == "G1":
+                manifest_ev = next((e for e in evidences if e.collector == "manifest-scanner"), None)
+                if manifest_ev and manifest_ev.payload.get("file_count", 0) > 0:
+                    app.identity.root_digest = str(manifest_ev.payload.get("root_digest") or "")
                 sig_ev = next((e for e in evidences if e.collector == "sigstore-verify"), None)
-                if sig_ev and sig_ev.payload.get("vendor_signature") == "absent":
+                if (
+                    sig_ev
+                    and sig_ev.payload.get("vendor_signature") == "absent"
+                    and app.identity.root_digest
+                ):
                     sig_ev.payload.update(platform_endorse(app.identity))
 
             # 控制台组装到本门禁的情报来源：advisory 证据，只留痕不参与规则求值
@@ -94,7 +147,12 @@ class GateOrchestrator:
                 "digests": [e.digest for e in evidences],
             })
 
-            verdict = evaluate_gate(gate, evidences, self.policy)
+            verdict = evaluate_gate(
+                gate,
+                evidences,
+                self.policy,
+                rule_ids=MODEL_REVIEW_RULES.get(gate) if model_review else None,
+            )
             app.verdicts.append(verdict)
             self.store.save(app)
             self._emit("gate_verdict", app.application_id, verdict.to_dict())
@@ -112,6 +170,14 @@ class GateOrchestrator:
 
             if verdict.verdict == "needs_info":
                 app.need_info_count += 1
+                if model_review:
+                    model_needs_info = True
+                    self._emit("clearance_need_info", app.application_id, {
+                        "gate": gate,
+                        "section": meta.get("section", ""),
+                        "missing_checks": verdict.failed_checks,
+                    })
+                    continue
                 app.transition_to(AppStatus.NEED_INFO)
                 self.store.save(app)
                 self._emit("clearance_need_info", app.application_id, {
@@ -131,6 +197,11 @@ class GateOrchestrator:
                     app.transition_to(AppStatus.REJECTED)
                     self.store.save(app)
                     return app
+
+        if model_needs_info:
+            app.transition_to(AppStatus.NEED_INFO)
+            self.store.save(app)
+            return app
 
         # §9 证据与保障裁决
         app.transition_to(AppStatus.ADJUDICATING)
@@ -172,7 +243,8 @@ def generate_application_events(app: ModelApplication) -> List[Dict[str, Any]]:
     events: List[Dict[str, Any]] = []
     seq = 1
 
-    for gate in GATE_ORDER:
+    gates = MODEL_REVIEW_GATES if app.review_scope == "model" else GATE_ORDER
+    for gate in gates:
         meta = GATE_BY_ID.get(gate, {})
         verdict = next((v for v in app.verdicts if v.gate == gate), None)
         gate_ev = [e for e in app.evidence if e.gate == gate]
@@ -229,9 +301,9 @@ def generate_application_events(app: ModelApplication) -> List[Dict[str, Any]]:
             "decision": {
                 "verdict": app.status.value,
                 "application_id": app.application_id,
-                "applicant": app.applicant,
+                "applicant": app.applicant or None,
             },
-            "permitted_use": app.deployment.permitted_use,
+            "permitted_use": app.deployment.permitted_use or None,
             "portfolio": {
                 "entry_id": f"reg-{app.application_id}",
                 "disclaimer": "保障适用于具体模型制品与已批准的部署条件，不构成对模型提供方或其托管服务的一般性批准。",

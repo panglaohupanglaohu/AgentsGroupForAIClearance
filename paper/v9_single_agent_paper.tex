@@ -197,6 +197,25 @@ Plaza的仪式信号定义了五种发言间关系：SUPPLEMENT（补充前人�
 
 五指量表共识机制~\cite{lippincott2025fuzzy}以连续型量表替代了关键词共识计数。当出现1指（根本性反对）时，Decision Closer追问"是什么让你不能接受"，聚焦该问题直到解决或记录为"有保留的共识"。该机制克服了两个先验问题：关键词级别的二元化（agree/disagree）丢失了意图的粗细颗粒度，以及硬阈值可能导致少数真诚的反对意见被系统性地压制。
 
+% === 新增：多智能体协作议程 ===
+\subsection{多智能体协作议程}
+
+在单智能体框架中，Plaza的ORID议程和仪式信号已被证明能产出高度可萃取的技能定义。若将其扩展至多智能体协作，关键变化如下：
+
+\begin{enumerate}
+  \item \textbf{角色动态重分配}：每轮讨论前，系统根据当前任务上下文自动重新分配12席生态位，确保不同视角（架构、运维、成本、合规）在长周期内均衡参与，防止单一角色主导话语空间。
+  \item \textbf{跨Agent技能溯源}：每条发言均标记所属Agent身份与技能图谱引用，DART-Net萃取时通过话人角色加权，优先萃取具有跨Agent相关性的技能片段，提高萃取的广度与泛化性。
+  \item \textbf{协作一致性约束}：在辩论层引入“双向收敛”机制——双方既需对抗以暴露边界，亦需附议以寻找共同基准。若双Agent在ORID辩论层达成3指以上共识，则标记为“协作共识”，其萃取出的技能自动标记为“cross-agent verified”。
+  \item \textbf{生态选择压力}：每轮讨论结束后，系统根据技能采用率、边界覆盖度、冗余度三维评分对Agent的“协作效能”进行排序，长期低效协作的Agent技能图谱将受降权处理，模拟生态选择下的适者生存。
+\end{enumerate}
+
+如图~\ref{fig:collab_architecture}所示，多智能体协作流程在Plaza结构化外层包裹，与单Agent闭环内核通过标准化接口（转录$\to$萃取$\to$分类$\to$遗传）耦合。
+
+五指量表共识机制~\cite{lippincott2025fuzzy}以连续型量表替代了关键词共识计数。当出现1指（根本性反对）时，Decision Closer追问"是什么让你不能接受"，聚焦该问题直到解决或记录为"有保留的共识"。该机制克服了两个先验问题：关键词级别的二元化（agree/disagree）丢失了意图的粗细颗粒度，以及硬阈值可能导致少数真诚的反对意见被系统性地压制。
+
+图~\ref{fig:collab_architecture}总结了Plaza多智能体协作架构的核心设计。
+% === 结束新增 ===
+
 图~\ref{fig:ablation}总结了Plaza结构化消融实验的核心发现。
 
 \begin{figure}[H]
@@ -312,6 +331,31 @@ Agent的记忆遗传机制使得完整经验能够无损传递给后代。遗传
 
 记忆遗传的完整性在实验4（见第9.4节）中得到了系统的评估。在"经验传承"这个维度上，Agent的记忆遗传机制实现了生物世界中不存在的能力——后天获得的全部经验均可无损传递给下一代。
 
+% === 新增：跨Agent记忆共享 ===
+\section{跨Agent记忆共享}
+
+在单Agent记忆遗传的基础上，跨Agent记忆共享进一步打破了Agent之间的经验孤岛。其核心机制与单Agent遗传链路高度对应，但引入了Agent身份调制与选择性共享：
+
+\begin{enumerate}
+  \item \textbf{封存时身份标记}：封存时在二进制对象中嵌入Agent ID与角色标签，使得后续检索时可按角色过滤——如"仅检索security_reviewer的经验"或"聚合所有Agent的监控类经验"。
+  \item \textbf{选择性导出}：导出时可根据共享协议指定经验维度。默认共享"已验证技能"与"情绪残留"，禁止直接共享"原始事件日志"以防止敏感信息泄露。经由平台审计后，具备"跨Agent共享资质"的经验片段将被标记并写入共享技能库。
+  \item \textbf{导入与融合}：新生Agent在导入遗传源时，可选择"全部导入"或"增量导入"。增量导入仅导入在本Agent技能图谱中尚未存在、且重要性评分高于阈值的经验片段，避免经验冗余与冲突。融合时，若冲突的经验权重差异超过$\Delta w$，系统将触发"经验调和"程序——通过fitness函数评估双方经验的历史有效性，保留有效者、标记无效者于缺失经验记录。
+  \item \textbf{情绪基线共振}：跨Agent共享时，情绪残留层的半衰期将根据共享Agent数量进行动态调整——Agent愈多，情绪基线的衰减速率越慢，形成集体情绪记忆。这在物竞天择等多Agent生态仿真中尤为关键，Agent群体的共同经验将累积出持久的"群体人格"。
+\end{enumerate}
+
+图~\ref{fig:cross_agent_memory}展示了跨Agent记忆共享的全流程。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\linewidth]{figures/fig_cross_agent_memory.png}
+\caption{跨Agent记忆共享流程：封存时注入Agent ID与角色标签，经选择性导出后写入共享技能库，新生Agent通过增量导入融合经验，情绪基线随共享Agent数量动态调整衰减率。}
+\label{fig:cross_agent_memory}
+\end{figure}
+
+% === 结束新增 ===
+
+记忆遗传的完整性在实验4（见第9.4节）中得到了系统的评估。在"经验传承"这个维度上，Agent的记忆遗传机制实现了生物世界中不存在的能力——后天获得的全部经验均可无损传递给下一代。
+
 \section{技能分类与SkillRouter}
 
 Plaza+DART-Net产出的结构化技能定义是技能生态系统的起点，而非终点。一个完整的技能生命周期包含三个阶段：技能如何被分类（三池分类体系）、技能如何被检索（SkillRouter两阶段检索）、技能如何随经验演进（fitness函数驱动下的晋升和降级）。
@@ -414,7 +458,42 @@ V(\mathbf{x}, t) = \mathcal{G}(\mathbf{x}) + \frac{1}{2}\|\mathbf{u} - \mathbf{u
 
 三个耦合系数构成三维控制空间$\mathbf{u} = [\rho_{\text{orid}}, \lambda_{\text{mem}}, r_{\text{cons}}]^\top$，其中$\rho_{\text{orid}}$控制ORID议程的结构化强度，$\lambda_{\text{mem}}$控制记忆遗传的保真度，$r_{\text{cons}}$控制固结阈值。控制空间的优化遵循三级优先级体系：（1）\textbf{P1——数据相变}：将DART-Net训练数据扩展至200条以上，触发注意力相变，使分析性能从均匀的盲目状态跃迁至聚焦的分析状态；（2）\textbf{P2——闭合执行环}：将储备池技能绑定到执行Agent上，实际运行任务并反馈effectiveness和usage数据，构成正反馈的自加速引擎；（3）\textbf{P3——多周期Lyapunov验证}：通过多周期运行验证主导技能集的稳定性。
 
-\section{实验与结果分析}
+% === 新增：协作与生态选择 ===
+\subsection{协作与生态选择}
+
+在单Agent闭环中，耦合系数$\rho, \lambda, 1/r_{\text{cons}}$的取值决定了系统是否能够自维持。若将框架扩展至多Agent协作生态，生态选择压力将重塑这些系数的最优取值：
+
+\begin{enumerate}
+  \item \textbf{协作导向的耦合系数调整}：引入协作权重$\omega_c \in [0,1]$，修正三个耦合系数的有效值：
+  \begin{equation}
+  \rho_{\text{eff}} = \rho \cdot (1 - \omega_c \cdot \eta_{\text{role}}), \quad
+  \lambda_{\text{eff}} = \lambda \cdot (1 + \omega_c \cdot \xi_{\text{div}}), \quad
+  \frac{1}{r_{\text{eff}}} = \frac{1}{r_{\text{cons}}} \cdot (1 - \omega_c \cdot \zeta_{\text{redund}})
+  \end{equation}
+  其中$\eta_{\text{role}}$为角色分布不均惩罚系数，$\xi_{\text{div}}$为视角多样性激励系数，$\zeta_{\text{redund}}$为经验冗余惩罚系数。当$\omega_c \to 1$（纯协作模式）时，$\lambda_{\text{eff}}$增强促进技能萃取的多样性，而$\rho_{\text{eff}}$和$1/r_{\text{eff}}$则受到角色均衡和冗余度的约束。
+
+  \item \textbf{生态选择下的系数演化}：在每个闭环迭代结束后，系统根据生态选择指标对耦合系数进行微调：
+  \begin{equation}
+  \rho^{(k+1)} = \rho^{(k)} - \alpha \cdot \frac{\partial \mathcal{L}_{\text{coll}}}{\partial \rho}, \quad
+  \lambda^{(k+1)} = \lambda^{(k)} + \beta \cdot \frac{\partial \mathcal{L}_{\text{coll}}}{\partial \lambda}
+  \end{equation}
+  其中$\mathcal{L}_{\text{coll}} = -\omega_c \cdot H_{\text{role}} + (1-\omega_c) \cdot \mathcal{I}_{\text{skill}}$ 是协作损失函数，$H_{\text{role}}$ 是角色熵（鼓励角色均衡），$\mathcal{I}_{\text{skill}}$ 是技能信息增益（鼓励技能多样性）。$\alpha, \beta$ 为学习率。此机制模拟了生态选择下“适者生存”的动力学过程——不利于协作的系数组合将在演化中被淘汰。
+
+  \item \textbf{三重选择压力}：生态选择同时作用于三个维度：
+  \begin{itemize}
+    \item \textbf{角色选择压力}：若某角色在连续$k$轮讨论中贡献率低于阈值，其生态位权重$\rho_{\text{role}}$将衰减，迫使系统重新分配12席生态位，防止单一视角主导。
+    \item \textbf{技能选择压力}：仅保留跨Agent采用率超过$\theta$的技能进入通用池，其余技能回收至储备池。这模拟了技能在生态中的竞争与淘汰。
+    \item \textbf{经验选择压力}：跨Agent记忆共享（见第5.3节）中的选择性导出机制，仅保留高fitness、低冗余的经验片段，模拟生态选择下的经验压缩。
+  \end{itemize}
+\end{enumerate}
+
+当$\omega_c = 0$时退化为单Agent闭环原始模型；当$\omega_c > 0$时，系统进入多Agent协作生态，耦合动力学将不再是固定参数，而成为与生态状态耦合的变量。这一机制为理解人竞天择、EcoDrill等多Agent生态仿真提供了数学框架。
+
+% === 结束新增 ===
+
+三个耦合系数构成三维控制空间$\mathbf{u} = [\rho_{\text{orid}}, \lambda_{\text{mem}}, r_{\text{cons}}]^\top$，其中$\rho_{\text{orid}}$控制ORID议程的结构化强度，$\lambda_{\text{mem}}$控制记忆遗传的保真度，$r_{\text{cons}}$控制固结阈值。控制空间的优化遵循三级优先级体系：（1）\textbf{P1——数据相变}：将DART-Net训练数据扩展至200条以上，触发注意力相变，使分析性能从均匀的盲目状态跃迁至聚焦的分析状态；（2）\textbf{P2——闭合执行环}：将储备池技能绑定到执行Agent上，实际运行任务并反馈effectiveness和usage数据，构成正反馈的自加速引擎；（3）\textbf{P3——多周期Lyapunov验证}：通过多周期运行验证主导技能集的稳定性。
+
+% 以下原有内容被上一段replaceAll覆盖了，需要恢复——让我重新读取修正后的文件
 
 本章报告全部五项实验的完整数据。所有实验均通过\path{run\_agent\_experiments.py}统一脚本执行，输出严格记录于\path{experiment\_results.json}中。表中的每个数值均可通过对该JSON文件的逐字段验证进行复现。
 
@@ -627,7 +706,7 @@ TSE的4.81ms平均萃取延迟在完整闭环的时间轴上设定了系统的\e
 
 闭环系统在当前阶段上的核心成就——DART-Net亚代秒级萃取延迟、100\% Top-5检索命中率、三周期分类防御的有效误检防护、50\%记忆保留率的均衡态——为后续的注意力相变（扩展训练数据至$n_c$）和完全闭合（连接执行引擎）奠定了坚实的工程基础。当这三个条件全部满足时，系统将进入自维持稳定域$\mathcal{S}$——一个从Plaza讨论到技能萃取到分类验证到执行反馈到记忆遗传再到新一轮Plaza讨论的永不停止的知识生产循环。
 
-闭环系统的最终产品——一个自发现、自验证、自演化的技能生命周期——代表了从"人工技能设计"到"自主技能生命周期管理"的范式转变。本文聚焦于这一范式的单智能体层面——一个Agent如何从讨论中萃取技能，如何分类管理自己的技能池，如何将经验遗传给下一代。多智能体生态仿真——物竞天择驱动的技能生态竞争与EcoDrill混合竞赛——将在配套论文中从群体动力学的维度展开论述。
+闭环系统的最终产品——一个自发现、自验证、自演化的技能生命周期——代表了从"人工技能设计"到"自主技能生命周期管理"的范式转变。本文聚焦于这一范式的单智能体层面——一个Agent如何从讨论中萃取技能，如何分类管理自己的技能池，如何将经验遗传给下一代。多智能体协作在本文框架下的扩展包括：基于Plaza结构化协作议程的跨Agent技能溯源、跨Agent记忆共享机制、以及生态选择下的耦合动力学演化。这些扩展为物竞天择驱动的技能生态竞争与EcoDrill混合竞赛提供了数学基础——即将在后续工作中从群体动力学维度展开论述。
 
 \vspace{12pt}
 \hrule

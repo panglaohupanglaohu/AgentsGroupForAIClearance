@@ -60,7 +60,7 @@
   function readForm() {
     return {
       model_id: val('model_id').trim(),
-      revision: val('revision', 'v1.0').trim() || 'v1.0',
+      revision: val('revision').trim(),
       weights_uri: val('weights_uri').trim(),
       expected_signer_identity: val('expected_signer').trim() || null,
       as_of: val('as_of'),
@@ -78,6 +78,26 @@
       errors.push('§10 该许可用途分级需完成附加产品与用例评估');
     }
     return errors;
+  }
+
+  function isFastTrackIntake() {
+    return !!(incoming && incoming.source === 'data-intelligence');
+  }
+
+  function blockingStandardErrors(form) {
+    return [];
+  }
+
+  function validationForm(form) {
+    return Object.assign({}, form, {
+      revision: form.revision && !/^(main|latest|master|head)$/i.test(form.revision)
+        ? form.revision
+        : 'pending-evidence',
+    });
+  }
+
+  function deriveReviewStartState(form) {
+    return ES.deriveStartState(validationForm(form), runView());
   }
 
   function runView() {
@@ -451,7 +471,7 @@
               return (
                 '<div class="chip"><span title="' + esc(x.c.kind + ' · ' + x.c.ref_id) + '">' +
                 esc(x.c.label) + '</span>' +
-                '<button type="button" class="js-drop-contrib" data-i="' + x.i + '" aria-label="移除">×</button></div>'
+                '<button type="button" class="js-drop-contrib" data-i="' + x.i + '" aria-label="移除参考情报">移除</button></div>'
               );
             })
             .join('')
@@ -777,23 +797,41 @@
       model_id: modelId.slice(0, 128),
       revision: (q.get('revision') || '').trim().slice(0, 64),
       weights_uri: (q.get('weights_uri') || '').trim().slice(0, 256),
+      source: q.get('source') === 'data-intelligence' ? 'data-intelligence' : '',
     };
   }
 
   function applyIncoming() {
     if (!incoming) return;
     if ($('model_id')) $('model_id').value = incoming.model_id;
-    // 标准 §6.1 禁止 main/latest，带过来的浮动标签一律不填，逼评审人指定不可变版本。
-    if (incoming.revision && !/^(main|latest|master|head)$/i.test(incoming.revision) && $('revision')) {
-      $('revision').value = incoming.revision;
+    // 不可变版本未知时保持未知，由 G1 标为 needs_info，禁止伪造 v1.0。
+    if ($('revision')) {
+      $('revision').value = incoming.revision && !/^(main|latest|master|head)$/i.test(incoming.revision)
+        ? incoming.revision
+        : '';
     }
-    if (incoming.weights_uri && $('weights_uri')) $('weights_uri').value = incoming.weights_uri;
+    if ($('weights_uri')) $('weights_uri').value = incoming.weights_uri || '';
+    if (isFastTrackIntake() && $('extended-application-fields')) {
+      $('extended-application-fields').hidden = true;
+    }
   }
 
-  function renderIntakeNotice(errors) {
+  function renderIntakeNotice(errors, reviewGaps) {
     var box = $('intake-notice');
     if (!box || !incoming) return;
     box.hidden = false;
+    reviewGaps = reviewGaps || [];
+    if (isFastTrackIntake() && !errors.length) {
+      box.className = 'intake-notice ready';
+      box.innerHTML = '<b>模型评审快速入口</b><code>' + esc(incoming.model_id) +
+        '</code> 已带入现有模型事实，可直接运行模型门禁。申请人、用途、负责人和部署信息不会伪造，也不阻断本次模型评审。' +
+        (reviewGaps.length
+          ? '<p>未提供的工作流信息将保留为未知，不作为模型证据。</p>'
+          : '') +
+        '<button type="button" class="btn btn-sm" data-intake-start>直接运行模型评审</button>' +
+        '<button type="button" class="btn secondary btn-sm" data-intake-edit aria-expanded="false">查看可选部署信息</button>';
+      return;
+    }
     if (!errors.length) {
       box.className = 'intake-notice ready';
       box.innerHTML = '<b>已带入待评审模型</b><code>' + esc(incoming.model_id) +
@@ -809,9 +847,12 @@
 
   function syncPrimaryButton() {
     var form = readForm();
-    var d = ES.deriveStartState(form, runView());
-    var extra = standardErrors(form);
-    renderIntakeNotice((d.action === 'validate' ? (d.errors || []) : []).concat(extra));
+    var d = deriveReviewStartState(form);
+    var extra = blockingStandardErrors(form);
+    renderIntakeNotice(
+      (d.action === 'validate' ? (d.errors || []) : []).concat(extra),
+      isFastTrackIntake() ? standardErrors(form) : []
+    );
     if (extra.length && d.action !== 'validate') {
       d = { label: '补齐标准必填项', action: 'validate', disabled: false, errors: extra };
     } else if (extra.length) {
@@ -823,15 +864,28 @@
       btn.disabled = !!d.disabled;
       btn.dataset.action = d.action;
     }
+    var pipelineBtn = $('btn-pipeline-start');
+    if (pipelineBtn) {
+      pipelineBtn.textContent = d.label;
+      pipelineBtn.disabled = !!d.disabled;
+      pipelineBtn.dataset.action = d.action;
+    }
     var hint = $('engine-start-hint');
     if (hint) {
       if (d.errors && d.errors.length) {
         hint.textContent = d.errors.join('；');
         hint.className = 'stat warning-hint';
       } else {
-        hint.textContent = '配置已满足标准必填项，提交后按 §3→§8 顺序执行门禁。';
+        hint.textContent = '可直接运行模型门禁；未知技术事实会标记待补证，不会用默认值冒充证据。';
         hint.className = 'stat muted';
       }
+    }
+    var pipelineHint = $('pipeline-start-hint');
+    if (pipelineHint) {
+      pipelineHint.textContent = d.action === 'retry' || d.action === 'rerun'
+        ? '基于当前模型事实创建新运行，旧记录保留'
+        : (d.errors && d.errors.length ? d.errors.join('；') : '直接从流水线启动当前模型审核');
+      pipelineHint.className = d.errors && d.errors.length ? 'stat warning-hint' : 'stat muted';
     }
     if ($('btn-start')) {
       $('btn-start').disabled =
@@ -1034,7 +1088,7 @@
 
   async function createApplication(autoStart) {
     var form = readForm();
-    var errors = ES.validateEngineForm(form).concat(standardErrors(form));
+    var errors = ES.validateEngineForm(validationForm(form)).concat(blockingStandardErrors(form));
     if (errors.length) {
       engineState.formErrors = errors;
       syncPrimaryButton();
@@ -1047,11 +1101,12 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model_id: form.model_id,
-        applicant: 'security-admin',
+        applicant: '',
         revision: form.revision,
         weights_uri: form.weights_uri,
         expected_signer_identity: form.expected_signer_identity,
-        deployment: form.deployment,
+        deployment: {},
+        review_scope: 'model',
         contributions: contributions,
         auto_submit: !!autoStart,
       }),
@@ -1096,6 +1151,30 @@
     beginLiveJourney();
   }
 
+  async function retryApplication() {
+    if (!engineState.runId) return null;
+    var app = await api().request(
+      '/api/v1/model-clearance/applications/' + encodeURIComponent(engineState.runId) + '/retry',
+      { method: 'POST' }
+    );
+    if (!app || !app.application_id) {
+      var reason = (api()._lastError || {}).message || '服务未返回新的审核运行';
+      alert('重新审核失败：' + reason);
+      return null;
+    }
+    engineState = ES.create();
+    applyApp(app);
+    engineState.lastSeq = 0;
+    engineState.events = [];
+    judgmentState.dimensions = [];
+    try {
+      localStorage.setItem('sa_clearance_app_id', app.application_id);
+    } catch (e) { /* ignore */ }
+    renderFromState();
+    beginLiveJourney();
+    return app;
+  }
+
   async function cancelApplication() {
     if (!engineState.runId) return;
     stopLiveJourney();
@@ -1105,14 +1184,18 @@
 
   async function onPrimaryStart() {
     var form = readForm();
-    var d = ES.deriveStartState(form, runView());
-    var extra = standardErrors(form);
+    var d = deriveReviewStartState(form);
+    var extra = blockingStandardErrors(form);
     if (d.action === 'validate' || extra.length) {
       alert((d.errors || []).concat(extra).join('\n') || '请检查配置');
       return;
     }
-    if (d.action === 'create_start' || d.action === 'rerun' || d.action === 'retry') {
+    if (d.action === 'create_start') {
       await createApplication(true);
+      return;
+    }
+    if (d.action === 'rerun' || d.action === 'retry') {
+      await retryApplication();
       return;
     }
     if (d.action === 'start') await submitApplication();
@@ -1310,6 +1393,16 @@
 
   if ($('intake-notice')) {
     $('intake-notice').addEventListener('click', function (ev) {
+      var edit = ev.target.closest('[data-intake-edit]');
+      if (edit) {
+        var fields = $('extended-application-fields');
+        if (fields) {
+          fields.hidden = !fields.hidden;
+          edit.setAttribute('aria-expanded', fields.hidden ? 'false' : 'true');
+          edit.textContent = fields.hidden ? '查看可选部署信息' : '收起可选部署信息';
+        }
+        return;
+      }
       if (!ev.target.closest('[data-intake-start]')) return;
       onPrimaryStart()
         .then(function () {
@@ -1323,6 +1416,11 @@
 
   if ($('btn-engine-start')) {
     $('btn-engine-start').addEventListener('click', function () {
+      onPrimaryStart().catch(function (e) { alert(e.message || e); });
+    });
+  }
+  if ($('btn-pipeline-start')) {
+    $('btn-pipeline-start').addEventListener('click', function () {
       onPrimaryStart().catch(function (e) { alert(e.message || e); });
     });
   }

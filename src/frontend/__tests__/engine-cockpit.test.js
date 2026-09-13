@@ -53,6 +53,8 @@ describe('Engine Live Cockpit (T801/T802/T832/T861)', () => {
     expect(ES.deriveStartState(form, { run_id: 'r1', status: 'running' }).disabled).toBe(true);
     expect(ES.deriveStartState(form, { run_id: 'r1', status: 'completed' }).action).toBe('rerun');
     expect(ES.deriveStartState(form, { run_id: 'r1', status: 'failed' }).action).toBe('retry');
+    expect(ES.deriveStartState({}, { run_id: 'r1', status: 'need_info' }).action).toBe('retry');
+    expect(ES.deriveStartState({}, { run_id: 'r1', status: 'rejected' }).action).toBe('retry');
     expect(ES.validateEngineForm({ model_id: '', as_of: '', target_qpm: 1 }).length).toBeGreaterThan(0);
     expect(ES.validateEngineForm({ model_id: 'meta-llama/Llama-3.1-8B-Instruct', revision: 'main', as_of: '2026-08-20' })).toContain('必须锁定不可变 revision，禁止 main/latest');
     expect(ES.validateEngineForm(form).length).toBe(0);

@@ -50,4 +50,30 @@ describe('Data Intelligence conclusion brief (P13)', () => {
     expect(js).toContain('renderOpenWeights');
     expect(js).toContain('发起准入评审');
   });
+
+  it('puts open weights first and loads it by default', () => {
+    const primaryNav = html.match(/<div class="workbench-primary-nav"[\s\S]*?<\/div>/)?.[0] || '';
+    expect(primaryNav.indexOf('data-tab="openweights"')).toBeLessThan(primaryNav.indexOf('data-tab="ai60"'));
+    expect(primaryNav).toMatch(/class="tab primary active" data-tab="openweights"/);
+    expect(js).toContain("get('tab') || 'openweights'");
+  });
+
+  it('provides concrete research and investigation execution buttons across panels and cards', () => {
+    // Top hero action for open_weights
+    expect(html).toContain('id="btn-run-openweights"');
+    expect(html).toContain('运行开放权重调研');
+
+    // Panel action and team control for open_weights
+    expect(html).toContain('id="btn-start-ow"');
+    expect(html).toContain('id="btn-exec-ow-team"');
+    expect(html).toContain('id="ow-agent-row"');
+    expect(html).toContain('id="ow-box-grid"');
+    expect(html).toContain('id="frame-openweights"');
+
+    // Model cards offer per-model investigation action
+    expect(js).toContain('btn-investigate-model');
+    expect(js).toContain('执行模型调研');
+    expect(js).toContain('investigateModel');
+    expect(js).toContain("runTeam('open_weights'");
+  });
 });

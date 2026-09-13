@@ -244,40 +244,6 @@
       display: block;
     }
 
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 24px 0;
-      font-size: 11px;
-      color: var(--sumi-3);
-    }
-
-    .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--groove);
-    }
-
-    .btn-guest {
-      width: 100%;
-      padding: 12px;
-      background: transparent;
-      color: var(--koke);
-      border: 1px solid var(--groove);
-      font-size: 13px;
-      font-weight: 500;
-      font-family: inherit;
-      cursor: pointer;
-      transition: 0.15s;
-    }
-
-    .btn-guest:hover {
-      background: var(--kabe);
-      border-color: var(--koke);
-    }
-
     .login-tabs {
       display: flex;
       margin-bottom: 28px;
@@ -371,11 +337,8 @@
   .login-options label { color:#8da4b4; }
   .btn-login { background:#f2f7fb; color:#05101b; }
   .btn-login:hover { background:var(--agent-accent,#63d7ed); color:#031019; }
-  .btn-guest { color:var(--agent-accent,#69d7ed); border-color:color-mix(in srgb,var(--agent-accent,#69d7ed) 38%,transparent); }
-  .btn-guest:hover { background:color-mix(in srgb,var(--agent-accent,#63d7ed) 10%,transparent); border-color:var(--agent-accent,#63d7ed); }
-  .divider, .login-footer { color:#6f8597; }
+  .login-footer { color:#6f8597; }
   .login-shell__footer { color:#5c7082; font:10px/1.4 var(--font-mono); letter-spacing:.12em; text-align:center; }
-  .divider::before, .divider::after { background:rgba(255,255,255,.14); }
   .login-error { background:rgba(245,87,87,.12); border-color:rgba(245,87,87,.36); color:#ff9e9e; }
   .login-success { background:rgba(66,214,177,.12); border-color:rgba(66,214,177,.36); color:#7bf0ce; }
   @keyframes agentPulse { 0%,100%{transform:scale(.96);box-shadow:0 0 40px rgba(40,203,239,.55),inset 0 0 30px rgba(113,236,255,.45)} 50%{transform:scale(1.04);box-shadow:0 0 70px rgba(40,203,239,.9),inset 0 0 40px rgba(113,236,255,.7)} }
@@ -493,9 +456,6 @@
         注 册
       </button>
     </form>
-
-    <div class="divider">或</div>
-    <button class="btn-guest" onclick="guestLogin()">访客模式进入</button>
 
     <div class="login-footer">
       AgentsGroup2026 v1.0.0 · Standalone Agent Platform
@@ -660,11 +620,6 @@
           loginForm.classList.add('hidden');
           registerForm.classList.remove('hidden');
         }
-      };
-
-      window.guestLogin = function () {
-        localStorage.setItem('ag-user', 'guest');
-        window.location.href = getNextUrl();
       };
 
       // If using httpOnly cookie, check via auth/me

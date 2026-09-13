@@ -5,6 +5,8 @@
 > Last updated: 2026-06-12
 
 ## User Preferences
+- [2026-09-08] AI 模型准入控制台审核对象是模型本身，不是申请人；启动模型审核不得要求 applicant、named_owner、intended_use，部署信息只能作为可选上下文。
+- [2026-09-07] 数据采集/分析工作台的主 Tab 顺序以「开放权重资源」为首，并在 URL 未指定 `?tab=` 时默认加载该页。
 - [2026-08-20] 模型准入治理不应过度依赖来源/产地判断；文档与实现应改为 Lenovo 可直接管理和验证的控制体系优先（owner、kill-switch、rollback、SLA、可验签处置证据），来源信息仅作风险信号与条件收紧依据。
 - [2026-08-15] 议事广场国际化不接受页面内巨型中英文本映射 + 全 body MutationObserver 重扫方案；应使用明确翻译键、可控动态渲染和项目共享 i18n 接口，避免隐式文本替换与主线程风险。
 - [2026-07-25] 模型与连接里配的全局 LLM 必须全局生效，其它路由/团队模型/硬编码一律不要生效。
@@ -36,6 +38,8 @@
 
 
 ## Key Learnings
+- [2026-09-08] 模型准入终态重试不能在前端用当前表单重新 create，也不能原地复用 rejected/need_info 状态；应从已存模型事实创建新 application/run，保留旧运行审计记录。远程制品未实际取得 digest/local artifact 时必须 needs_info，禁止 ManifestScanner 模拟 hash 后再把浮动 revision 判成具体 fail。
+- [2026-09-08] 准入泳道 contribution chip 是参考情报挂件，完全不参与 policy 求值；删除控件不能用红色“×”，否则会被误读成多个模型/来源失败，应明确标“移除参考情报”。
 - [2026-08-15] DOM-walker i18n 与 MutationObserver 组合时，调用 `applyAll()` 前必须 `disconnect()`，完成后再 `observe()`；`applyAll()` 会重写语言按钮 `textContent`，若观察 `childList` 且不断开会自触发微任务循环，页面表现为永久加载、Playwright 无法执行。
 - [2026-08-05] 用户确认「智能体团队→模型与连接」的模型连接测试可用；排查任务 `token_factory_ready=false` 时，不能把它归因于上游大模型不可用，需区分模型连接状态与 TokenFactory 运行时类/适配器是否存在。
 - [2026-08-04] 任务页审计：AWS 运维团队 Agent 的展示 role 是中文业务角色，不能直接假设等于 `_ROLE_WORKFLOW_MAP` 的规范 role；任务 workflow 必须显式保存 `workflow_role` 并在启动前拒绝 unresolved agent。`tasks.html` 仍有旧数组读取，不能只看 `tasks-view.js` 的分页测试。

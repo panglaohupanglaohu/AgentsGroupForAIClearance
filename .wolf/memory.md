@@ -554,3 +554,12 @@
   - 动态执行状态文字：`mc_infra 取证完成 (1项)`、`mc_legal 待补: G7-USE-02`、`🤖 mc_infra 正在审核...`、`mc_infra 待命`。
 - 泳道边框支持运行中发光（`is-running`）、通过绿框（`is-pass`）、失败红框（`is-fail`）、待补证黄框（`is-needs_info`）的状态变色。
 - 新增/更新单元测试，前端 44 项 tests、后端 64 项 clearance tests 全部通过，实机浏览器端到端截图验证通过。
+
+## 2026-09-07 数据情报默认开放权重页
+
+| 17:11 | 将「开放权重资源」移至主 Tab 首位并设为无查询参数时的默认页；保留显式 `?tab=` 行为，测试及浏览器实测通过 | `src/frontend/data-intelligence.html`, `src/frontend/js/data-intelligence.js`, `src/frontend/__tests__/data-intelligence-brief.test.js` | PASS（Vitest 6/6，JS syntax，localhost:5173） | ~1k |
+| 11:45 | 修复模型准入 G1 假失败认知与终态重试：模型审核不依赖申请人/用途/负责人，未知制品证据标待补证，流水线新增可用启动/重试按钮，参考情报删除控件去失败化 | `src/backend/domain/api_routes.py`, `src/backend/domain/model_clearance/*`, `src/frontend/ai-model-entry-clearance.html`, `src/frontend/js/{ai-model-entry-clearance,engine-state}.js`, clearance tests | PASS（后端 18、前端 18、py_compile；浏览器确认按钮发起请求，受登录态阻断后续） | ~5k |
+
+## 2026-09-11 启动服务
+
+| 16:17 | npm start 启动后端+前端 | concurrently / main.py / vite | 前端 http://localhost:5173/ ；后端 0.0.0.0:8080 Application startup complete | ~0.2k |

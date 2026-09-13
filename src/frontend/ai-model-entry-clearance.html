@@ -269,8 +269,10 @@
       border-radius:7px; background:#f0fdfa; font-size:10px; color:#0f172a;
     }
     .chip span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .chip button { border:0; background:transparent; color:#b91c1c; cursor:pointer; font-size:11px; padding:0 2px; }
+    .chip button { border:0; background:transparent; color:#64748b; cursor:pointer; font-size:9px; padding:0 2px; text-decoration:underline; }
     .chip button:focus-visible { outline:2px solid #f97316; outline-offset:1px; }
+    .pipeline-action { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px; }
+    .pipeline-action .stat { margin:0; text-align:right; }
 
     .standard-roles { margin-top:14px; padding-top:12px; border-top:1px solid #e8eef5; }
     .standard-roles h3 { margin:0 0 8px; font-size:12px; color:#0f172a; }
@@ -413,6 +415,10 @@
                 </p>
                 <p class="lanes-hint" id="lanes-hint" hidden>流水线较宽，可左右滚动查看全部 9 道门禁</p>
                 <div class="lanes" id="gate-lanes"><div class="empty">正在读取门禁目录…</div></div>
+                <div class="pipeline-action">
+                  <span class="stat muted" id="pipeline-start-hint">从这里启动或重试当前模型审核</span>
+                  <button class="btn btn-sm" id="btn-pipeline-start" type="button">开始审核</button>
+                </div>
               </div>
             </div>
 
@@ -431,7 +437,7 @@
             <datalist id="model-presets"><option value="meta-llama/Llama-3.1-8B-Instruct">Llama 3.1 8B</option><option value="Qwen/Qwen2.5-7B-Instruct">Qwen 2.5 7B</option><option value="deepseek-ai/DeepSeek-V3">DeepSeek V3</option><option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B</option><option value="google/gemma-2-9b-it">Gemma 2 9B</option><option value="microsoft/Phi-3.5-mini-instruct">Phi 3.5 mini</option></datalist>
             <div class="model-presets" aria-label="常用模型"><button type="button" data-model="meta-llama/Llama-3.1-8B-Instruct">Llama3.1</button><button type="button" data-model="Qwen/Qwen2.5-7B-Instruct">Qwen2.5</button><button type="button" data-model="deepseek-ai/DeepSeek-V3">DeepSeek</button><button type="button" data-model="mistralai/Mistral-7B-Instruct-v0.3">Mistral</button></div>
             <label>不可变版本 / Revision (tag/commit)</label>
-            <input id="revision" value="v1.0" maxlength="64" placeholder="禁止 main/latest" />
+            <input id="revision" maxlength="64" placeholder="未知可留空，由 G1 标记待补证；禁止 main/latest" />
             <label>权重仓库 URI / Path (weights_uri)</label>
             <input id="weights_uri" value="https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct" maxlength="256" placeholder="https://..." />
             <label>预期签名者身份 (expected_signer_identity)</label>
@@ -439,6 +445,7 @@
             <label>准入基准日期 (as_of / cutoff)</label>
             <input id="as_of" type="date" />
 
+            <div id="extended-application-fields">
             <p class="form-section">§10 申请的许可用途</p>
             <label>许可用途分级 (permitted_use)</label>
             <select id="permitted_use"></select>
@@ -476,19 +483,20 @@
             <label class="check"><input type="checkbox" id="generated_code_treated_untrusted" checked /> 生成代码按不可信处理</label>
 
             <p class="form-section">§7.3 用例、数据与法务</p>
-            <label>预期用途 (intended_use)<span class="req">必填</span></label>
+            <label>预期用途 (intended_use)<span class="muted"> · 可选部署信息</span></label>
             <input id="intended_use" maxlength="200" placeholder="例：内部 ROW 研发辅助问答" />
             <label class="check"><input type="checkbox" id="privacy_assessed" checked /> 隐私影响已评估</label>
             <label class="check"><input type="checkbox" id="ip_licensing_reviewed" checked /> 知识产权与许可已复核</label>
             <label class="check"><input type="checkbox" id="human_oversight_defined" checked /> 人工监督责任已界定</label>
 
             <p class="form-section">§8 / §11 持续保障与归属</p>
-            <label>具名负责人 (named_owner)<span class="req">必填</span></label>
+            <label>具名负责人 (named_owner)<span class="muted"> · 可选部署信息</span></label>
             <input id="named_owner" maxlength="120" placeholder="业务或技术负责人" />
             <label class="check"><input type="checkbox" id="incident_response_defined" checked /> 事件响应流程已定义</label>
             <label class="check"><input type="checkbox" id="rollback_capability" checked /> 回滚能力可用</label>
             <label class="check"><input type="checkbox" id="suspension_revocation_capable" checked /> 可暂停 / 吊销</label>
             <label class="check"><input type="checkbox" id="alternative_model_path" checked /> 备选模型迁移路径已就绪</label>
+            </div>
 
             <div class="row">
               <button class="btn" id="btn-create" type="button">创建申请</button>

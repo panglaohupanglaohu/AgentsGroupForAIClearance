@@ -312,7 +312,9 @@ async def delete_information_schedule(schedule_id: str):
 async def run_information_schedule(schedule_id: str):
     if not _schedule_service().store.get(schedule_id):
         _err(404, "schedule not found", code="not_found")
-    return await _schedule_service().run_once(schedule_id)
+    # Only the manual "run now" button reaches this endpoint; the timer calls
+    # run_once directly and keeps the per-window idempotency.
+    return await _schedule_service().run_once(schedule_id, force=True)
 
 
 class InformationRunCreate(BaseModel):
@@ -596,6 +598,7 @@ async def render_document_version(document_id: str, version: int):
 class ClearanceAppCreate(BaseModel):
     model_id: str
     applicant: str = "security-admin"
+    review_scope: str = "full"
     revision: str = "main"
     weights_uri: str = ""
     local_path: str = ""
@@ -769,10 +772,14 @@ async def create_clearance_application(body: ClearanceAppCreate):
             )
         )
 
+    if body.review_scope not in ("full", "model"):
+        _err(400, "review_scope must be full or model", code="invalid_review_scope")
+
     app_id = f"app-{uuid.uuid4().hex[:10]}"
     app = ModelApplication(
         application_id=app_id,
         applicant=body.applicant,
+        review_scope=body.review_scope,
         identity=ModelIdentity(
             model_id=body.model_id.strip(),
             revision=body.revision.strip(),
@@ -780,7 +787,11 @@ async def create_clearance_application(body: ClearanceAppCreate):
             local_path=body.local_path.strip(),
             expected_signer_identity=body.expected_signer_identity,
         ),
-        deployment=DeploymentContext.from_dict(body.deployment),
+        deployment=(
+            DeploymentContext.unknown()
+            if body.review_scope == "model"
+            else DeploymentContext.from_dict(body.deployment)
+        ),
         contributions=contributions,
     )
     store = get_clearance_store()
@@ -881,6 +892,56 @@ async def submit_clearance_application(app_id: str):
             scope=dec.scope,
             conditions=dec.conditions,
             expires_at=dec.expires_at,
+        )
+
+    return app.to_dict()
+
+
+@router.post("/api/v1/model-clearance/applications/{app_id}/retry")
+async def retry_clearance_application(app_id: str):
+    """Start a new immutable review run from the same model facts."""
+    import uuid
+    from domain.model_clearance.gate_orchestrator import GateOrchestrator
+    from domain.model_clearance.models import (
+        AppStatus,
+        DeploymentContext,
+        EvidenceContribution,
+        ModelApplication,
+        ModelIdentity,
+    )
+    from domain.model_clearance.registry import get_registry_store
+    from domain.model_clearance.store import get_clearance_store
+
+    store = get_clearance_store()
+    previous = store.get(app_id)
+    if not previous:
+        _err(404, f"Application {app_id} not found", code="not_found")
+    if previous.status in (AppStatus.DRAFT, AppStatus.SUBMITTED, AppStatus.GATING, AppStatus.ADJUDICATING):
+        _err(409, "Application is not ready to retry", code="retry_not_ready")
+
+    app = ModelApplication(
+        application_id=f"app-{uuid.uuid4().hex[:10]}",
+        applicant="",
+        review_scope="model",
+        identity=ModelIdentity.from_dict(previous.identity.to_dict()),
+        deployment=DeploymentContext.unknown(),
+        contributions=[
+            EvidenceContribution.from_dict(contribution.to_dict())
+            for contribution in previous.contributions
+        ],
+    )
+    store.save(app)
+    app = GateOrchestrator(store=store).run_clearance(app)
+
+    if app.status in (AppStatus.APPROVED, AppStatus.APPROVED_COND):
+        from domain.model_clearance.adjudicate import adjudicate
+        decision = adjudicate(app)
+        get_registry_store().register(
+            app=app,
+            runtime_profile=decision.runtime_profile,
+            scope=decision.scope,
+            conditions=decision.conditions,
+            expires_at=decision.expires_at,
         )
 
     return app.to_dict()

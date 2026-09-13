@@ -38,11 +38,14 @@ def evaluate_gate(
     gate_id: str,
     evidences: List[Evidence],
     policy: Optional[Dict[str, Any]] = None,
+    rule_ids: Optional[set[str]] = None,
 ) -> GateVerdict:
     policy = policy or load_policy()
     gate_spec = policy.get("gates", {}).get(gate_id, {})
     blocker_checks = set(gate_spec.get("blocker_checks", []))
     rules = gate_spec.get("rules", [])
+    if rule_ids is not None:
+        rules = [rule for rule in rules if rule.get("id") in rule_ids]
 
     failed_checks: List[str] = []
     needs_info_checks: List[str] = []
@@ -54,9 +57,12 @@ def evaluate_gate(
     # Aggregate all payloads from this gate's evidences for rule evaluation
     merged_payload: Dict[str, Any] = {}
     any_error = False
+    any_missing = False
     for ev in scanner_evidences:
         if ev.payload:
-            if ev.payload.get("_status") != "ok":
+            if ev.payload.get("_status") == "missing":
+                any_missing = True
+            elif ev.payload.get("_status") != "ok":
                 any_error = True
             merged_payload.update(ev.payload)
 
@@ -65,6 +71,12 @@ def evaluate_gate(
         is_blocker = rule_id in blocker_checks
         expr = rule.get("expr", "")
         on_false = rule.get("on_false", "fail")
+
+        # Absence is not adverse evidence. Keep the gate open as needs_info,
+        # including checks that would be blockers if concrete evidence failed.
+        if any_missing:
+            needs_info_checks.append(rule_id)
+            continue
 
         # T4 Fail-closed check: if evidence failed to collect or errored
         if not scanner_evidences or any_error or merged_payload.get("_status") != "ok":

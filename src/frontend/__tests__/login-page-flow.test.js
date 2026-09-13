@@ -28,12 +28,16 @@ describe('login.html auth flow guards', () => {
     expect(matches).toHaveLength(2);
   });
 
-  it('keeps guest login and auth bootstrap on the same sanitized redirect path', () => {
+  it('keeps auth bootstrap on the sanitized redirect path', () => {
     const source = read('src/frontend/login.html');
-    expect(source).toContain("window.guestLogin = function () {");
-    expect(source).toContain("localStorage.setItem('ag-user', 'guest');");
     expect(source).toContain("window.location.href = getNextUrl();");
     expect(source).toContain("window.api.request('/api/v1/auth/me').then(function (data) {");
     expect(source).toContain("localStorage.setItem('ag-user', data.username);");
+  });
+
+  it('offers no guest entry, which authenticated nothing and made writes fail with 401', () => {
+    const source = read('src/frontend/login.html');
+    expect(source).not.toContain('guestLogin');
+    expect(source).not.toContain("'ag-user', 'guest'");
   });
 });

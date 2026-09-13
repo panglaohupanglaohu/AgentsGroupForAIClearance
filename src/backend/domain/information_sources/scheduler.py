@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 ACTIVE_SCHEDULE_TEAMS = frozenset({"ai_news_60s", "dufu_world_intel", "open_weights"})
 DEFAULT_SCHEDULE_INTERVAL_MINUTES = 30
+_TERMINAL_RUN_STATUSES = frozenset({"completed", "failed", "cancelled", "degraded"})
 _SCHEDULE_PATH = Path(__file__).resolve().parents[4] / "storage" / "information_sources" / "schedules.json"
 
 
@@ -182,8 +183,12 @@ class InformationScheduler:
     def list(self) -> List[ScheduleConfig]:
         return self.store.list()
 
-    async def run_once(self, schedule_id: str) -> Dict[str, Any]:
+    async def run_once(self, schedule_id: str, *, force: bool = False) -> Dict[str, Any]:
         """Enqueue a background run (idempotent per schedule window).
+
+        ``force`` is for the manual "run now" button: without it a second click
+        inside the same interval window silently resolves to the window's first
+        run and no new collection ever starts.
 
         If a custom ``runner`` is injected (tests), keep the synchronous path
         for deterministic unit tests.
@@ -216,6 +221,14 @@ class InformationScheduler:
             from .run_service import enqueue_run_async, schedule_idempotency_key, wait_for_run
 
             key = schedule_idempotency_key(schedule_id, item.interval_minutes)
+            if force:
+                from .run_store import get_run_repository
+
+                previous = get_run_repository().get_by_idempotency(key)
+                # Reuse a run that is still in flight so repeated clicks do not
+                # fan out duplicate collections; only start over once it settled.
+                if previous is None or previous.status in _TERMINAL_RUN_STATUSES:
+                    key = ""
             run = await enqueue_run_async(
                 team_id=item.team_id,
                 source_ids=list(item.source_ids or []),
@@ -230,6 +243,18 @@ class InformationScheduler:
             )
             # Short wait so schedule UI still sees success/failure without blocking minutes
             finished = await wait_for_run(run.run_id, timeout=90.0, poll=0.3)
+            if finished.status not in _TERMINAL_RUN_STATUSES:
+                # The wait budget is a UI limit, not a verdict: the worker is still
+                # collecting. Reporting "failed" here also pushed next_run_at forward
+                # on a run that had not finished yet.
+                self.store.update(schedule_id, {"last_status": "running", "last_error": ""})
+                return {
+                    "ok": True,
+                    "pending": True,
+                    "schedule_id": schedule_id,
+                    "run_id": finished.run_id,
+                    "status": finished.status,
+                }
             next_at = _now() + timedelta(minutes=item.interval_minutes)
             ok = finished.status in ("completed", "degraded")
             self.store.update(

@@ -92,12 +92,27 @@
     return pathname.indexOf('/api/v1/auth/') === 0;
   }
 
+  // Read-only endpoints are auth-exempt, so a page can look fully loaded while the
+  // session is already gone. Say so before navigating, otherwise the bounce back to
+  // login reads as "the button did nothing".
+  function showSessionExpiredNotice() {
+    if (!document.body) return;
+    var el = document.createElement('div');
+    el.setAttribute('role', 'alert');
+    el.textContent = '登录已失效，正在跳转到登录页…';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:12px 16px;' +
+      'background:#b91c1c;color:#fff;font-size:14px;text-align:center';
+    document.body.appendChild(el);
+  }
+
   function redirectToLogin() {
     if (api._authRedirecting) return;
     if (window.location.pathname === '/login.html') return;
     api._authRedirecting = true;
     var next = window.location.pathname + window.location.search + window.location.hash;
-    window.location.href = '/login.html?next=' + encodeURIComponent(next);
+    var target = '/login.html?next=' + encodeURIComponent(next);
+    showSessionExpiredNotice();
+    window.setTimeout(function () { window.location.href = target; }, 1200);
   }
 
   function maybeHandleUnauthorizedResponse(response, input) {

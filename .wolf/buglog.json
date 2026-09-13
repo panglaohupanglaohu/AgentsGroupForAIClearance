@@ -2703,5 +2703,41 @@
       "pytest",
       "windows"
     ]
+  },
+  {
+    "id": "bug-159",
+    "timestamp": "2026-09-08T03:45:00Z",
+    "error_message": "AI模型准入流水线 G1-PROV-02 未通过，三项看似被阻断，重新提交申请无响应",
+    "file": "src/frontend/js/ai-model-entry-clearance.js, src/frontend/js/engine-state.js, src/frontend/ai-model-entry-clearance.html, src/backend/domain/api_routes.py, src/backend/domain/model_clearance/gate_orchestrator.py",
+    "root_cause": "旧模型评审会为未获取的远程制品生成模拟 manifest/hash，空或浮动 revision 因而被当成具体失败；两条参考情报的红色 × 实为移除控件；终态 CTA 又通过当前表单重建申请，而不是从已存模型快照启动新运行。",
+    "fix": "模型评审不再伪造制品证据，未知 revision/digest 进入 needs_info；情报控件改为中性“移除”；新增流水线内启动/重试 CTA 与 /retry 快照端点，终态重试创建新的模型审核运行并保留旧记录；申请人、用途、负责人不再阻断。",
+    "tags": [
+      "model-clearance",
+      "G1-PROV-02",
+      "retry",
+      "model-review",
+      "frontend"
+    ],
+    "related_bugs": [],
+    "occurrences": 1,
+    "last_seen": "2026-09-08"
+  },
+  {
+    "id": "bug-160",
+    "timestamp": "2026-09-08T03:45:00Z",
+    "error_message": "PowerShell git diff --stat && git diff --check 解析失败",
+    "file": "development shell command",
+    "root_cause": "当前 Windows PowerShell 版本不支持 && 命令连接符。",
+    "fix": "后续命令使用分号或拆成独立 Shell 调用。",
+    "tags": [
+      "powershell",
+      "shell",
+      "verification"
+    ],
+    "related_bugs": [
+      "bug-157"
+    ],
+    "occurrences": 1,
+    "last_seen": "2026-09-08"
   }
 ]

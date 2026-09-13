@@ -1,5 +1,4 @@
 {
-  "45f8ea2a": {},
   "build_system": {
     "codebuddy": {
       "model_id": "codebuddy",
@@ -43,6 +42,54 @@
       "max_tokens": 4096,
       "temperature": 0.7,
       "is_default": true,
+      "enabled": true,
+      "api_key": "",
+      "api_base_url": "https://api.deepseek.com"
+    }
+  },
+  "ai_news_60s": {
+    "quick_think": {
+      "model_id": "quick_think",
+      "provider": "deepseek",
+      "name": "deepseek-chat",
+      "max_tokens": 4096,
+      "temperature": 0.3,
+      "is_default": true,
+      "enabled": true,
+      "api_key": "",
+      "api_base_url": "https://api.deepseek.com"
+    },
+    "deep_think": {
+      "model_id": "deep_think",
+      "provider": "deepseek",
+      "name": "deepseek-reasoner",
+      "max_tokens": 8192,
+      "temperature": 0.2,
+      "is_default": false,
+      "enabled": true,
+      "api_key": "",
+      "api_base_url": "https://api.deepseek.com"
+    }
+  },
+  "dufu_world_intel": {
+    "quick_think": {
+      "model_id": "quick_think",
+      "provider": "deepseek",
+      "name": "deepseek-chat",
+      "max_tokens": 4096,
+      "temperature": 0.3,
+      "is_default": true,
+      "enabled": true,
+      "api_key": "",
+      "api_base_url": "https://api.deepseek.com"
+    },
+    "deep_think": {
+      "model_id": "deep_think",
+      "provider": "deepseek",
+      "name": "deepseek-reasoner",
+      "max_tokens": 8192,
+      "temperature": 0.2,
+      "is_default": false,
       "enabled": true,
       "api_key": "",
       "api_base_url": "https://api.deepseek.com"
@@ -100,6 +147,42 @@
     }
   },
   "pet_squad": {},
-  "156920ad": {},
-  "3954265c": {}
+  "open_weights": {
+    "quick_think": {
+      "model_id": "quick_think",
+      "provider": "deepseek",
+      "name": "deepseek-chat",
+      "max_tokens": 4096,
+      "temperature": 0.3,
+      "is_default": true,
+      "enabled": true,
+      "api_key": "",
+      "api_base_url": "https://api.deepseek.com"
+    },
+    "deep_think": {
+      "model_id": "deep_think",
+      "provider": "deepseek",
+      "name": "deepseek-reasoner",
+      "max_tokens": 8192,
+      "temperature": 0.2,
+      "is_default": false,
+      "enabled": true,
+      "api_key": "",
+      "api_base_url": "https://api.deepseek.com"
+    }
+  },
+  "cb309eea": {},
+  "ai-model-clearance": {
+    "clearance-primary": {
+      "model_id": "clearance-primary",
+      "provider": "deepseek",
+      "name": "deepseek-v4-pro",
+      "max_tokens": 8192,
+      "temperature": 0.2,
+      "is_default": true,
+      "enabled": true,
+      "api_key": "",
+      "api_base_url": "https://api.deepseek.com"
+    }
+  }
 }

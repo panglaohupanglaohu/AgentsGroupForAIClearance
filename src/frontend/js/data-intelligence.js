@@ -494,24 +494,29 @@
     throw new Error('运行超时：后台仍在执行，可稍后刷新查看文档');
   }
 
-  async function runTeam(teamId) {
-    switchTab(teamId === 'ai_news_60s' ? 'ai60' : 'world');
-    setText('inspector-log', '启动 ' + teamId + '…');
+  async function runTeam(teamId, extraOptions) {
+    switchTab(teamId === 'ai_news_60s' ? 'ai60' : teamId === 'open_weights' ? 'openweights' : 'world');
+    setText('inspector-log', '启动 ' + teamId + '…' + (extraOptions && extraOptions.target_model ? ' [专项模型: ' + extraOptions.target_model + ']' : ''));
     trace('running');
     var meta = teamMeta[teamId];
     if (teamState[teamId].running) return;
     teamState[teamId].running = true;
     resetBriefForRun(teamId);
     setAgentProgress(teamId, 0, 'running');
-    $(meta.start).disabled = true;
+    if ($(meta.start)) $(meta.start).disabled = true;
+    if ($('btn-exec-ow-team') && teamId === 'open_weights') $('btn-exec-ow-team').disabled = true;
+    if ($('btn-run-openweights') && teamId === 'open_weights') $('btn-run-openweights').disabled = true;
+    if ($('btn-start-ow') && teamId === 'open_weights') $('btn-start-ow').disabled = true;
     var sourceIds = Array.prototype.slice.call(document.querySelectorAll('.source-check:checked')).map(function (x) { return x.value; });
     var startedAt = Date.now();
     startLiveProgress(teamId, sourceIds.length, startedAt);
     try {
+      var reqBody = { source_ids: sourceIds };
+      if (extraOptions) Object.assign(reqBody, extraOptions);
       var accepted = await request('/api/v1/information-sources/teams/' + encodeURIComponent(teamId) + '/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source_ids: sourceIds })
+        body: JSON.stringify(reqBody)
       });
       if (!accepted) throw new Error((client()._lastError && client()._lastError.message) || 'enqueue failed');
       var result = accepted;
@@ -533,8 +538,34 @@
       setText(meta.note, ' failed / retry');
       setText('inspector-log', 'ERROR ' + (e.message || e));
     } finally {
-      $(meta.start).disabled = false;
+      if ($(meta.start)) $(meta.start).disabled = false;
+      if ($('btn-exec-ow-team') && teamId === 'open_weights') $('btn-exec-ow-team').disabled = false;
+      if ($('btn-run-openweights') && teamId === 'open_weights') $('btn-run-openweights').disabled = false;
+      if ($('btn-start-ow') && teamId === 'open_weights') $('btn-start-ow').disabled = false;
     }
+  }
+
+  async function investigateModel(modelId, modelName) {
+    switchTab('openweights');
+    setText('inspector-log', '针对 [' + modelName + ' (' + modelId + ')] 启动专项调研与情报采集…\n正在调度开放权重资源团队 6 位智能体...');
+    var box = $('panel-openweights');
+    if (box) {
+      var tc = box.querySelector('.team-control');
+      if (tc) tc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    await runTeam('open_weights', { target_model: modelId, model_name: modelName });
+  }
+
+  function bindModelInvestigateButtons() {
+    var root = $('openweights-grid');
+    if (!root) return;
+    root.querySelectorAll('.btn-investigate-model').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var modelId = btn.getAttribute('data-model-id');
+        var modelName = btn.getAttribute('data-model-name') || modelId;
+        investigateModel(modelId, modelName);
+      });
+    });
   }
 
   function renderDoc(doc, frameId) {
@@ -579,6 +610,14 @@
       var counters = (a.open_questions || r.risks_and_counterpoints || []).slice(0, 3).map(function (x) { return claimText(x, '待验证问题'); });
       return { headline: r.headline || doc.title || 'AI 情报研判', focus: (r.bullets || []).slice(0, 4).map(function (x) { return claimText(x, '待确认信号'); }), core: topics.length ? topics : ['暂无足够主题证据'], hot: signals.length ? signals : ['暂无高分信号'], insight: impacts.length ? impacts : ['暂无可确认的业务影响推断'], counter: counters.length ? counters : ['暂无反证摘要'], sourceCount: a.source_count || (r.citations || []).length, domains: a.source_diversity || 0, score: a.evidence_score, cutoff: r.data_cutoff || doc.as_of };
     }
+    if (channel === 'open_weights') {
+      var what = claimText(r.what_happened, doc.title || '开放权重模型生态研判');
+      var lic = (r.license_watch || []).slice(0, 3).map(function (x) { return claimText(x, '待确认许可条款'); });
+      var driversOW = (r.drivers || []).slice(0, 3).map(function (x) { return claimText(x, '待确认驱动'); });
+      var trendsOW = (r.data_trends || []).slice(0, 3).map(function (x) { return claimText(x, '待确认趋势'); });
+      var countersOW = (r.views_and_counterpoints || []).slice(0, 3).map(function (x) { return claimText(x, '待确认反证'); });
+      return { headline: what, focus: [what].concat(lic.slice(0, 3)), core: lic.length ? lic : ['暂无许可证约束摘要'], hot: trendsOW.length ? trendsOW : ['暂无趋势数据'], insight: driversOW.length ? driversOW : ['暂无核心驱动推断'], counter: countersOW.length ? countersOW : ['暂无反证'], sourceCount: a.source_count || (r.citations || []).length, domains: a.source_diversity || 0, score: a.evidence_score, cutoff: r.data_cutoff || doc.as_of };
+    }
     var drivers = (r.drivers || a.drivers || []).slice(0, 3).map(function (x) { return claimText(x, '待确认驱动'); });
     var trends = (r.data_trends || a.data_trends || []).slice(0, 3).map(function (x) { return claimText(x, '待确认趋势'); });
     var scenarios = (r.scenarios || []).slice(0, 3).map(function (x) { return (x.name || '情景') + '：' + claimText(x.summary, '待生成'); });
@@ -603,7 +642,7 @@
   function applyBrief(brief, channel) {
     channel = channel || (brief && brief.channel) || 'ai_news_60s';
     if ($('brief-strip')) $('brief-strip').classList.remove('is-running');
-    var channelLabel = channel === 'dufu_world_intel' ? '世界趋势' : 'AI 60 秒';
+    var channelLabel = channel === 'dufu_world_intel' ? '世界趋势' : channel === 'open_weights' ? '开放权重资源' : 'AI 60 秒';
 
     // Light strip (always present in P13 layout)
     if ($('brief-headline')) {
@@ -730,7 +769,7 @@
 
   function activeBriefChannel() {
     var selected = document.querySelector('.workbench-primary-nav .tab.active');
-    return selected && selected.dataset.tab === 'world' ? 'dufu_world_intel' : 'ai_news_60s';
+    return selected && selected.dataset.tab === 'world' ? 'dufu_world_intel' : selected && selected.dataset.tab === 'openweights' ? 'open_weights' : 'ai_news_60s';
   }
 
   function plainSummary(value, limit) {
@@ -750,6 +789,14 @@
         questions = (a.open_questions || []).slice(0, 2).map(function (x) { return plainSummary(x, 100); }).join('；') || reportLine(r.risks_and_counterpoints, '等待反证。'),
         published = (a.reasoning_steps || []).length ? '已完成 ' + a.reasoning_steps.length + ' 个研判阶段' : '动态 HTML 已发布';
       values = [r.headline, evidence, judgment, impact, questions, published + ' · ' + (doc.evidence_urls || []).length + ' 条引用 · v' + (doc.version || '—')];
+    } else if (teamId === 'open_weights') {
+      var whatText = reportLine(r.what_happened, '开放权重模型发布与模型卡跟踪。');
+      var licText = reportLine(r.license_watch, '提取许可证条款与商用约束。');
+      var evalText = reportLine(r.data_trends, '能力与评测基准数据。');
+      var resText = reportLine(r.drivers, '显存、计算资源与部署开销。');
+      var redText = reportLine(r.views_and_counterpoints, '安全行为与红队防御反证。');
+      var mapText = (doc.evidence_urls || []).length + ' 项证据已映射到准入门禁 · 截止 ' + (doc.as_of || '—');
+      values = [whatText, licText, evalText, resText, redText, mapText];
     } else {
       values = [reportLine(r.what_happened, '等待事件事实。'), reportLine(r.timeline, '等待时间线。'), reportLine(r.drivers, '等待关键驱动。'), reportLine(r.data_trends, '等待数据趋势。'), reportLine(r.counterpoints, '等待反证。'), reportLine(r.scenarios, '等待三情景树。'), reportLine(r.market_transmission, '等待市场传导。'), (doc.evidence_urls || []).length + ' 条来源 · 截止 ' + (doc.as_of || '—')];
     }
@@ -769,12 +816,20 @@
       renderDoc(world, 'frame-world');
       hydrateBoxes('dufu_world_intel', world);
     } catch (e2) { renderDoc(null, 'frame-world'); }
+    try {
+      var ow = await request('/api/v1/information-documents/latest/open_weights');
+      state.latest.open_weights = ow;
+      renderDoc(ow, 'frame-openweights');
+      hydrateBoxes('open_weights', ow);
+    } catch (e3) { renderDoc(null, 'frame-openweights'); }
     var selected = document.querySelector('.workbench-primary-nav .tab.active');
-    var channel = selected && selected.dataset.tab === 'world' ? 'dufu_world_intel' : 'ai_news_60s';
+    var channel = selected && selected.dataset.tab === 'world' ? 'dufu_world_intel' : selected && selected.dataset.tab === 'openweights' ? 'open_weights' : 'ai_news_60s';
     if (typeof renderExecutiveBrief === 'function') renderExecutiveBrief(channel, state.latest[channel]);
     $('latest-summary').innerHTML = renderLatestSummary('ai_news_60s', state.latest.ai_news_60s) +
       '<hr style="border:0;border-top:1px solid #edf1f5;margin:12px 0">' +
-      renderLatestSummary('dufu_world_intel', state.latest.dufu_world_intel);
+      renderLatestSummary('dufu_world_intel', state.latest.dufu_world_intel) +
+      '<hr style="border:0;border-top:1px solid #edf1f5;margin:12px 0">' +
+      renderLatestSummary('open_weights', state.latest.open_weights);
     await loadBriefs();
   }
 
@@ -841,7 +896,13 @@
       var licCls = m.license_class || 'conditional';
       var conditions = Array.isArray(m.license_conditions) ? m.license_conditions : [];
       var paramsText = m.params_b ? m.params_b + 'B 参数' : 'MoE / 多模态';
-      var clearanceUrl = '/ai-model-entry-clearance.html?model_id=' + encodeURIComponent(m.model_id);
+      var clearanceQuery = [
+        'source=data-intelligence',
+        'model_id=' + encodeURIComponent(m.model_id)
+      ];
+      if (m.latest_version) clearanceQuery.push('revision=' + encodeURIComponent(m.latest_version));
+      if (m.weights_url) clearanceQuery.push('weights_uri=' + encodeURIComponent(m.weights_url));
+      var clearanceUrl = '/ai-model-entry-clearance.html?' + clearanceQuery.join('&');
 
       return '<article class="ow-card">' +
         '<div class="ow-card-head">' +
@@ -858,12 +919,14 @@
         '</div>' +
         (conditions.length ? '<div class="ow-tags">' + conditions.map(function (c) { return '<span class="ow-tag">' + esc(c) + '</span>'; }).join('') + '</div>' : '') +
         '<div class="ow-actions">' +
+          '<button type="button" class="btn btn-investigate-model" data-model-id="' + esc(m.model_id) + '" data-model-name="' + esc(m.display_name || m.model_id) + '" style="background:#0284c7;color:#fff">🔬 执行模型调研</button>' +
           '<a href="' + esc(clearanceUrl) + '" class="btn" style="background:#0f766e;color:#fff">🛡️ 发起准入评审</a>' +
           (m.license_url ? '<a href="' + esc(m.license_url) + '" target="_blank" rel="noopener noreferrer" class="btn ghost" style="padding:4px 6px">📄 许可证</a>' : '') +
           (m.weights_url ? '<a href="' + esc(m.weights_url) + '" target="_blank" rel="noopener noreferrer" class="btn ghost" style="padding:4px 6px">📦 权重库</a>' : '') +
         '</div>' +
       '</article>';
     }).join('');
+    bindModelInvestigateButtons();
   }
 
   async function loadHistory() { var channel = $('docs-channel').value; try { var data = await request('/api/v1/information-documents?limit=30' + (channel ? '&channel=' + encodeURIComponent(channel) : '')); var rows = data.documents || []; $('kpi-docs').textContent = rows.length; $('docs-body').innerHTML = rows.length ? rows.map(function (d) { return '<tr class="doc-row" data-id="' + esc(d.document_id) + '"><td>' + esc(d.channel) + '</td><td>v' + esc(d.version) + '</td><td>' + esc(d.title) + '</td><td>' + esc(d.as_of) + '</td><td><code>' + esc(d.run_id) + '</code></td><td>' + reportReaderLink(d.channel, d, '打开 ↗') + '</td></tr>'; }).join('') : '<tr><td colspan="6" class="muted">无历史文档</td></tr>'; $('docs-body').querySelectorAll('.doc-row').forEach(function (row) { row.addEventListener('click', function (event) { if (event.target.closest('.report-open')) return; var doc = rows.find(function (x) { return x.document_id === row.dataset.id; }); $('doc-preview').innerHTML = doc && doc.html ? '<iframe class="doc" sandbox title="历史报告" srcdoc="' + esc(doc.html) + '"></iframe>' : ''; }); }); } catch (e) { $('docs-body').innerHTML = '<tr><td colspan="6" style="color:#dc2626">' + esc(e.message || e) + '</td></tr>'; } }
@@ -877,9 +940,24 @@
       updateKpis();
       $('schedule-list').querySelectorAll('.schedule-run').forEach(function (b) {
         b.addEventListener('click', async function () {
-          var r = await request('/api/v1/information-schedules/' + b.dataset.id + '/run', { method: 'POST' });
-          if (!r && client()._lastError) {
-            alert('运行失败: ' + (client()._lastError.message || ''));
+          // The endpoint waits on the run for up to 90s; without a busy state the
+          // whole card looks inert for the entire wait.
+          var label = b.textContent;
+          b.disabled = true;
+          b.textContent = '运行中…';
+          try {
+            var r = await request('/api/v1/information-schedules/' + b.dataset.id + '/run', { method: 'POST' });
+            if (!r) {
+              alert('运行失败: ' + ((client()._lastError && client()._lastError.message) || '请求失败'));
+            } else if (r.ok === false) {
+              // Failures come back as HTTP 200 with ok:false, so this needs an explicit check.
+              alert('运行失败: ' + (r.error || '未返回错误信息'));
+            } else if (r.pending) {
+              alert('已在后台继续运行，稍后刷新查看结果。');
+            }
+          } finally {
+            b.disabled = false;
+            b.textContent = label;
           }
           await loadSchedules();
           await loadLatestDocs();
@@ -947,13 +1025,17 @@
   if ($('ow-filter-license')) $('ow-filter-license').addEventListener('change', renderOpenWeights);
   if ($('ow-filter-vendor')) $('ow-filter-vendor').addEventListener('change', renderOpenWeights);
 
+  if ($('btn-run-openweights')) $('btn-run-openweights').addEventListener('click', function () { runTeam('open_weights'); });
+  if ($('btn-start-ow')) $('btn-start-ow').addEventListener('click', function () { runTeam('open_weights'); });
+  if ($('btn-exec-ow-team')) $('btn-exec-ow-team').addEventListener('click', function () { runTeam('open_weights'); });
+
   $('btn-refresh-sources').addEventListener('click', loadSources); $('btn-save-source-selection').addEventListener('click', saveSourceSelection); $('btn-select-all-sources').addEventListener('click', toggleAllSources); $('btn-add-fixture').addEventListener('click', addFixture); $('btn-health').addEventListener('click', healthAll); $('btn-run-ai60').addEventListener('click', function () { runTeam('ai_news_60s'); }); $('btn-run-dufu').addEventListener('click', function () { runTeam('dufu_world_intel'); }); $('btn-start-ai60').addEventListener('click', function () { runTeam('ai_news_60s'); }); $('btn-start-dufu').addEventListener('click', function () { runTeam('dufu_world_intel'); }); $('btn-docs').addEventListener('click', loadHistory); $('btn-latest').addEventListener('click', loadLatestDocs); $('btn-refresh-schedules').addEventListener('click', loadSchedules); $('schedule-form').addEventListener('submit', createSchedule); $('source-kind').addEventListener('change', syncSourceKind); $('source-profile').addEventListener('change', syncSourcePreview); $('source-name').addEventListener('input', syncSourcePreview); $('source-form').addEventListener('submit', createSource); $('btn-reset-source').addEventListener('click', resetSourceForm); $('directory-chat-form').addEventListener('submit', parseDirectoryChat); if ($('btn-directory-reset')) $('btn-directory-reset').addEventListener('click', resetDirectoryChat); document.querySelectorAll('.dir-preset-btn').forEach(function (btn) { btn.addEventListener('click', function () { if ($('directory-chat-input')) { $('directory-chat-input').value = btn.dataset.url || ''; $('directory-chat-form').dispatchEvent(new Event('submit')); } }); }); $('btn-directory-select-all').addEventListener('click', selectAllDirectory); $('btn-directory-commit').addEventListener('click', commitDirectory); document.querySelectorAll('.preview-tab').forEach(function (tab) { tab.addEventListener('click', function () { document.querySelectorAll('.preview-tab').forEach(function (x) { x.classList.toggle('active', x === tab); }); document.querySelectorAll('.preview-panel').forEach(function (panel) { panel.classList.toggle('active', panel.id === 'preview-' + tab.dataset.preview); }); }); });
   syncSourceKind();
   renderInfoBoxes('ai_news_60s'); renderInfoBoxes('dufu_world_intel'); renderInfoBoxes('open_weights');
   renderAgentRow('ai_news_60s'); renderAgentRow('dufu_world_intel'); renderAgentRow('open_weights');
   // Focus the primary information-source workspace on first paint; utility views
   // remain reachable from the right-side collection navigation.
-  var initialTab = (typeof window !== 'undefined' && window.location && window.location.search) ? (new URLSearchParams(window.location.search)).get('tab') || 'ai60' : 'ai60';
+  var initialTab = (typeof window !== 'undefined' && window.location && window.location.search) ? (new URLSearchParams(window.location.search)).get('tab') || 'openweights' : 'openweights';
   switchTab(initialTab);
   loadTeamAgents('ai_news_60s'); loadTeamAgents('dufu_world_intel'); loadTeamAgents('open_weights'); loadSources(); loadSchedules(); loadLatestDocs(); loadBriefs();
   // Reports are scheduled at a 30-minute cadence; a 20-second poll made the

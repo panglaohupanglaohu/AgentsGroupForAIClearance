@@ -56,25 +56,27 @@
    * Derive primary CTA from form + run status (T801).
    */
   function deriveStartState(form, run) {
+    if (run && run.run_id) {
+      var st = run.status || 'idle';
+      if (st === 'queued' || st === 'draft' || st === 'submitted') {
+        return { label: '提交准入评审', action: 'start', disabled: false, errors: [] };
+      }
+      if (st === 'running' || st === 'gating' || st === 'adjudicating') {
+        return { label: '门禁评审执行中', action: 'none', disabled: true, errors: [] };
+      }
+      if (st === 'completed' || st === 'approved' || st === 'approved_with_conditions' || st === 'registered') {
+        return { label: '重新评估', action: 'rerun', disabled: false, errors: [] };
+      }
+      if (st === 'need_info') {
+        return { label: '补证后重新审核', action: 'retry', disabled: false, errors: [] };
+      }
+      if (st === 'failed' || st === 'rejected' || st === 'cancelled' || st === 'revoked') {
+        return { label: '重新提交申请', action: 'retry', disabled: false, errors: [] };
+      }
+    }
     var errors = validateEngineForm(form || {});
     if (errors.length) {
       return { label: '检查配置', action: 'validate', disabled: false, errors: errors };
-    }
-    if (!run || !run.run_id) {
-      return { label: '创建并启动准入评审', action: 'create_start', disabled: false, errors: [] };
-    }
-    var st = run.status || 'idle';
-    if (st === 'queued' || st === 'draft' || st === 'submitted') {
-      return { label: '提交准入评审', action: 'start', disabled: false, errors: [] };
-    }
-    if (st === 'running' || st === 'gating' || st === 'adjudicating') {
-      return { label: '门禁评审执行中', action: 'none', disabled: true, errors: [] };
-    }
-    if (st === 'completed' || st === 'approved' || st === 'approved_with_conditions' || st === 'registered') {
-      return { label: '重新评估', action: 'rerun', disabled: false, errors: [] };
-    }
-    if (st === 'failed' || st === 'rejected' || st === 'cancelled' || st === 'revoked') {
-      return { label: '重新提交申请', action: 'retry', disabled: false, errors: [] };
     }
     return { label: '创建并启动准入评审', action: 'create_start', disabled: false, errors: [] };
   }
